@@ -27,7 +27,7 @@
     <fasterxml.jackson.databind.version>2.6.7.1</fasterxml.jackson.databind.version>
     <jsr305.version>1.3.9</jsr305.version>
     <commons-crypto.version>1.0.0</commons-crypto.version>
-    <spark.tags.version>3.0.0</spark.tags.version>
+    <spark.tags.version>3.0.0U1.0.30-sts-hudi-zl-sts-parallel-qh-hudi-BETA-SNAPSHOT</spark.tags.version>
     <arrow.version>6.0.1</arrow.version>
 
     <!-- Modules that copy jars to the build directory should do so under this location. -->

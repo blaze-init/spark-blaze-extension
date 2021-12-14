@@ -1,4 +1,4 @@
-package org.apache.spark.sql.blaze
+package org.apache.spark.sql.blaze.execution
 
 import com.kwai.{FileSegmentSeekableByteChannel, NioSeekableByteChannel}
 import org.apache.arrow.compression.CommonsCompressionFactory
@@ -85,7 +85,7 @@ object Converters {
     context: TaskContext): Iterator[InternalRow] = {
 
     val allocator =
-      ArrowUtils.rootAllocator.newChildAllocator("fromFilePart", 0, Long.MaxValue)
+      ArrowUtils.rootAllocator.newChildAllocator("readBatchesFromManagedBuffer", 0, Long.MaxValue)
     val arrowReader = new ArrowFileReader(channel, allocator, CommonsCompressionFactory.INSTANCE)
     val root = arrowReader.getVectorSchemaRoot()
     val first = arrowReader.loadNextBatch()
@@ -97,6 +97,7 @@ object Converters {
         root.close()
         allocator.close()
         arrowReader.close()
+        channel.close()
       }
 
       override def hasNext: Boolean = rowIter.hasNext || {
