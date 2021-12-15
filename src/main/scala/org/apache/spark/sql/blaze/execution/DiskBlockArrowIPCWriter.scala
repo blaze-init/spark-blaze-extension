@@ -24,11 +24,11 @@ import org.apache.arrow.vector.ipc.message.MessageSerializer
 import org.apache.spark.internal.Logging
 import org.apache.spark.shuffle.ShuffleWriteMetricsReporter
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.catalyst.expressions.UnsafeRow
+import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.arrow.ArrowWriter
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.ArrowUtils
-import org.apache.spark.storage.{BlockId, FileSegment, TimeTrackingOutputStream}
+import org.apache.spark.storage.{FileSegment, TimeTrackingOutputStream}
 import org.apache.spark.util.Utils
 
 import java.io.{BufferedOutputStream, File, FileOutputStream, OutputStream}
@@ -46,32 +46,16 @@ import java.nio.channels.{ClosedByInterruptException, FileChannel}
  * reopened again.
  */
 private[spark] class DiskBlockArrowIPCWriter(
-    val file: File,
-    bufferSize: Int,
-    syncWrites: Boolean,
-    // These write metrics concurrently shared with other active DiskBlockObjectWriters who
-    // are themselves performing writes. All updates must be relative.
-    writeMetrics: ShuffleWriteMetricsReporter,
-    schema: StructType,
-    maxRecordsPerBatch: Int)
+  val file: File,
+  bufferSize: Int,
+  syncWrites: Boolean,
+  // These write metrics concurrently shared with other active DiskBlockObjectWriters who
+  // are themselves performing writes. All updates must be relative.
+  writeMetrics: ShuffleWriteMetricsReporter,
+  schema: StructType,
+  maxRecordsPerBatch: Int)
   extends OutputStream
-  with Logging {
-
-  /**
-   * Guards against close calls, e.g. from a wrapping stream.
-   * Call manualClose to close the stream that was extended by this trait.
-   * Commit uses this trait to close object streams without paying the
-   * cost of closing and opening the underlying file.
-   */
-  private trait ManualCloseOutputStream extends OutputStream {
-    abstract override def close(): Unit = {
-      flush()
-    }
-
-    def manualClose(): Unit = {
-      super.close()
-    }
-  }
+    with Logging {
 
   val timezoneId = SparkSession.active.sqlContext.conf.sessionLocalTimeZone
   val arrowSchema = ArrowUtils.toArrowSchema(schema, timezoneId)
@@ -79,7 +63,7 @@ private[spark] class DiskBlockArrowIPCWriter(
     ArrowUtils.rootAllocator.newChildAllocator("row2ArrowBatchWrite", 0, Long.MaxValue)
   val root = VectorSchemaRoot.create(arrowSchema, allocator)
   val arrowBuffer = ArrowWriter.create(root)
-
+  private val leLength = new Array[Byte](8)
   /** The file channel, used for repositioning / truncating the file. */
   private var channel: FileChannel = null
   private var mcs: ManualCloseOutputStream = null
@@ -93,10 +77,10 @@ private[spark] class DiskBlockArrowIPCWriter(
    * Cursors used to represent positions in the file.
    *
    * xxxxxxxxxx|----------|-----|
-   *           ^          ^     ^
-   *           |          |    channel.position()
-   *           |        reportedPosition
-   *         committedPosition
+   * ^          ^     ^
+   * |          |    channel.position()
+   * |        reportedPosition
+   * committedPosition
    *
    * reportedPosition: Position at the time of the last update to the write metrics.
    * committedPosition: Offset after last committed write.
@@ -112,28 +96,23 @@ private[spark] class DiskBlockArrowIPCWriter(
    * And we reset it after every commitAndGet called.
    */
   private var numRecordsWritten = 0
+  private var partitionStartPos = 0L
+  private var currentRowCount = 0
+  private var writer: ArrowFileWriter = null
 
-  private def initialize(): Unit = {
-    fos = new FileOutputStream(file, true)
-    channel = fos.getChannel()
-    ts = new TimeTrackingOutputStream(writeMetrics, fos)
-    class ManualCloseBufferedOutputStream
-      extends BufferedOutputStream(ts, bufferSize) with ManualCloseOutputStream
-    mcs = new ManualCloseBufferedOutputStream
-  }
-
-  def open(): DiskBlockArrowIPCWriter = {
-    if (hasBeenClosed) {
-      throw new IllegalStateException("Writer already closed. Cannot be reopened.")
+  /**
+   * Commits any remaining partial writes and closes resources.
+   */
+  override def close(): Unit = {
+    if (initialized) {
+      Utils.tryWithSafeFinally {
+        commitAndGet()
+        root.close()
+        allocator.close()
+      } {
+        closeResources()
+      }
     }
-    if (!initialized) {
-      initialize()
-      initialized = true
-    }
-
-    streamOpen = true
-    startPartition()
-    this
   }
 
   /**
@@ -152,21 +131,6 @@ private[spark] class DiskBlockArrowIPCWriter(
         initialized = false
         streamOpen = false
         hasBeenClosed = true
-      }
-    }
-  }
-
-  /**
-   * Commits any remaining partial writes and closes resources.
-   */
-  override def close(): Unit = {
-    if (initialized) {
-      Utils.tryWithSafeFinally {
-        commitAndGet()
-        root.close()
-        allocator.close()
-      } {
-        closeResources()
       }
     }
   }
@@ -204,6 +168,17 @@ private[spark] class DiskBlockArrowIPCWriter(
     }
   }
 
+  def endPartition(): Unit = {
+    if (currentRowCount > 0) {
+      arrowBuffer.finish()
+      writer.writeBatch()
+      currentRowCount = 0
+    }
+    writer.end()
+    val last = channel.position()
+    MessageSerializer.longToBytes(last - partitionStartPos, leLength)
+    channel.write(ByteBuffer.wrap(leLength))
+  }
 
   /**
    * Reverts writes that haven't been committed yet. Callers should invoke this function
@@ -251,18 +226,7 @@ private[spark] class DiskBlockArrowIPCWriter(
   override def write(kvBytes: Array[Byte], offs: Int, len: Int): Unit =
     throw new UnsupportedOperationException()
 
-  private var partitionStartPos = 0L
-  private var currentRowCount = 0
-  private var writer: ArrowFileWriter = null
-  private val leLength = new Array[Byte](8)
-
-  def startPartition(): Unit = {
-    partitionStartPos = channel.position()
-    writer = new ArrowFileWriter(root, new MapDictionaryProvider(), channel)
-    writer.start()
-  }
-
-  def write(row: UnsafeRow): Unit = {
+  def write(row: InternalRow): Unit = {
     if (!streamOpen) {
       open()
     }
@@ -276,16 +240,33 @@ private[spark] class DiskBlockArrowIPCWriter(
     }
   }
 
-  def endPartition(): Unit = {
-    if (currentRowCount > 0) {
-      arrowBuffer.finish()
-      writer.writeBatch()
-      currentRowCount = 0
+  def open(): DiskBlockArrowIPCWriter = {
+    if (hasBeenClosed) {
+      throw new IllegalStateException("Writer already closed. Cannot be reopened.")
     }
-    writer.end()
-    val last = channel.position()
-    MessageSerializer.longToBytes(last - partitionStartPos, leLength)
-    channel.write(ByteBuffer.wrap(leLength))
+    if (!initialized) {
+      initialize()
+      initialized = true
+    }
+
+    streamOpen = true
+    startPartition()
+    this
+  }
+
+  private def initialize(): Unit = {
+    fos = new FileOutputStream(file, true)
+    channel = fos.getChannel()
+    ts = new TimeTrackingOutputStream(writeMetrics, fos)
+    class ManualCloseBufferedOutputStream
+      extends BufferedOutputStream(ts, bufferSize) with ManualCloseOutputStream
+    mcs = new ManualCloseBufferedOutputStream
+  }
+
+  def startPartition(): Unit = {
+    partitionStartPos = channel.position()
+    writer = new ArrowFileWriter(root, new MapDictionaryProvider(), channel)
+    writer.start()
   }
 
   /**
@@ -308,5 +289,21 @@ private[spark] class DiskBlockArrowIPCWriter(
     val pos = channel.position()
     writeMetrics.incBytesWritten(pos - reportedPosition)
     reportedPosition = pos
+  }
+
+  /**
+   * Guards against close calls, e.g. from a wrapping stream.
+   * Call manualClose to close the stream that was extended by this trait.
+   * Commit uses this trait to close object streams without paying the
+   * cost of closing and opening the underlying file.
+   */
+  private trait ManualCloseOutputStream extends OutputStream {
+    abstract override def close(): Unit = {
+      flush()
+    }
+
+    def manualClose(): Unit = {
+      super.close()
+    }
   }
 }
