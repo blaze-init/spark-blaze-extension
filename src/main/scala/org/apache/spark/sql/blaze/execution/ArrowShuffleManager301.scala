@@ -100,6 +100,7 @@ class ArrowShuffleManager301(conf: SparkConf) extends ShuffleManager with Loggin
     val env = SparkEnv.get
     handle match {
       case unsafeShuffleHandle: SerializedShuffleHandle[K @unchecked, V @unchecked] =>
+        require(unsafeShuffleHandle.dependency.isInstanceOf[ShuffleDependencySchema])
         new ArrowShuffleWriter301(
           env.blockManager,
           context.taskMemoryManager(),
@@ -110,6 +111,7 @@ class ArrowShuffleManager301(conf: SparkConf) extends ShuffleManager with Loggin
           metrics,
           shuffleExecutorComponents)
       case bypassMergeSortHandle: BypassMergeSortShuffleHandle[K @unchecked, V @unchecked] =>
+        require(bypassMergeSortHandle.dependency.isInstanceOf[ShuffleDependencySchema])
         new ArrowBypassMergeSortShuffleWriter301(
           env.blockManager,
           bypassMergeSortHandle,
@@ -118,8 +120,7 @@ class ArrowShuffleManager301(conf: SparkConf) extends ShuffleManager with Loggin
           metrics,
           shuffleExecutorComponents)
       case other: BaseShuffleHandle[K @unchecked, V @unchecked, _] =>
-        new SortShuffleWriter(
-          shuffleBlockResolver, other, mapId, context, shuffleExecutorComponents)
+        throw new UnsupportedOperationException(s"$other type not allowed for arrow-shuffle")
     }
   }
 

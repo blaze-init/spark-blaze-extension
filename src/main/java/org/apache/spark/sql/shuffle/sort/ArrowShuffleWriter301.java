@@ -44,6 +44,8 @@ import org.apache.spark.shuffle.api.SingleSpillShuffleMapOutputWriter;
 import org.apache.spark.shuffle.api.WritableByteChannelWrapper;
 import org.apache.spark.shuffle.sort.SerializedShuffleHandle;
 import org.apache.spark.shuffle.sort.SortShuffleManager;
+import org.apache.spark.sql.blaze.execution.ShuffleDependencySchema;
+import org.apache.spark.sql.types.StructType;
 import org.apache.spark.storage.BlockManager;
 import org.apache.spark.storage.TimeTrackingOutputStream;
 import org.apache.spark.unsafe.Platform;
@@ -91,6 +93,8 @@ public class ArrowShuffleWriter301<K, V> extends ShuffleWriter<K, V> {
   private final boolean transferToEnabled;
   private final int initialSortBufferSize;
   private final int inputBufferSizeInBytes;
+  private final StructType schema;
+  private final int maxRecordsPerBatch;
 
   @Nullable private MapStatus mapStatus;
   @Nullable private ArrowShuffleExternalSorter301 sorter;
@@ -135,6 +139,7 @@ public class ArrowShuffleWriter301<K, V> extends ShuffleWriter<K, V> {
     this.shuffleId = dep.shuffleId();
     this.serializer = dep.serializer().newInstance();
     this.partitioner = dep.partitioner();
+    this.schema = ((ShuffleDependencySchema) dep).schema();
     this.writeMetrics = writeMetrics;
     this.shuffleExecutorComponents = shuffleExecutorComponents;
     this.taskContext = taskContext;
@@ -144,6 +149,7 @@ public class ArrowShuffleWriter301<K, V> extends ShuffleWriter<K, V> {
       (int) (long) sparkConf.get(package$.MODULE$.SHUFFLE_SORT_INIT_BUFFER_SIZE());
     this.inputBufferSizeInBytes =
       (int) (long) sparkConf.get(package$.MODULE$.SHUFFLE_FILE_BUFFER_SIZE()) * 1024;
+    this.maxRecordsPerBatch = sparkConf.getInt("spark.blaze.shuffle.maxRecordsPerBatch", 8192);
     open();
   }
 
@@ -212,7 +218,9 @@ public class ArrowShuffleWriter301<K, V> extends ShuffleWriter<K, V> {
       initialSortBufferSize,
       partitioner.numPartitions(),
       sparkConf,
-      writeMetrics);
+      writeMetrics,
+      schema,
+      maxRecordsPerBatch);
     serBuffer = new MyByteArrayOutputStream(DEFAULT_INITIAL_SER_BUFFER_SIZE);
     serOutputStream = serializer.serializeStream(serBuffer);
   }
@@ -223,13 +231,13 @@ public class ArrowShuffleWriter301<K, V> extends ShuffleWriter<K, V> {
     updatePeakMemoryUsed();
     serBuffer = null;
     serOutputStream = null;
-    final org.apache.spark.sql.shuffle.sort.SpillInfo[] spills = sorter.closeAndGetSpills();
+    final SpillInfo[] spills = sorter.closeAndGetSpills();
     sorter = null;
     final long[] partitionLengths;
     try {
       partitionLengths = mergeSpills(spills);
     } finally {
-      for (org.apache.spark.sql.shuffle.sort.SpillInfo spill : spills) {
+      for (SpillInfo spill : spills) {
         if (spill.file.exists() && !spill.file.delete()) {
           logger.error("Error while deleting spill file {}", spill.file.getPath());
         }
@@ -268,7 +276,7 @@ public class ArrowShuffleWriter301<K, V> extends ShuffleWriter<K, V> {
    *
    * @return the partition lengths in the merged file.
    */
-  private long[] mergeSpills(org.apache.spark.sql.shuffle.sort.SpillInfo[] spills) throws IOException {
+  private long[] mergeSpills(SpillInfo[] spills) throws IOException {
     long[] partitionLengths;
     if (spills.length == 0) {
       final ShuffleMapOutputWriter mapWriter = shuffleExecutorComponents
@@ -293,7 +301,7 @@ public class ArrowShuffleWriter301<K, V> extends ShuffleWriter<K, V> {
     return partitionLengths;
   }
 
-  private long[] mergeSpillsUsingStandardWriter(org.apache.spark.sql.shuffle.sort.SpillInfo[] spills) throws IOException {
+  private long[] mergeSpillsUsingStandardWriter(SpillInfo[] spills) throws IOException {
     long[] partitionLengths;
     final boolean compressionEnabled = (boolean) sparkConf.get(package$.MODULE$.SHUFFLE_COMPRESS());
     final CompressionCodec compressionCodec = CompressionCodec$.MODULE$.createCodec(sparkConf);
@@ -444,7 +452,7 @@ public class ArrowShuffleWriter301<K, V> extends ShuffleWriter<K, V> {
    * @return the partition lengths in the merged file.
    */
   private void mergeSpillsWithTransferTo(
-      org.apache.spark.sql.shuffle.sort.SpillInfo[] spills,
+      SpillInfo[] spills,
       ShuffleMapOutputWriter mapWriter) throws IOException {
     logger.debug("Merge shuffle spills with TransferTo for mapId {}", mapId);
     final int numPartitions = partitioner.numPartitions();

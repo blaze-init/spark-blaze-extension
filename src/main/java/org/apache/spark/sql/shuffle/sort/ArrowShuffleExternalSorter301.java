@@ -17,7 +17,6 @@
 
 package org.apache.spark.sql.shuffle.sort;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.spark.SparkConf;
 import org.apache.spark.TaskContext;
 import org.apache.spark.executor.ShuffleWriteMetrics;
@@ -26,13 +25,13 @@ import org.apache.spark.memory.MemoryConsumer;
 import org.apache.spark.memory.SparkOutOfMemoryError;
 import org.apache.spark.memory.TaskMemoryManager;
 import org.apache.spark.memory.TooLargePageException;
-import org.apache.spark.serializer.DummySerializerInstance;
-import org.apache.spark.serializer.SerializerInstance;
 import org.apache.spark.shuffle.ShuffleWriteMetricsReporter;
 import org.apache.spark.shuffle.sort.SortShuffleWriter;
 import org.apache.spark.shuffle.sort.UnsafeShuffleWriter;
+import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
+import org.apache.spark.sql.types.StructType;
 import org.apache.spark.storage.BlockManager;
-import org.apache.spark.storage.DiskBlockObjectWriter;
+import org.apache.spark.sql.blaze.execution.DiskBlockArrowIPCWriter;
 import org.apache.spark.storage.FileSegment;
 import org.apache.spark.storage.TempShuffleBlockId;
 import org.apache.spark.unsafe.Platform;
@@ -68,14 +67,12 @@ final class ArrowShuffleExternalSorter301 extends MemoryConsumer {
 
   private static final Logger logger = LoggerFactory.getLogger(ArrowShuffleExternalSorter301.class);
 
-  @VisibleForTesting
-  static final int DISK_WRITE_BUFFER_SIZE = 1024 * 1024;
-
   private final int numPartitions;
   private final TaskMemoryManager taskMemoryManager;
   private final BlockManager blockManager;
   private final TaskContext taskContext;
   private final ShuffleWriteMetricsReporter writeMetrics;
+  private final StructType schema;
 
   /**
    * Force this sorter to spill when there are this many elements in memory.
@@ -87,6 +84,9 @@ final class ArrowShuffleExternalSorter301 extends MemoryConsumer {
 
   /** The buffer size to use when writing the sorted records to an on-disk file */
   private final int diskWriteBufferSize;
+
+  private final boolean shuffleSync;
+  private final int maxRecordsPerBatch;
 
   /**
    * Memory pages that hold the records being sorted. The pages in this list are freed when
@@ -113,7 +113,9 @@ final class ArrowShuffleExternalSorter301 extends MemoryConsumer {
       int initialSize,
       int numPartitions,
       SparkConf conf,
-      ShuffleWriteMetricsReporter writeMetrics) {
+      ShuffleWriteMetricsReporter writeMetrics,
+      StructType schema,
+      int maxRecordsPerBatch) {
     super(memoryManager,
       (int) Math.min(PackedRecordPointer.MAXIMUM_PAGE_SIZE_BYTES, memoryManager.pageSizeBytes()),
       memoryManager.getTungstenMemoryMode());
@@ -121,6 +123,8 @@ final class ArrowShuffleExternalSorter301 extends MemoryConsumer {
     this.blockManager = blockManager;
     this.taskContext = taskContext;
     this.numPartitions = numPartitions;
+    this.schema = schema;
+    this.maxRecordsPerBatch = maxRecordsPerBatch;
     // Use getSizeAsKb (not bytes) to maintain backwards compatibility if no units are provided
     this.fileBufferSizeBytes =
         (int) (long) conf.get(package$.MODULE$.SHUFFLE_FILE_BUFFER_SIZE()) * 1024;
@@ -132,6 +136,7 @@ final class ArrowShuffleExternalSorter301 extends MemoryConsumer {
     this.peakMemoryUsedBytes = getMemoryUsage();
     this.diskWriteBufferSize =
         (int) (long) conf.get(package$.MODULE$.SHUFFLE_DISK_WRITE_BUFFER_SIZE());
+    this.shuffleSync = (boolean) conf.get(package$.MODULE$.SHUFFLE_SYNC());
   }
 
   /**
@@ -180,16 +185,13 @@ final class ArrowShuffleExternalSorter301 extends MemoryConsumer {
     final TempShuffleBlockId blockId = spilledFileInfo._1();
     final SpillInfo spillInfo = new SpillInfo(numPartitions, file, blockId);
 
-    // Unfortunately, we need a serializer instance in order to construct a DiskBlockObjectWriter.
-    // Our write path doesn't actually use this serializer (since we end up calling the `write()`
-    // OutputStream methods), but DiskBlockObjectWriter still calls some methods on it. To work
-    // around this, we pass a dummy no-op serializer.
-    final SerializerInstance ser = DummySerializerInstance.INSTANCE;
-
     int currentPartition = -1;
     final FileSegment committedSegment;
-    try (DiskBlockObjectWriter writer =
-        blockManager.getDiskWriter(blockId, file, ser, fileBufferSizeBytes, writeMetricsToUse)) {
+    UnsafeRow current = null;
+
+    try (DiskBlockArrowIPCWriter writer =
+        new DiskBlockArrowIPCWriter(
+            file, fileBufferSizeBytes, shuffleSync, writeMetrics, schema, maxRecordsPerBatch)) {
 
       final int uaoSize = UnsafeAlignedOffset.getUaoSize();
       while (sortedRecords.hasNext()) {
@@ -210,14 +212,8 @@ final class ArrowShuffleExternalSorter301 extends MemoryConsumer {
         final long recordOffsetInPage = taskMemoryManager.getOffsetInPage(recordPointer);
         int dataRemaining = UnsafeAlignedOffset.getSize(recordPage, recordOffsetInPage);
         long recordReadPosition = recordOffsetInPage + uaoSize; // skip over record length
-        while (dataRemaining > 0) {
-          final int toTransfer = Math.min(diskWriteBufferSize, dataRemaining);
-          Platform.copyMemory(
-            recordPage, recordReadPosition, writeBuffer, Platform.BYTE_ARRAY_OFFSET, toTransfer);
-          writer.write(writeBuffer, 0, toTransfer);
-          recordReadPosition += toTransfer;
-          dataRemaining -= toTransfer;
-        }
+        current.pointTo(recordPage, recordReadPosition, dataRemaining);
+        writer.write(current);
         writer.recordWritten();
       }
 
