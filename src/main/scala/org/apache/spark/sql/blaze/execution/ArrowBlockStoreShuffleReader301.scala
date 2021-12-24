@@ -20,6 +20,7 @@ class ArrowBlockStoreShuffleReader301[K, C](
   extends ShuffleReader[K, C] with Logging {
 
   private val dep = handle.dependency
+  private val serializerInstance = dep.serializer.newInstance()
 
   /** Read the combined key-values for this reduce task */
   override def read(): Iterator[Product2[K, C]] = {

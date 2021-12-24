@@ -19,9 +19,9 @@ import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.util.MutablePair
 import org.apache.spark.util.collection.unsafe.sort.{PrefixComparators, RecordComparator}
-
 import java.util.Random
 import java.util.function.Supplier
+
 import scala.concurrent.Future
 import scala.reflect.ClassTag
 
@@ -33,6 +33,7 @@ case class ArrowShuffleExchangeExec301(
   override lazy val metrics = Map(
     "dataSize" -> SQLMetrics.createSizeMetric(sparkContext, "data size")
   ) ++ readMetrics ++ writeMetrics
+
   @transient lazy val inputRDD: RDD[InternalRow] = child.execute()
   // 'mapOutputStatisticsFuture' is only needed when enable AQE.
   @transient override lazy val mapOutputStatisticsFuture: Future[MapOutputStatistics] = {
@@ -72,7 +73,7 @@ case class ArrowShuffleExchangeExec301(
   def canChangeNumPartitions: Boolean =
     noUserSpecifiedNumPartition && outputPartitioning != SinglePartition
 
-  override def nodeName: String = "Exchange"
+  override def nodeName: String = "ArrowShuffleExchange"
 
   override def numMappers: Int = shuffleDependency.rdd.getNumPartitions
 
@@ -87,6 +88,7 @@ case class ArrowShuffleExchangeExec301(
     val rowCount = metrics(SQLShuffleWriteMetricsReporter.SHUFFLE_RECORDS_WRITTEN).value
     Statistics(dataSize, Some(rowCount))
   }
+
 
   protected override def doExecute(): RDD[InternalRow] = attachTree(this, "execute") {
     // Returns the same ShuffleRowRDD if this plan is used by multiple plans.
@@ -241,10 +243,13 @@ object ArrowShuffleExchangeExec301 {
     // Now, we manually create a ShuffleDependency. Because pairs in rddWithPartitionIds
     // are in the form of (partitionId, row) and every partitionId is in the expected range
     // [0, part.numPartitions - 1]. The partitioner of this is a PartitionIdPassthrough.
+    val newPartitionIdPassThrough =
+      Class.forName("org.apache.spark.sql.execution.PartitionIdPassthrough").getConstructors.head
+
     val dependency =
     new ShuffleDependencySchema[Int, InternalRow, InternalRow](
       rddWithPartitionIds,
-      new PartitionIdPassthrough(part.numPartitions),
+      newPartitionIdPassThrough.newInstance(part.numPartitions.asInstanceOf[AnyRef]).asInstanceOf[Partitioner],
       serializer,
       shuffleWriterProcessor = createShuffleWriteProcessor(writeMetrics),
       schema = StructType.fromAttributes(outputAttributes))
