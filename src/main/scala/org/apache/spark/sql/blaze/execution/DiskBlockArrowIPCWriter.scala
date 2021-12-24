@@ -23,17 +23,18 @@ import org.apache.arrow.vector.ipc.ArrowFileWriter
 import org.apache.arrow.vector.ipc.message.MessageSerializer
 import org.apache.spark.internal.Logging
 import org.apache.spark.shuffle.ShuffleWriteMetricsReporter
-import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.arrow.ArrowWriter
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.util.ArrowUtils
 import org.apache.spark.storage.{FileSegment, TimeTrackingOutputStream}
 import org.apache.spark.util.Utils
-
 import java.io.{BufferedOutputStream, File, FileOutputStream, OutputStream}
 import java.nio.ByteBuffer
 import java.nio.channels.{ClosedByInterruptException, FileChannel}
+
+import org.apache.spark.sql.internal.SQLConf
+import org.apache.spark.SparkEnv
 
 /**
  * A class for writing JVM objects directly to a file on disk. This class allows data to be appended
@@ -57,7 +58,7 @@ private[spark] class DiskBlockArrowIPCWriter(
   extends OutputStream
     with Logging {
 
-  val timezoneId = SparkSession.active.sqlContext.conf.sessionLocalTimeZone
+  val timezoneId = SparkEnv.get.conf.get(SQLConf.SESSION_LOCAL_TIMEZONE)
   val arrowSchema = ArrowUtils.toArrowSchema(schema, timezoneId)
   val allocator =
     ArrowUtils.rootAllocator.newChildAllocator("row2ArrowBatchWrite", 0, Long.MaxValue)

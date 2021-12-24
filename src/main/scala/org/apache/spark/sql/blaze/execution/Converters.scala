@@ -1,7 +1,6 @@
 package org.apache.spark.sql.blaze.execution
 
 import com.kwai.{FileSegmentSeekableByteChannel, NioSeekableByteChannel}
-import org.apache.arrow.compression.CommonsCompressionFactory
 import org.apache.arrow.vector._
 import org.apache.arrow.vector.dictionary.DictionaryProvider.MapDictionaryProvider
 import org.apache.arrow.vector.ipc.{ArrowFileReader, ArrowFileWriter}
@@ -86,7 +85,7 @@ object Converters {
 
     val allocator =
       ArrowUtils.rootAllocator.newChildAllocator("readBatchesFromManagedBuffer", 0, Long.MaxValue)
-    val arrowReader = new ArrowFileReader(channel, allocator, CommonsCompressionFactory.INSTANCE)
+    val arrowReader = new ArrowFileReader(channel, allocator)//, CommonsCompressionFactory.INSTANCE)
     val root = arrowReader.getVectorSchemaRoot()
     val first = arrowReader.loadNextBatch()
 

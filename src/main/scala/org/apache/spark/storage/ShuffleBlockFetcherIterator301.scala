@@ -17,20 +17,24 @@
 
 package org.apache.spark.storage
 
+import java.io.IOException
+
 import org.apache.spark.internal.Logging
 import org.apache.spark.network.buffer.{FileSegmentManagedBuffer, ManagedBuffer}
 import org.apache.spark.network.shuffle._
 import org.apache.spark.network.util.TransportConf
 import org.apache.spark.shuffle.{FetchFailedException, ShuffleReadMetricsReporter}
-import org.apache.spark.util.{CompletionIterator, TaskCompletionListener, Utils}
+import org.apache.spark.util.{CompletionIterator, Utils}
 import org.apache.spark.{SparkException, TaskContext}
-
 import java.nio.channels.ClosedByInterruptException
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 import javax.annotation.concurrent.GuardedBy
+
 import scala.collection.mutable
 import scala.collection.mutable.{ArrayBuffer, HashMap, HashSet, LinkedHashMap, Queue}
 import scala.util.{Failure, Success}
+
+import org.apache.spark.util.TaskCompletionListener
 
 /**
  * An iterator that fetches multiple blocks. For local blocks, it fetches from the local block
@@ -120,7 +124,7 @@ final class ShuffleBlockFetcherIterator301(
    */
   @GuardedBy("this")
   private[this] val shuffleFilesSet = mutable.HashSet[DownloadFile]()
-  private[this] val onCompleteCallback = new ShuffleFetchCompletionListener(this)
+  private[this] val onCompleteCallback = new ArrowShuffleFetchCompletionListener(this)
   /**
    * Total number of blocks to fetch.
    */
@@ -684,7 +688,7 @@ final class ShuffleBlockFetcherIterator301(
  *
  * @param data the ShuffleBlockFetcherIterator to process
  */
-private class ShuffleFetchCompletionListener(var data: ShuffleBlockFetcherIterator301)
+class ArrowShuffleFetchCompletionListener(var data: ShuffleBlockFetcherIterator301)
   extends TaskCompletionListener {
 
   // Just an alias for onTaskCompletion to avoid confusing
