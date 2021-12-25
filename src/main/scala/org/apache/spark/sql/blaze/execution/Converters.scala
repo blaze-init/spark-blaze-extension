@@ -10,12 +10,13 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.arrow.ArrowWriter
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.util.ArrowUtils
-import org.apache.spark.sql.vectorized.{ArrowColumnVector, ColumnVector, ColumnarBatch}
+import org.apache.spark.sql.vectorized.{ArrowColumnVector, ColumnarBatch, ColumnVector}
 import org.apache.spark.util.Utils
-
 import java.io.{OutputStream, RandomAccessFile}
 import java.nio.ByteBuffer
 import java.nio.channels.{Channels, SeekableByteChannel}
+import java.nio.ByteOrder
+
 import scala.collection.JavaConverters._
 
 object Converters {
@@ -32,22 +33,20 @@ object Converters {
     data match {
       case f: FileSegmentManagedBuffer =>
         val file = f.getFile
-        val length_reader = new RandomAccessFile(file, "r")
+        val lengthReader = new RandomAccessFile(file, "r")
 
-        var curStart = f.getOffset()
-        var curEnd = f.getOffset() + f.getLength()
-
-        do {
+        var curEnd = f.getOffset + f.getLength
+        while (curEnd > 0) {
           val lenBuf = new Array[Byte](8)
-          length_reader.seek(curEnd - 8)
-          length_reader.read(lenBuf)
-          val len = getLongLE(ByteBuffer.wrap(lenBuf)).toInt
+          lengthReader.seek(curEnd - 8)
+          lengthReader.read(lenBuf)
+          val len = ByteBuffer.wrap(lenBuf).order(ByteOrder.LITTLE_ENDIAN).getInt
+          val curStart = curEnd - 8 - len
 
-          curEnd -= 8
-          curStart = curEnd - len
           val fsc = new FileSegmentSeekableByteChannel(file, curStart, len)
           result ++= readBatches(fsc, context)
-        } while (curStart > f.getOffset())
+          curEnd = curStart
+        }
 
       case _: NettyManagedBuffer | _: NioManagedBuffer =>
         val all = data.nioByteBuffer()
@@ -60,7 +59,7 @@ object Converters {
           lenCopy.limit(curEnd)
           val lenBuf = ByteBuffer.allocate(8)
           lenBuf.put(lenCopy)
-          val len = getLongLE(lenBuf).toInt
+          val len = lenBuf.order(ByteOrder.LITTLE_ENDIAN).getInt
 
           val cur = all.duplicate()
           curEnd -= 8
@@ -122,20 +121,6 @@ object Converters {
         batch.rowIterator().asScala
       }
     }
-  }
-
-  /**
-   * Parse little-endian unsigned long from its serialized format.
-   */
-  def getLongLE(bytes: ByteBuffer): Long = {
-    var result = bytes.get(0) & 0xFFL
-    result = result + ((bytes.get(1) & 0xFFL) << 8)
-    result = result + ((bytes.get(2) & 0xFFL) << 16)
-    result = result + ((bytes.get(3) & 0xFFL) << 24)
-    result = result + ((bytes.get(4) & 0xFFL) << 32)
-    result = result + ((bytes.get(5) & 0xFFL) << 40)
-    result = result + ((bytes.get(6) & 0xFFL) << 48)
-    result + ((bytes.get(7) & 0xFFL) << 56)
   }
 
   /**

@@ -1,6 +1,10 @@
 package com.kwai;
 
+import org.apache.spark.internal.Logging;
 import org.apache.spark.network.util.JavaUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -9,12 +13,14 @@ import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
 
 public class FileSegmentSeekableByteChannel implements SeekableByteChannel {
+    private final static Logger LOG = LoggerFactory.getLogger(FileSegmentSeekableByteChannel.class);
     private final long offset;
     private final long length;
     private File file;
     private int position = 0;
 
     public FileSegmentSeekableByteChannel(File file, long offset, long length) {
+        LOG.info("FileSegmentSeekableByteChannel: File={}, offset={}, length={}", file, offset, length);
         this.file = file;
         this.offset = offset;
         this.length = length;
