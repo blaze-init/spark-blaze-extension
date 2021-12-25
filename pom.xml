@@ -5,11 +5,9 @@
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.kwai</groupId>
-  <artifactId>spark-arrow-shuffle</artifactId>
+  <artifactId>spark-blaze-extension</artifactId>
   <version>1.0-SNAPSHOT</version>
-  <!-- <packaging>pom</packaging> -->
-
-  <name>Spark Vectorized Shuffle based on Arrow</name>
+  <packaging>jar</packaging>
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -46,8 +44,8 @@
     <build.testJarPhase>prepare-package</build.testJarPhase>
 
     <test.java.home>${java.home}</test.java.home>
-    <test.exclude.tags></test.exclude.tags>
-    <test.include.tags></test.include.tags>
+    <test.exclude.tags/>
+    <test.include.tags/>
     <CodeCacheSize>512m</CodeCacheSize>
   </properties>
 
