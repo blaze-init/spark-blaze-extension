@@ -12,7 +12,7 @@ import org.apache.spark.sql.execution.UnaryExecNode
 import org.apache.spark.sql.execution.metric.SQLMetric
 import org.apache.spark.sql.execution.metric.SQLMetrics
 
-case class ConvertToUnsafeRowExec(child: SparkPlan) extends UnaryExecNode {
+case class ConvertToUnsafeRowExec(override val child: SparkPlan) extends UnaryExecNode {
   override def nodeName: String = "ConvertToUnsafeRow"
   override def logicalLink: Option[LogicalPlan] = child.logicalLink
   override def output: Seq[Attribute] = child.output

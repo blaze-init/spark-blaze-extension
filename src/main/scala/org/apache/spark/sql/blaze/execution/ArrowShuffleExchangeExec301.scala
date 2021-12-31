@@ -27,7 +27,7 @@ import scala.reflect.ClassTag
 
 case class ArrowShuffleExchangeExec301(
   override val outputPartitioning: Partitioning,
-  child: SparkPlan,
+  override val child: SparkPlan,
   noUserSpecifiedNumPartition: Boolean = true) extends ShuffleExchangeLike {
 
   override lazy val metrics = Map(

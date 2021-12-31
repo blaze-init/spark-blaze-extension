@@ -12,56 +12,48 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+    <!-- java version -->
     <java.version>1.8</java.version>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
-    <commons-lang3.version>3.5</commons-lang3.version>
-    <codahale.metrics.version>3.1.5</codahale.metrics.version>
-    <slf4j.version>1.7.16</slf4j.version>
-    <log4j.version>1.2.17</log4j.version>
-    <scala.version>2.12.10</scala.version>
-    <scala.binary.version>2.12</scala.binary.version>
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
     <java.major.version>8</java.major.version>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
+
+    <!-- scala version -->
+    <scala.version>2.12.15</scala.version>
     <scala.binary.version>2.12</scala.binary.version>
     <scala.plugin.version>4.3.0</scala.plugin.version>
-    <scala.version>2.12.15</scala.version>
     <scalatest-maven-plugin.version>2.0.2</scalatest-maven-plugin.version>
-    <scalatest.version>3.0.5</scalatest.version>
-    <fasterxml.jackson.version>2.6.7</fasterxml.jackson.version>
-    <fasterxml.jackson.databind.version>2.6.7.1</fasterxml.jackson.databind.version>
-    <jsr305.version>1.3.9</jsr305.version>
-    <commons-crypto.version>1.0.0</commons-crypto.version>
+    <scalatest.version>3.2.9</scalatest.version>
+
+    <!-- spark version -->
     <!-- <spark.tags.version>3.0.0U1.0.30-sts-hudi-zl-sts-parallel-qh-hudi-BETA-SNAPSHOT</spark.tags.version> -->
     <spark.tags.version>3.0.1</spark.tags.version>
+
+    <!-- arrow version -->
     <arrow.version>6.0.1</arrow.version>
-
-    <!-- Modules that copy jars to the build directory should do so under this location. -->
-    <jars.target.dir>${project.build.directory}/scala-${scala.binary.version}/jars</jars.target.dir>
-
-    <!-- Allow modules to enable / disable certain build plugins easily. -->
-    <build.testJarPhase>prepare-package</build.testJarPhase>
-
-    <test.java.home>${java.home}</test.java.home>
-    <test.exclude.tags/>
-    <test.include.tags/>
-    <CodeCacheSize>512m</CodeCacheSize>
   </properties>
 
   <dependencies>
+    <!-- scala deps -->
     <dependency>
       <groupId>org.scala-lang</groupId>
       <artifactId>scala-library</artifactId>
       <version>${scala.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.scalatest</groupId>
+      <artifactId>scalatest_2.12</artifactId>
+      <version>${scalatest.version}</version>
+      <scope>test</scope>
+    </dependency>
 
+    <!-- spark deps -->
     <dependency>
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-core_${scala.binary.version}</artifactId>
       <version>${spark.tags.version}</version>
     </dependency>
-
     <dependency>
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-sql_${scala.binary.version}</artifactId>
@@ -74,6 +66,7 @@
       </exclusions>
     </dependency>
 
+    <!-- arrow deps -->
     <dependency>
       <groupId>org.apache.arrow</groupId>
       <artifactId>arrow-vector</artifactId>
@@ -114,6 +107,20 @@
       <version>${arrow.version}</version>
     </dependency>
 
+    <!-- protobuf deps -->
+    <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
+      <version>3.19.1</version>
+    </dependency>
+
+    <!-- other deps -->
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <version>RELEASE</version>
+      <scope>compile</scope>
+    </dependency>
   </dependencies>
 
   <build>
@@ -137,6 +144,7 @@
           </execution>
         </executions>
       </plugin>
+
       <plugin>
         <groupId>net.alchim31.maven</groupId>
         <artifactId>scala-maven-plugin</artifactId>
@@ -189,7 +197,7 @@
           </javacArgs>
         </configuration>
       </plugin>
-      <!--
+
       <plugin>
         <groupId>org.scalatest</groupId>
         <artifactId>scalatest-maven-plugin</artifactId>
@@ -203,7 +211,6 @@
           </execution>
         </executions>
       </plugin>
-      -->
     </plugins>
   </build>
 </project>
