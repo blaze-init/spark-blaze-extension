@@ -1,14 +1,9 @@
 package org.apache.spark.sql.blaze;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.spark.SparkEnv;
 import org.apache.spark.deploy.SparkHadoopUtil;
 
@@ -24,10 +19,6 @@ public class HDFSBridge {
         try {
             conf = SparkHadoopUtil.get().newConfiguration(SparkEnv.get().conf());
             fs = FileSystem.get(conf);
-            RemoteIterator<FileStatus> i = fs.listStatusIterator(new Path("hdfs://localhost:9000/warehouse/bigint9999"));
-            while (i.hasNext()) {
-                System.out.println("list status: " + i.next().getPath());
-            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
