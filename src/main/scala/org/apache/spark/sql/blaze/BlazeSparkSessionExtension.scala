@@ -21,10 +21,6 @@ class BlazeSparkSessionExtension extends (SparkSessionExtensions => Unit) with L
     SparkEnv.get.conf.set(org.apache.spark.internal.config.SHUFFLE_SERVICE_ENABLED.key, "false")
     logInfo("org.apache.spark.BlazeSparkSessionExtension enabled")
 
-    // 测试blaze-rs
-    logInfo(s"HDFSBridge: ${HDFSBridge.test()}")
-
-
     extensions.injectQueryStagePrepRule(_ => BlazeQueryStagePrepOverrides())
   }
 }
@@ -68,8 +64,7 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
     logInfo(s"  dataFilters: ${dataFilters}")
     logInfo(s"  tableIdentifier: ${tableIdentifier}")
     if (relation.fileFormat.isInstanceOf[ParquetFileFormat] && partitionFilters.isEmpty && optionalBucketSet.isEmpty && dataFilters.isEmpty) {
-      val inputFiles = relation.location.inputFiles
-      throw new NotImplementedError("Native parquet scan exec not implemented")
+      return NativeParquetScanExec(exec)
     }
     exec
   }

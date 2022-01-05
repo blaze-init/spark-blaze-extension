@@ -27,14 +27,4 @@ public class HDFSBridge {
     public static FileSystem getFileSystem() {
         return fs;
     }
-
-    public static native String testNative() throws IOException;
-    public static String test() {
-        try {
-            return testNative();
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        }
-    }
 }
