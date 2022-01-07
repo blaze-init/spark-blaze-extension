@@ -1,9 +1,12 @@
 package org.apache.spark.sql.blaze;
 
 import java.nio.ByteBuffer;
+import java.util.function.Consumer;
 
-import org.ballistacompute.protobuf.PhysicalPlanNode;
+public class BlazeBridge extends BlazeNativeBridge {
+    public static ClassLoader getClassLoader() {
+        return BlazeBridge.class.getClassLoader();
+    }
 
-public class BlazeBridge {
-    public static native void callNative(ByteBuffer taskDefinition, String executorId, String dir, String filename);
+    public static native void callNative(ByteBuffer taskDefinition, Consumer<ByteBuffer> ipcRecordBatchDataHandler);
 }

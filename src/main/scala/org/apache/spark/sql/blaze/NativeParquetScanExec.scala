@@ -10,6 +10,8 @@ import org.ballistacompute.protobuf.FileScanExecConf
 import org.ballistacompute.protobuf.ParquetScanExecNode
 import org.ballistacompute.protobuf.PartitionedFile
 import org.ballistacompute.protobuf.PhysicalPlanNode
+import org.ballistacompute.protobuf.ScanLimit
+import org.ballistacompute.protobuf.Statistics
 
 case class NativeParquetScanExec(override val child: FileSourceScanExec) extends NativeUnaryExecNode {
 
@@ -27,13 +29,18 @@ case class NativeParquetScanExec(override val child: FileSourceScanExec) extends
       val partitionedFile = PartitionedFile.newBuilder()
         .setPath(singleFilePartition.filePath)
         .setSize(singleFilePartition.length)
+        .setLastModifiedNs(0)
         .build()
       nativeFileGroupBuilder.addFiles(partitionedFile)
     }
     val nativeFileGroup = nativeFileGroupBuilder.build()
 
     val nativeParquetScanConf = FileScanExecConf.newBuilder()
+      .setStatistics(Statistics.newBuilder().setIsExact(true).setNumRows(10).setTotalByteSize(100).build())
+      .setBatchSize(100)
+      .setLimit(ScanLimit.newBuilder().setLimit(Int.MaxValue).build())
       .setSchema(NativeConverters.convertSchema(child.requiredSchema))
+      .addProjection(0)
       .addFileGroups(nativeFileGroup)
       .build()
 

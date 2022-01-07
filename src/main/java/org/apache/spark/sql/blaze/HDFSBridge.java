@@ -8,11 +8,7 @@ import org.apache.spark.SparkEnv;
 import org.apache.spark.deploy.SparkHadoopUtil;
 
 @SuppressWarnings("unused")
-public class HDFSBridge {
-    static {
-        System.loadLibrary("blaze_temp_rs");
-    }
-
+public class HDFSBridge extends BlazeNativeBridge {
     static Configuration conf;
     static FileSystem fs;
     static {

@@ -1,13 +1,18 @@
 package org.apache.spark.sql.blaze
 
+import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 
-import org.apache.spark.SparkContext
+import scala.collection.mutable.ArrayBuffer
+import scala.collection.JavaConverters._
+
+import org.apache.arrow.memory.RootAllocator
+import org.apache.arrow.vector.ipc.ArrowStreamReader
+import org.apache.arrow.vector.FieldVector
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.Partition
-import org.apache.spark.SparkEnv
 import org.apache.spark.TaskContext
 import org.ballistacompute.protobuf.PartitionId
 import org.ballistacompute.protobuf.PhysicalPlanNode
@@ -21,16 +26,13 @@ case class NativeRDD(
   override protected def getPartitions: Array[Partition] = inner.partitions
 
   override def compute(split: Partition, context: TaskContext): Iterator[InternalRow] = {
-    val executorId = SparkEnv.get.executorId
     val stageId = context.stageId()
-    val jobId = context.getLocalProperty("job.id")
-    val writeDir = context.getLocalProperty("write.dir")
-    val writeFile = context.getLocalProperty("write.file")
+    val jobId = split.index
 
     val partitionId = PartitionId.newBuilder()
       .setPartitionId(split.index)
       .setStageId(stageId)
-      .setJobId(jobId)
+      .setJobId(jobId.toString)
       .build()
     logInfo(s"NativeRDD.partitionId: ${partitionId}")
 
@@ -39,9 +41,19 @@ case class NativeRDD(
       .setPlan(nativePlan)
       .build()
       .toByteArray
+    val taskDefinitionByteBuffer = ByteBuffer.allocateDirect(taskDefinition.length)
+    taskDefinitionByteBuffer.put(taskDefinition)
 
-    BlazeBridge.callNative(ByteBuffer.wrap(taskDefinition), executorId, writeDir, writeFile)
+    val records: ArrayBuffer[FieldVector] = ArrayBuffer()
+    BlazeBridge.callNative(taskDefinitionByteBuffer, (byteBuffer: ByteBuffer) => {
+      val inputStream = new ByteArrayInputStream(byteBuffer.array())
+      val arrowStreamReader  = new ArrowStreamReader(inputStream, new RootAllocator)
+      while (arrowStreamReader.loadNextBatch()) {
+        records.appendAll(arrowStreamReader.getVectorSchemaRoot.getFieldVectors.asScala)
+      }
+    })
 
+    println(records(0))
     new Iterator[InternalRow] {
       override def hasNext: Boolean = throw new RuntimeException("hasNext called!")
       override def next(): InternalRow = null
