@@ -19,6 +19,8 @@ import java.nio.ByteOrder
 
 import scala.collection.JavaConverters._
 
+import org.apache.arrow.vector.ipc.ArrowStreamReader
+
 object Converters {
 
   /**

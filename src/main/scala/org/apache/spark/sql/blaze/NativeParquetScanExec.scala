@@ -36,12 +36,11 @@ case class NativeParquetScanExec(override val child: FileSourceScanExec) extends
     val nativeFileGroup = nativeFileGroupBuilder.build()
 
     val nativeParquetScanConf = FileScanExecConf.newBuilder()
-      .setStatistics(Statistics.newBuilder().setIsExact(true).setNumRows(10).setTotalByteSize(100).build())
-      .setBatchSize(100)
-      .setLimit(ScanLimit.newBuilder().setLimit(Int.MaxValue).build())
+      .setStatistics(Statistics.getDefaultInstance)
+      .setLimit(ScanLimit.getDefaultInstance)
       .setSchema(NativeConverters.convertSchema(child.requiredSchema))
-      .addProjection(0)
       .addFileGroups(nativeFileGroup)
+      .setBatchSize(100)
       .build()
 
     val nativeParquetScanExec = ParquetScanExecNode.newBuilder()

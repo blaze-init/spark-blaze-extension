@@ -11,6 +11,7 @@ import org.apache.spark.sql.execution.exchange.ShuffleExchangeExec
 import org.apache.spark.sql.execution.FileSourceScanExec
 import org.apache.spark.sql.execution.SortExec
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
+import org.apache.spark.sql.execution.CollectLimitExec
 import org.apache.spark.sql.internal.SQLConf
 
 class BlazeSparkSessionExtension extends (SparkSessionExtensions => Unit) with Logging {
@@ -32,6 +33,7 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
       case exec: ShuffleExchangeExec => convertShuffleExchangeExec(exec)
       case exec: FileSourceScanExec => convertFileSourceScanExec(exec)
       case exec: SortExec => convertSortExec(exec)
+      case exec: CollectLimitExec => convertCollectLimitExec(exec)
       case otherPlan =>
         logInfo(s"Ignore unsupported plan: ${otherPlan.simpleStringWithNodeId}")
         otherPlan
@@ -70,18 +72,21 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
   }
 
   private def convertSortExec(exec: SortExec): SparkPlan = {
-    val SortExec(sortOrder, global, child, testSpillFrequency) = exec
     logInfo(s"Converting SortExec: ${exec.simpleStringWithNodeId}")
+    val SortExec(sortOrder, global, child, testSpillFrequency) = exec
+    SortExec(sortOrder, global, convertToUnsafeRow(child), testSpillFrequency)
+  }
 
-    val convertedChild = child match {
-      case convertedChild: ConvertToUnsafeRowExec => convertedChild
-      case child => ConvertToUnsafeRowExec(child)
+  private def convertCollectLimitExec(exec: CollectLimitExec): SparkPlan = {
+    logInfo(s"Converting CollectLimitExec: ${exec.simpleStringWithNodeId}")
+    val CollectLimitExec(limit, child) = exec
+    CollectLimitExec(limit, convertToUnsafeRow(child))
+  }
+
+  private def convertToUnsafeRow(exec: SparkPlan): SparkPlan = {
+    exec match {
+      case convertedExec: ConvertToUnsafeRowExec => convertedExec
+      case exec => ConvertToUnsafeRowExec(exec)
     }
-    SortExec(
-      sortOrder,
-      global,
-      convertedChild,
-      testSpillFrequency,
-    )
   }
 }

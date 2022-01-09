@@ -3,17 +3,18 @@ package org.apache.spark.sql.blaze
 import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 
-import scala.collection.mutable.ArrayBuffer
 import scala.collection.JavaConverters._
 
-import org.apache.arrow.memory.RootAllocator
 import org.apache.arrow.vector.ipc.ArrowStreamReader
-import org.apache.arrow.vector.FieldVector
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.Partition
 import org.apache.spark.TaskContext
+import org.apache.spark.sql.util.ArrowUtils
+import org.apache.spark.sql.vectorized.ArrowColumnVector
+import org.apache.spark.sql.vectorized.ColumnarBatch
+import org.apache.spark.sql.vectorized.ColumnVector
 import org.ballistacompute.protobuf.PartitionId
 import org.ballistacompute.protobuf.PhysicalPlanNode
 import org.ballistacompute.protobuf.TaskDefinition
@@ -44,19 +45,46 @@ case class NativeRDD(
     val taskDefinitionByteBuffer = ByteBuffer.allocateDirect(taskDefinition.length)
     taskDefinitionByteBuffer.put(taskDefinition)
 
-    val records: ArrayBuffer[FieldVector] = ArrayBuffer()
-    BlazeBridge.callNative(taskDefinitionByteBuffer, (byteBuffer: ByteBuffer) => {
-      val inputStream = new ByteArrayInputStream(byteBuffer.array())
-      val arrowStreamReader  = new ArrowStreamReader(inputStream, new RootAllocator)
-      while (arrowStreamReader.loadNextBatch()) {
-        records.appendAll(arrowStreamReader.getVectorSchemaRoot.getFieldVectors.asScala)
-      }
-    })
+    // note: consider passing a ByteBufferOutputStream to blaze-rs to avoid copying
 
-    println(records(0))
+    var outputBytes: Array[Byte] = null
+    JniBridge.callNative(taskDefinitionByteBuffer, (byteBuffer: ByteBuffer) => {
+      logInfo(s"Received bytes from native computing: ${byteBuffer.limit()}")
+      outputBytes = new Array[Byte](byteBuffer.limit())
+      byteBuffer.get(outputBytes)
+    })
+    toIterator(new ByteArrayInputStream(outputBytes))
+  }
+
+  private def toIterator(inputStream: ByteArrayInputStream): Iterator[InternalRow] = {
+    val allocator = ArrowUtils.rootAllocator.newChildAllocator("readNativeRDDBatches", 0, Long.MaxValue)
+    val arrowReader = new ArrowStreamReader(inputStream, allocator)
+    val root = arrowReader.getVectorSchemaRoot
+
     new Iterator[InternalRow] {
-      override def hasNext: Boolean = throw new RuntimeException("hasNext called!")
-      override def next(): InternalRow = null
+      private var rowIter: Iterator[InternalRow] = null
+      loadNextBatch()
+
+      override def hasNext: Boolean = rowIter.hasNext || loadNextBatch()
+      override def next: InternalRow = rowIter.next()
+
+      def loadNextBatch(): Boolean = {
+        if (arrowReader.loadNextBatch()) {
+          val columns = root.getFieldVectors.asScala.map { vector =>
+            new ArrowColumnVector(vector).asInstanceOf[ColumnVector]
+          }.toArray
+
+          val batch = new ColumnarBatch(columns)
+          batch.setNumRows(root.getRowCount)
+          rowIter = batch.rowIterator().asScala
+          true
+
+        } else {
+          root.close()
+          allocator.close()
+          false
+        }
+      }
     }
   }
 }
