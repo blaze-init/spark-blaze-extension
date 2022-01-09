@@ -12,6 +12,7 @@ import org.apache.spark.sql.execution.FileSourceScanExec
 import org.apache.spark.sql.execution.SortExec
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
 import org.apache.spark.sql.execution.CollectLimitExec
+import org.apache.spark.sql.execution.FilterExec
 import org.apache.spark.sql.internal.SQLConf
 
 class BlazeSparkSessionExtension extends (SparkSessionExtensions => Unit) with Logging {
@@ -29,14 +30,20 @@ class BlazeSparkSessionExtension extends (SparkSessionExtensions => Unit) with L
 case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
 
   override def apply(sparkPlan: SparkPlan): SparkPlan = {
-    val sparkPlanTransformed = sparkPlan.transformUp {
+    var sparkPlanTransformed = sparkPlan.transformUp {
       case exec: ShuffleExchangeExec => convertShuffleExchangeExec(exec)
       case exec: FileSourceScanExec => convertFileSourceScanExec(exec)
       case exec: SortExec => convertSortExec(exec)
+      case exec: FilterExec => convertFilterExec(exec)
       case exec: CollectLimitExec => convertCollectLimitExec(exec)
       case otherPlan =>
         logInfo(s"Ignore unsupported plan: ${otherPlan.simpleStringWithNodeId}")
         otherPlan
+    }
+
+    // wrap with ConvertUnsafeRowExec if top exec is native
+    if (sparkPlanTransformed.isInstanceOf[NativeUnaryExecNode]) {
+      sparkPlanTransformed = convertToUnsafeRow(sparkPlanTransformed)
     }
 
     logInfo(s"Transformed spark plan:\n${sparkPlanTransformed.treeString(verbose = true, addSuffix = true, printOperatorId = true)}")
@@ -65,7 +72,8 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
     logInfo(s"  optionalBucketSet: ${optionalBucketSet}")
     logInfo(s"  dataFilters: ${dataFilters}")
     logInfo(s"  tableIdentifier: ${tableIdentifier}")
-    if (relation.fileFormat.isInstanceOf[ParquetFileFormat] && partitionFilters.isEmpty && optionalBucketSet.isEmpty && dataFilters.isEmpty) {
+    if (relation.fileFormat.isInstanceOf[ParquetFileFormat]) {
+      // note: supports exec.dataFilters for better performance?
       return NativeParquetScanExec(exec)
     }
     exec
@@ -75,6 +83,14 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
     logInfo(s"Converting SortExec: ${exec.simpleStringWithNodeId}")
     val SortExec(sortOrder, global, child, testSpillFrequency) = exec
     SortExec(sortOrder, global, convertToUnsafeRow(child), testSpillFrequency)
+  }
+
+  private def convertFilterExec(exec: FilterExec): SparkPlan = {
+    logInfo(s"Converting FilterExec: ${exec.simpleStringWithNodeId}")
+    exec match {
+      case FilterExec(condition, child: NativeUnaryExecNode) => NativeFilterExec(condition, child)
+      case filterExec => filterExec
+    }
   }
 
   private def convertCollectLimitExec(exec: CollectLimitExec): SparkPlan = {

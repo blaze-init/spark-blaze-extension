@@ -17,10 +17,9 @@ case class NativeParquetScanExec(override val child: FileSourceScanExec) extends
 
   override def output: Seq[Attribute] = child.output
 
-  private def inputFileScanRDD: FileScanRDD = child.inputRDD.asInstanceOf[FileScanRDD]
+  override def inputFileScanRDD: FileScanRDD = child.inputRDD.asInstanceOf[FileScanRDD]
 
-  override protected def doExecute(): RDD[InternalRow] =
-    NativeRDD(inputFileScanRDD, toNativePlan)
+  override protected def doExecute(): RDD[InternalRow] = executeNative
 
   override def toNativePlan: PhysicalPlanNode = {
     val nativeFileGroupBuilder = FileGroup.newBuilder()
