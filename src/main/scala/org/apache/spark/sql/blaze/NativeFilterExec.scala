@@ -11,14 +11,12 @@ import org.ballistacompute.protobuf.PhysicalPlanNode
 
 case class NativeFilterExec(
   condition: Expression,
-  override val child: NativeUnaryExecNode,
-) extends UnaryExecNode with NativeUnaryExecNode {
+  override val child: BaseNativeExec,
+) extends BaseNativeExec with UnaryExecNode {
 
   override def output: Seq[Attribute] = child.output
 
   override def inputFileScanRDD: FileScanRDD = child.inputFileScanRDD
-
-  override protected def doExecute(): RDD[InternalRow] = executeNative
 
   override def toNativePlan: PhysicalPlanNode = {
     val nativeFilterExec = FilterExecNode.newBuilder()

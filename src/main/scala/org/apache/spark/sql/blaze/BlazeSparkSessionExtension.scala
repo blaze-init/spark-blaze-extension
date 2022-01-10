@@ -13,6 +13,8 @@ import org.apache.spark.sql.execution.SortExec
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
 import org.apache.spark.sql.execution.CollectLimitExec
 import org.apache.spark.sql.execution.FilterExec
+import org.apache.spark.sql.execution.ProjectExec
+import org.apache.spark.sql.execution.UnaryExecNode
 import org.apache.spark.sql.internal.SQLConf
 
 class BlazeSparkSessionExtension extends (SparkSessionExtensions => Unit) with Logging {
@@ -33,16 +35,15 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
     var sparkPlanTransformed = sparkPlan.transformUp {
       case exec: ShuffleExchangeExec => convertShuffleExchangeExec(exec)
       case exec: FileSourceScanExec => convertFileSourceScanExec(exec)
-      case exec: SortExec => convertSortExec(exec)
+      case exec: ProjectExec => convertProjectExec(exec)
       case exec: FilterExec => convertFilterExec(exec)
-      case exec: CollectLimitExec => convertCollectLimitExec(exec)
       case otherPlan =>
         logInfo(s"Ignore unsupported plan: ${otherPlan.simpleStringWithNodeId}")
-        otherPlan
+        convertToUnsafeRow(otherPlan)
     }
 
     // wrap with ConvertUnsafeRowExec if top exec is native
-    if (sparkPlanTransformed.isInstanceOf[NativeUnaryExecNode]) {
+    if (sparkPlanTransformed.isInstanceOf[BaseNativeExec]) {
       sparkPlanTransformed = convertToUnsafeRow(sparkPlanTransformed)
     }
 
@@ -79,30 +80,36 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
     exec
   }
 
-  private def convertSortExec(exec: SortExec): SparkPlan = {
-    logInfo(s"Converting SortExec: ${exec.simpleStringWithNodeId}")
-    val SortExec(sortOrder, global, child, testSpillFrequency) = exec
-    SortExec(sortOrder, global, convertToUnsafeRow(child), testSpillFrequency)
-  }
-
-  private def convertFilterExec(exec: FilterExec): SparkPlan = {
-    logInfo(s"Converting FilterExec: ${exec.simpleStringWithNodeId}")
+  private def convertProjectExec(exec: ProjectExec): SparkPlan = {
+    logInfo(s"Converting ProjectExec: ${exec.verboseStringWithOperatorId()}")
     exec match {
-      case FilterExec(condition, child: NativeUnaryExecNode) => NativeFilterExec(condition, child)
-      case filterExec => filterExec
+      case ProjectExec(projectList, child: BaseNativeExec) => NativeProjectExec(projectList, child)
+      case projectExec => projectExec
     }
   }
-
-  private def convertCollectLimitExec(exec: CollectLimitExec): SparkPlan = {
-    logInfo(s"Converting CollectLimitExec: ${exec.simpleStringWithNodeId}")
-    val CollectLimitExec(limit, child) = exec
-    CollectLimitExec(limit, convertToUnsafeRow(child))
+  private def convertFilterExec(exec: FilterExec): SparkPlan = {
+    logInfo(s"Converting FilterExec: ${exec.verboseStringWithOperatorId()}")
+    exec match {
+      case FilterExec(condition, child: BaseNativeExec) => NativeFilterExec(condition, child)
+      case filterExec => filterExec
+    }
   }
 
   private def convertToUnsafeRow(exec: SparkPlan): SparkPlan = {
     exec match {
       case convertedExec: ConvertToUnsafeRowExec => convertedExec
       case exec => ConvertToUnsafeRowExec(exec)
+    }
+  }
+
+  private def addUnsafeRowConverionIfNecessary(exec: SparkPlan): SparkPlan = {
+    exec match {
+      case exec: SortExec =>
+        exec.copy(child = ConvertToUnsafeRowExec(exec.child))
+      case exec: CollectLimitExec =>
+        exec.copy(child = ConvertToUnsafeRowExec(exec.child))
+      case otherPlan =>
+        otherPlan
     }
   }
 }
