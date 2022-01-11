@@ -14,7 +14,6 @@ import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
 import org.apache.spark.sql.execution.CollectLimitExec
 import org.apache.spark.sql.execution.FilterExec
 import org.apache.spark.sql.execution.ProjectExec
-import org.apache.spark.sql.execution.UnaryExecNode
 import org.apache.spark.sql.internal.SQLConf
 
 class BlazeSparkSessionExtension extends (SparkSessionExtensions => Unit) with Logging {
@@ -39,7 +38,7 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
       case exec: FilterExec => convertFilterExec(exec)
       case otherPlan =>
         logInfo(s"Ignore unsupported plan: ${otherPlan.simpleStringWithNodeId}")
-        convertToUnsafeRow(otherPlan)
+        addUnsafeRowConverionIfNecessary(otherPlan)
     }
 
     // wrap with ConvertUnsafeRowExec if top exec is native
@@ -74,8 +73,7 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
     logInfo(s"  dataFilters: ${dataFilters}")
     logInfo(s"  tableIdentifier: ${tableIdentifier}")
     if (relation.fileFormat.isInstanceOf[ParquetFileFormat]) {
-      // note: supports exec.dataFilters for better performance?
-      return NativeParquetScanExec(exec)
+      return NativeParquetScanExec(exec) // note: supports exec.dataFilters for better performance?
     }
     exec
   }
@@ -95,6 +93,7 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
     }
   }
 
+
   private def convertToUnsafeRow(exec: SparkPlan): SparkPlan = {
     exec match {
       case convertedExec: ConvertToUnsafeRowExec => convertedExec
@@ -105,9 +104,9 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
   private def addUnsafeRowConverionIfNecessary(exec: SparkPlan): SparkPlan = {
     exec match {
       case exec: SortExec =>
-        exec.copy(child = ConvertToUnsafeRowExec(exec.child))
+        exec.copy(child = convertToUnsafeRow(exec.child))
       case exec: CollectLimitExec =>
-        exec.copy(child = ConvertToUnsafeRowExec(exec.child))
+        exec.copy(child = convertToUnsafeRow(exec.child))
       case otherPlan =>
         otherPlan
     }

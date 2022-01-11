@@ -14,9 +14,11 @@ import org.ballistacompute.protobuf.PhysicalPlanNode
 import org.ballistacompute.protobuf.ScanLimit
 import org.ballistacompute.protobuf.Statistics
 
-case class NativeParquetScanExec(basedFileScan: FileSourceScanExec) extends BaseNativeExec with LeafExecNode {
+case class NativeParquetScanExec(basedFileScan: FileSourceScanExec) extends LeafExecNode with BaseNativeExec {
 
   override def output: Seq[Attribute] = basedFileScan.output
+
+  override def doExecute(): RDD[InternalRow] = executeNative
 
   override def inputFileScanRDD: FileScanRDD = basedFileScan.inputRDD.asInstanceOf[FileScanRDD]
 
