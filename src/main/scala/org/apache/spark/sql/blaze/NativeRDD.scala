@@ -15,16 +15,21 @@ import org.apache.spark.sql.util.ArrowUtils
 import org.apache.spark.sql.vectorized.ArrowColumnVector
 import org.apache.spark.sql.vectorized.ColumnarBatch
 import org.apache.spark.sql.vectorized.ColumnVector
+import org.apache.spark.Dependency
+import org.apache.spark.SparkContext
 import org.ballistacompute.protobuf.PartitionId
 import org.ballistacompute.protobuf.PhysicalPlanNode
 import org.ballistacompute.protobuf.TaskDefinition
 
 case class NativeRDD(
-  @transient val inner: RDD[InternalRow],
+  @transient private val rddSparkContext: SparkContext,
+  private val rddPartitions: Array[Partition],
+  private val rddDependencies: Seq[Dependency[_]],
   nativePlan: PhysicalPlanNode,
-) extends RDD[InternalRow](inner.sparkContext, Nil) with Logging {
+) extends RDD[InternalRow](rddSparkContext, rddDependencies) with Logging {
 
-  override protected def getPartitions: Array[Partition] = inner.partitions
+  override protected def getPartitions: Array[Partition] = rddPartitions
+  override protected def getDependencies: Seq[Dependency[_]] = rddDependencies
 
   override def compute(split: Partition, context: TaskContext): Iterator[InternalRow] = {
     val stageId = context.stageId()

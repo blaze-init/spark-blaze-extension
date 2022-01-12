@@ -5,6 +5,9 @@ import org.apache.spark.SparkEnv
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.blaze.execution.ArrowShuffleExchangeExec301
 import org.apache.spark.sql.blaze.execution.ArrowShuffleManager301
+import org.apache.spark.sql.blaze.plan.NativeFilterExec
+import org.apache.spark.sql.blaze.plan.NativeParquetScanExec
+import org.apache.spark.sql.blaze.plan.NativeProjectExec
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.exchange.ShuffleExchangeExec
@@ -42,7 +45,7 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
     }
 
     // wrap with ConvertUnsafeRowExec if top exec is native
-    if (sparkPlanTransformed.isInstanceOf[BaseNativeExec]) {
+    if (sparkPlanTransformed.isInstanceOf[NativeSupports]) {
       sparkPlanTransformed = convertToUnsafeRow(sparkPlanTransformed)
     }
 
@@ -81,14 +84,14 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
   private def convertProjectExec(exec: ProjectExec): SparkPlan = {
     logInfo(s"Converting ProjectExec: ${exec.verboseStringWithOperatorId()}")
     exec match {
-      case ProjectExec(projectList, child: BaseNativeExec) => NativeProjectExec(projectList, child)
+      case ProjectExec(projectList, child: NativeSupports) => NativeProjectExec(projectList, child)
       case projectExec => projectExec
     }
   }
   private def convertFilterExec(exec: FilterExec): SparkPlan = {
     logInfo(s"Converting FilterExec: ${exec.verboseStringWithOperatorId()}")
     exec match {
-      case FilterExec(condition, child: BaseNativeExec) => NativeFilterExec(condition, child)
+      case FilterExec(condition, child: NativeSupports) => NativeFilterExec(condition, child)
       case filterExec => filterExec
     }
   }
