@@ -43,7 +43,8 @@ case class NativeProjectExec(
             nativeProjectExecBuilder.addExpr(NativeConverters.convertExpr(alias.child))
 
           case otherNamedExpression =>
-            NativeConverters.convertExpr(otherNamedExpression)
+            nativeProjectExecBuilder.addExprName(otherNamedExpression.name)
+            nativeProjectExecBuilder.addExpr(NativeConverters.convertExpr(otherNamedExpression))
         }
       }
       for (projectExpr <- projectList) {

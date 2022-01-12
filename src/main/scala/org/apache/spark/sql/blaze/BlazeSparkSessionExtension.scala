@@ -82,14 +82,19 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
   }
 
   private def convertProjectExec(exec: ProjectExec): SparkPlan = {
-    logInfo(s"Converting ProjectExec: ${exec.verboseStringWithOperatorId()}")
+    logInfo(s"Converting ProjectExec: ${exec.simpleStringWithNodeId()}")
+    for (projectExpr <- exec.projectList) {
+      logInfo(s"  projectExpr: ${projectExpr}")
+    }
+
     exec match {
       case ProjectExec(projectList, child: NativeSupports) => NativeProjectExec(projectList, child)
       case projectExec => projectExec
     }
   }
   private def convertFilterExec(exec: FilterExec): SparkPlan = {
-    logInfo(s"Converting FilterExec: ${exec.verboseStringWithOperatorId()}")
+    logInfo(s"Converting FilterExec: ${exec.simpleStringWithNodeId()}")
+    logInfo(s"  condition: ${exec.condition}")
     exec match {
       case FilterExec(condition, child: NativeSupports) => NativeFilterExec(condition, child)
       case filterExec => filterExec

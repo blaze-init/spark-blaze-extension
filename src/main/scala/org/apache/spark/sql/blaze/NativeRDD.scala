@@ -18,6 +18,7 @@ import org.apache.spark.sql.vectorized.ColumnVector
 import org.apache.spark.Dependency
 import org.apache.spark.SparkContext
 import org.ballistacompute.protobuf.PartitionId
+import org.ballistacompute.protobuf.PhysicalHashRepartition
 import org.ballistacompute.protobuf.PhysicalPlanNode
 import org.ballistacompute.protobuf.TaskDefinition
 
@@ -68,12 +69,20 @@ case class NativeRDD(
 
     new Iterator[InternalRow] {
       private var rowIter: Iterator[InternalRow] = null
-      loadNextBatch()
+      loadNextBatch
 
-      override def hasNext: Boolean = rowIter.hasNext || loadNextBatch()
+      override def hasNext: Boolean = {
+        while (!rowIter.hasNext) {
+          if (!loadNextBatch) {
+            return false
+          }
+        }
+        true
+      }
+
       override def next: InternalRow = rowIter.next()
 
-      def loadNextBatch(): Boolean = {
+      private def loadNextBatch: Boolean = {
         if (arrowReader.loadNextBatch()) {
           val columns = root.getFieldVectors.asScala.map { vector =>
             new ArrowColumnVector(vector).asInstanceOf[ColumnVector]

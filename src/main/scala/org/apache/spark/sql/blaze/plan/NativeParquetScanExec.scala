@@ -8,7 +8,9 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.Attribute
 import org.apache.spark.sql.execution.FileSourceScanExec
 import org.apache.spark.sql.execution.LeafExecNode
+import org.apache.spark.sql.execution.datasources.FilePartition
 import org.apache.spark.sql.execution.datasources.FileScanRDD
+import org.apache.spark.Partition
 import org.ballistacompute.protobuf.FileGroup
 import org.ballistacompute.protobuf.FileScanExecConf
 import org.ballistacompute.protobuf.ParquetScanExecNode
@@ -23,31 +25,28 @@ case class NativeParquetScanExec(basedFileScan: FileSourceScanExec) extends Leaf
 
   override def doExecuteNative(): NativeRDD = {
     val inputFileScanRDD = basedFileScan.inputRDD.asInstanceOf[FileScanRDD]
-    NativeRDD(sparkContext, inputFileScanRDD.partitions, Nil, {
-      val nativeFileGroupBuilder = FileGroup.newBuilder()
-      inputFileScanRDD.filePartitions.foreach { filePartition =>
-        val singleFilePartition = filePartition.files(0) // parquet scan always generate single file partition
-        val partitionedFile = PartitionedFile.newBuilder()
-          .setPath(singleFilePartition.filePath)
-          .setSize(singleFilePartition.length)
-          .setLastModifiedNs(0)
-          .build()
-        nativeFileGroupBuilder.addFiles(partitionedFile)
-      }
-      val nativeFileGroup = nativeFileGroupBuilder.build()
-
-      val nativeParquetScanConf = FileScanExecConf.newBuilder()
+    val partitions = inputFileScanRDD.filePartitions.toArray
+    NativeRDD(sparkContext, partitions.asInstanceOf[Array[Partition]], Nil, {
+      val nativeParquetScanConfBuilder = FileScanExecConf.newBuilder()
         .setStatistics(Statistics.getDefaultInstance)
-        .setLimit(ScanLimit.getDefaultInstance)
         .setSchema(NativeConverters.convertSchema(basedFileScan.requiredSchema))
-        .addFileGroups(nativeFileGroup)
         .setBatchSize(100)
-        .build()
+
+      partitions.foreach { filePartition =>
+        val nativeFileGroupBuilder = FileGroup.newBuilder()
+        filePartition.files.foreach { file =>
+          nativeFileGroupBuilder.addFiles(PartitionedFile.newBuilder()
+            .setPath(file.filePath)
+            .setSize(file.length)
+            .setLastModifiedNs(0)
+            .build())
+        }
+        nativeParquetScanConfBuilder.addFileGroups(nativeFileGroupBuilder.build())
+      }
 
       val nativeParquetScanExec = ParquetScanExecNode.newBuilder()
-        .setBaseConf(nativeParquetScanConf)
+        .setBaseConf(nativeParquetScanConfBuilder.build())
         .build()
-
       PhysicalPlanNode.newBuilder().setParquetScan(nativeParquetScanExec).build()
     })
   }
