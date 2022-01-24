@@ -1,21 +1,21 @@
 package org.apache.spark.sql.blaze
 
-import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.execution.SparkPlan
-import org.apache.spark.sql.execution.adaptive.ShuffleQueryStageExec
-import org.apache.spark.SparkException
+import scala.annotation.tailrec
 
-trait NativeSupports extends SparkPlan {
-   override protected def doExecute(): RDD[InternalRow] = doExecuteNative()
+import org.apache.spark.sql.execution.SparkPlan
+import org.apache.spark.SparkException
+import org.apache.spark.sql.execution.adaptive.CustomShuffleReaderExec
+import org.apache.spark.sql.execution.adaptive.QueryStageExec
+
+trait NativeSupports {
    def doExecuteNative(): NativeRDD
 }
 
 object NativeSupports {
-   def executeNative(plan: SparkPlan): NativeRDD = plan match {
+   @tailrec def executeNative(plan: SparkPlan): NativeRDD = plan match {
       case plan: NativeSupports => plan.doExecuteNative()
-      case ShuffleQueryStageExec(_, plan: NativeSupports) => plan.doExecuteNative()
-      case _ =>
-         throw new SparkException(s"Underlaying plan is not NativeSupports: ${plan}")
+      case plan: CustomShuffleReaderExec => executeNative(plan.child)
+      case plan: QueryStageExec => executeNative(plan.plan)
+      case _ => throw new SparkException(s"Underlaying plan is not NativeSupports: ${plan}")
    }
 }

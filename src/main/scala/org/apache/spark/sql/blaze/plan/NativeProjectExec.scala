@@ -1,5 +1,6 @@
 package org.apache.spark.sql.blaze.plan
 
+import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.blaze.NativeConverters
 import org.apache.spark.sql.blaze.NativeRDD
 import org.apache.spark.sql.blaze.NativeSupports
@@ -7,6 +8,7 @@ import org.apache.spark.sql.catalyst.analysis.ResolvedStar
 import org.apache.spark.sql.catalyst.expressions.Alias
 import org.apache.spark.sql.catalyst.expressions.Attribute
 import org.apache.spark.sql.catalyst.expressions.NamedExpression
+import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.AliasAwareOutputPartitioning
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.UnaryExecNode
@@ -21,6 +23,8 @@ case class NativeProjectExec(
   override def outputExpressions: Seq[NamedExpression] = projectList
 
   override def output: Seq[Attribute] = outputExpressions.map(_.toAttribute)
+
+  override def doExecute(): RDD[InternalRow] = doExecuteNative()
 
   override def doExecuteNative(): NativeRDD = {
     val inputRDD = NativeSupports.executeNative(child)

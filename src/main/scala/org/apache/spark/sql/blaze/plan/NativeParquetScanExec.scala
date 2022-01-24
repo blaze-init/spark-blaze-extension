@@ -8,6 +8,8 @@ import org.apache.spark.sql.execution.FileSourceScanExec
 import org.apache.spark.sql.execution.LeafExecNode
 import org.apache.spark.sql.execution.datasources.FileScanRDD
 import org.apache.spark.Partition
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.catalyst.InternalRow
 import org.ballistacompute.protobuf.FileGroup
 import org.ballistacompute.protobuf.FileScanExecConf
 import org.ballistacompute.protobuf.ParquetScanExecNode
@@ -18,6 +20,8 @@ import org.ballistacompute.protobuf.Statistics
 case class NativeParquetScanExec(basedFileScan: FileSourceScanExec) extends LeafExecNode with NativeSupports {
 
   override def output: Seq[Attribute] = basedFileScan.output
+
+  override def doExecute(): RDD[InternalRow] = doExecuteNative()
 
   override def doExecuteNative(): NativeRDD = {
     val inputFileScanRDD = basedFileScan.inputRDD.asInstanceOf[FileScanRDD]
