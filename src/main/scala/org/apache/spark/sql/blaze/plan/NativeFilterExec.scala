@@ -12,19 +12,19 @@ import org.ballistacompute.protobuf.PhysicalPlanNode
 
 case class NativeFilterExec(
   condition: Expression,
-  override val child: SparkPlan with NativeSupports,
+  override val child: SparkPlan,
 ) extends UnaryExecNode with NativeSupports {
 
   override def output: Seq[Attribute] = child.output
 
   override def doExecuteNative(): NativeRDD = {
-    val inputRDD = child.doExecuteNative()
-    NativeRDD(sparkContext, inputRDD.partitions, inputRDD.dependencies, {
+    val inputRDD = NativeSupports.executeNative(child)
+    new NativeRDD(sparkContext, inputRDD.partitions, inputRDD.dependencies, {
       val nativeFilterExec = FilterExecNode.newBuilder()
         .setExpr(NativeConverters.convertExpr(condition))
         .setInput(inputRDD.nativePlan)
         .build()
       PhysicalPlanNode.newBuilder().setFilter(nativeFilterExec).build()
-    })
+    }, inputRDD.precompute)
   }
 }

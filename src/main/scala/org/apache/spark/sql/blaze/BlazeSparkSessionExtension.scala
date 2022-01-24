@@ -17,6 +17,7 @@ import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
 import org.apache.spark.sql.execution.CollectLimitExec
 import org.apache.spark.sql.execution.FilterExec
 import org.apache.spark.sql.execution.ProjectExec
+import org.apache.spark.sql.execution.adaptive.ShuffleQueryStageExec
 import org.apache.spark.sql.internal.SQLConf
 
 class BlazeSparkSessionExtension extends (SparkSessionExtensions => Unit) with Logging {
@@ -39,6 +40,7 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
       case exec: FileSourceScanExec => convertFileSourceScanExec(exec)
       case exec: ProjectExec => convertProjectExec(exec)
       case exec: FilterExec => convertFilterExec(exec)
+      case exec: ShuffleQueryStageExec => removeShuffleQueryStageExec(exec)
       case otherPlan =>
         logInfo(s"Ignore unsupported plan: ${otherPlan.simpleStringWithNodeId}")
         addUnsafeRowConverionIfNecessary(otherPlan)
@@ -104,8 +106,8 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
 
   private def convertToUnsafeRow(exec: SparkPlan): SparkPlan = {
     exec match {
-      case convertedExec: ConvertToUnsafeRowExec => convertedExec
-      case exec => ConvertToUnsafeRowExec(exec)
+      case exec: NativeSupports => ConvertToUnsafeRowExec(exec)
+      case exec => exec
     }
   }
 
@@ -118,5 +120,9 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
       case otherPlan =>
         otherPlan
     }
+  }
+
+  private def removeShuffleQueryStageExec(exec: ShuffleQueryStageExec): SparkPlan = {
+    exec.plan
   }
 }

@@ -18,6 +18,7 @@ import java.nio.channels.{Channels, SeekableByteChannel}
 import java.nio.ByteOrder
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable.ArrayBuffer
 
 import org.apache.arrow.vector.ipc.ArrowStreamReader
 
@@ -27,11 +28,17 @@ object Converters {
    * Parse ManagedBuffer from shuffle reader into record iterator.
    * Each ManagedBuffer may be composed of one or more IPC entities.
    */
-  def readManagedBuffer(
-    data: ManagedBuffer,
-    context: TaskContext
-  ): Iterator[InternalRow] = {
-    var result: Iterator[InternalRow] = Iterator.empty
+  def readManagedBuffer(data: ManagedBuffer, context: TaskContext): Iterator[InternalRow] = {
+    val segmentSeekableByteChannels = readManagedBufferToSegmentByteChannels(data)
+    segmentSeekableByteChannels.toIterator.flatMap(readBatches(_, context))
+  }
+
+  def readManagedBufferToSegmentByteChannelsAsJava(data: ManagedBuffer): java.util.List[SeekableByteChannel] = {
+    readManagedBufferToSegmentByteChannels(data).asJava
+  }
+
+  def readManagedBufferToSegmentByteChannels(data: ManagedBuffer): Seq[SeekableByteChannel] = {
+    val result: ArrayBuffer[SeekableByteChannel] = ArrayBuffer()
     data match {
       case f: FileSegmentManagedBuffer =>
         val file = f.getFile
@@ -46,7 +53,7 @@ object Converters {
           val curStart = curEnd - 8 - len
 
           val fsc = new FileSegmentSeekableByteChannel(file, curStart, len)
-          result ++= readBatches(fsc, context)
+          result += fsc
           curEnd = curStart
         }
 
@@ -69,7 +76,7 @@ object Converters {
           cur.position(curStart)
           cur.limit(curEnd)
           val sc = new NioSeekableByteChannel(cur, curStart, len)
-          result ++= readBatches(sc, context)
+          result += sc
         } while (curStart > 0)
       case mb =>
         throw new UnsupportedOperationException(s"ManagedBuffer of $mb not supported")

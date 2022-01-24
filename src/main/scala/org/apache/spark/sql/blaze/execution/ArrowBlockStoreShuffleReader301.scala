@@ -1,12 +1,23 @@
 package org.apache.spark.sql.blaze.execution
 
-import org.apache.spark.internal.{Logging, config}
+import org.apache.spark.InterruptibleIterator
+import org.apache.spark.MapOutputTracker
+import org.apache.spark.SparkEnv
+import org.apache.spark.TaskContext
+import org.apache.spark.internal.Logging
+import org.apache.spark.internal.config
 import org.apache.spark.io.CompressionCodec
 import org.apache.spark.serializer.SerializerManager
-import org.apache.spark.shuffle.{BaseShuffleHandle, ShuffleReadMetricsReporter, ShuffleReader}
-import org.apache.spark.storage.{BlockId, BlockManager, BlockManagerId, ShuffleBlockFetcherIterator301}
+import org.apache.spark.shuffle.BaseShuffleHandle
+import org.apache.spark.shuffle.ShuffleReadMetricsReporter
+import org.apache.spark.shuffle.ShuffleReader
+import org.apache.spark.sql.blaze.JniBridge
+import org.apache.spark.sql.blaze.NativeRDD
+import org.apache.spark.storage.BlockId
+import org.apache.spark.storage.BlockManager
+import org.apache.spark.storage.BlockManagerId
+import org.apache.spark.storage.ShuffleBlockFetcherIterator301
 import org.apache.spark.util.CompletionIterator
-import org.apache.spark.{InterruptibleIterator, MapOutputTracker, SparkEnv, TaskContext}
 
 class ArrowBlockStoreShuffleReader301[K, C](
   handle: BaseShuffleHandle[K, _, C],
@@ -38,6 +49,10 @@ class ArrowBlockStoreShuffleReader301[K, C](
       SparkEnv.get.conf.get(config.SHUFFLE_DETECT_CORRUPT_MEMORY),
       readMetrics,
       fetchContinuousBlocksInBatch).toCompletionIterator
+
+    // Store buffers in JniBridge
+    val buffersJniResourceKey = "ShuffleReader.buffers:" + NativeRDD.getNativeJobId(context)
+    JniBridge.resourcesMap.put(buffersJniResourceKey, buffers)
 
     // Create a key/value iterator for each stream
     val recordIter = buffers.flatMap { case (blockId, managedBuffer) =>

@@ -2,6 +2,7 @@ package org.apache.spark.sql.blaze;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import org.apache.hadoop.conf.Configuration;
@@ -10,8 +11,9 @@ import org.apache.spark.SparkEnv;
 import org.apache.spark.deploy.SparkHadoopUtil;
 
 public class JniBridge {
-    static Configuration conf;
-    static FileSystem fs;
+    static final public ConcurrentHashMap<String, Object> resourcesMap = new ConcurrentHashMap<>();
+    static final Configuration conf;
+    static final FileSystem fs;
     static {
         System.loadLibrary("blaze_rs");
         try {
@@ -25,6 +27,11 @@ public class JniBridge {
     // JVM -> Native
     public static FileSystem getHDFSFileSystem() {
         return fs;
+    }
+
+    // JVM -> Native
+    public static Object getResource(String key) {
+        return resourcesMap.get(key);
     }
 
     // Native -> JVM

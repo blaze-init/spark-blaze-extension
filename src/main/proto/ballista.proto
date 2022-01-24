@@ -479,6 +479,7 @@ message PhysicalPlanNode {
     ShuffleWriterExecNode shuffle_writer = 18;
     CrossJoinExecNode cross_join = 19;
     AvroScanExecNode avro_scan = 20;
+    BlazeShuffleReaderExecNode blaze_shuffle_reader = 10;
   }
 }
 

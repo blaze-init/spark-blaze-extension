@@ -1,34 +1,48 @@
 package org.apache.spark.sql.blaze.execution
 
-import org.apache.spark._
-import org.apache.spark.internal.config
-import org.apache.spark.rdd.RDD
-import org.apache.spark.serializer.Serializer
-import org.apache.spark.shuffle.sort.SortShuffleManager
-import org.apache.spark.shuffle.{ShuffleWriteMetricsReporter, ShuffleWriteProcessor}
-import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.errors.attachTree
-import org.apache.spark.sql.catalyst.expressions.codegen.LazilyGeneratedOrdering
-import org.apache.spark.sql.catalyst.expressions.{Attribute, BoundReference, UnsafeProjection, UnsafeRow}
-import org.apache.spark.sql.catalyst.plans.logical.Statistics
-import org.apache.spark.sql.catalyst.plans.physical._
-import org.apache.spark.sql.execution._
-import org.apache.spark.sql.execution.exchange.ShuffleExchangeLike
-import org.apache.spark.sql.execution.metric.{SQLMetric, SQLMetrics, SQLShuffleReadMetricsReporter, SQLShuffleWriteMetricsReporter}
-import org.apache.spark.sql.internal.SQLConf
-import org.apache.spark.sql.types.StructType
-import org.apache.spark.util.MutablePair
-import org.apache.spark.util.collection.unsafe.sort.{PrefixComparators, RecordComparator}
 import java.util.Random
 import java.util.function.Supplier
 
 import scala.concurrent.Future
 import scala.reflect.ClassTag
 
+import org.apache.spark._
+import org.apache.spark.internal.config
+import org.apache.spark.rdd.RDD
+import org.apache.spark.serializer.Serializer
+import org.apache.spark.shuffle.ShuffleWriteMetricsReporter
+import org.apache.spark.shuffle.ShuffleWriteProcessor
+import org.apache.spark.shuffle.sort.SortShuffleManager
+import org.apache.spark.sql.blaze.NativeConverters
+import org.apache.spark.sql.blaze.NativeRDD
+import org.apache.spark.sql.blaze.NativeSupports
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.errors.attachTree
+import org.apache.spark.sql.catalyst.expressions.Attribute
+import org.apache.spark.sql.catalyst.expressions.BoundReference
+import org.apache.spark.sql.catalyst.expressions.UnsafeProjection
+import org.apache.spark.sql.catalyst.expressions.UnsafeRow
+import org.apache.spark.sql.catalyst.expressions.codegen.LazilyGeneratedOrdering
+import org.apache.spark.sql.catalyst.plans.logical.Statistics
+import org.apache.spark.sql.catalyst.plans.physical._
+import org.apache.spark.sql.execution._
+import org.apache.spark.sql.execution.exchange.ShuffleExchangeLike
+import org.apache.spark.sql.execution.metric.SQLMetric
+import org.apache.spark.sql.execution.metric.SQLMetrics
+import org.apache.spark.sql.execution.metric.SQLShuffleReadMetricsReporter
+import org.apache.spark.sql.execution.metric.SQLShuffleWriteMetricsReporter
+import org.apache.spark.sql.internal.SQLConf
+import org.apache.spark.sql.types.StructType
+import org.apache.spark.util.MutablePair
+import org.apache.spark.util.collection.unsafe.sort.PrefixComparators
+import org.apache.spark.util.collection.unsafe.sort.RecordComparator
+import org.ballistacompute.protobuf.PhysicalPlanNode
+import org.ballistacompute.protobuf.ShuffleReaderExecNode
+
 case class ArrowShuffleExchangeExec301(
   override val outputPartitioning: Partitioning,
   override val child: SparkPlan,
-  noUserSpecifiedNumPartition: Boolean = true) extends ShuffleExchangeLike {
+  noUserSpecifiedNumPartition: Boolean = true) extends ShuffleExchangeLike with NativeSupports {
 
   override lazy val metrics = Map(
     "dataSize" -> SQLMetrics.createSizeMetric(sparkContext, "data size")
@@ -96,6 +110,22 @@ case class ArrowShuffleExchangeExec301(
       cachedShuffleRDD = new ShuffledRowRDD(shuffleDependency, readMetrics)
     }
     cachedShuffleRDD
+  }
+
+  override def doExecuteNative(): NativeRDD = {
+    val rdd = doExecute()
+
+    // note:
+    //  Reuse ballista's ShuffleReaderExecNode for transporting, will be converted
+    //  to BlazeShuffleReader in blaze-rs.
+    val nativeShuffleReaderExec = PhysicalPlanNode.newBuilder()
+      .setShuffleReader(ShuffleReaderExecNode.newBuilder()
+        .setSchema(NativeConverters.convertSchema(schema))
+        .buildPartial())
+      .build()
+    new NativeRDD(sparkContext, rdd.partitions, rdd.dependencies, nativeShuffleReaderExec, (split, partition) => {
+      rdd.compute(split, partition)
+    })
   }
 }
 

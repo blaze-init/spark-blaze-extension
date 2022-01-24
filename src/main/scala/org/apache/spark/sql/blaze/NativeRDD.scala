@@ -18,28 +18,27 @@ import org.apache.spark.sql.vectorized.ColumnVector
 import org.apache.spark.Dependency
 import org.apache.spark.SparkContext
 import org.ballistacompute.protobuf.PartitionId
-import org.ballistacompute.protobuf.PhysicalHashRepartition
 import org.ballistacompute.protobuf.PhysicalPlanNode
 import org.ballistacompute.protobuf.TaskDefinition
 
-case class NativeRDD(
+class NativeRDD(
   @transient private val rddSparkContext: SparkContext,
   private val rddPartitions: Array[Partition],
   private val rddDependencies: Seq[Dependency[_]],
-  nativePlan: PhysicalPlanNode,
+  val nativePlan: PhysicalPlanNode,
+  val precompute: (Partition, TaskContext) => Unit = (_, _) => {},
 ) extends RDD[InternalRow](rddSparkContext, rddDependencies) with Logging {
 
   override protected def getPartitions: Array[Partition] = rddPartitions
   override protected def getDependencies: Seq[Dependency[_]] = rddDependencies
 
   override def compute(split: Partition, context: TaskContext): Iterator[InternalRow] = {
-    val stageId = context.stageId()
-    val jobId = split.index
+    precompute(split, context)
 
     val partitionId = PartitionId.newBuilder()
-      .setPartitionId(split.index)
-      .setStageId(stageId)
-      .setJobId(jobId.toString)
+      .setPartitionId(context.partitionId())
+      .setStageId(0)
+      .setJobId(NativeRDD.getNativeJobId(context))
       .build()
     logInfo(s"NativeRDD.partitionId: ${partitionId}")
 
@@ -55,10 +54,18 @@ case class NativeRDD(
 
     var outputBytes: Array[Byte] = null
     JniBridge.callNative(taskDefinitionByteBuffer, (byteBuffer: ByteBuffer) => {
-      logInfo(s"Received bytes from native computing: ${byteBuffer.limit()}")
-      outputBytes = new Array[Byte](byteBuffer.limit())
-      byteBuffer.get(outputBytes)
+      if (byteBuffer != null) {
+        logInfo(s"Received bytes from native computing: ${byteBuffer.limit()}")
+        outputBytes = new Array[Byte](byteBuffer.limit())
+        byteBuffer.get(outputBytes)
+      } else {
+        logInfo(s"Received null (no records) from native computing")
+      }
     })
+
+    if (outputBytes == null) {
+      return Nil.toIterator
+    }
     toIterator(new ByteArrayInputStream(outputBytes))
   }
 
@@ -69,10 +76,9 @@ case class NativeRDD(
 
     new Iterator[InternalRow] {
       private var rowIter: Iterator[InternalRow] = null
-      loadNextBatch
 
       override def hasNext: Boolean = {
-        while (!rowIter.hasNext) {
+        while (rowIter == null || !rowIter.hasNext) {
           if (!loadNextBatch) {
             return false
           }
@@ -101,4 +107,13 @@ case class NativeRDD(
       }
     }
   }
+}
+
+object NativeRDD {
+  def getNativeJobId(context: TaskContext): String = Seq(
+    context.stageId(),
+    context.stageAttemptNumber(),
+    context.partitionId(),
+    context.taskAttemptId(),
+  ).mkString(":")
 }
