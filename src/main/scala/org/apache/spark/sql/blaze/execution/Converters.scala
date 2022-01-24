@@ -45,7 +45,7 @@ object Converters {
         val lengthReader = new RandomAccessFile(file, "r")
 
         var curEnd = f.getOffset + f.getLength
-        while (curEnd > 0) {
+        while (curEnd > f.getOffset) {
           val lenBuf = new Array[Byte](8)
           lengthReader.seek(curEnd - 8)
           lengthReader.read(lenBuf)
