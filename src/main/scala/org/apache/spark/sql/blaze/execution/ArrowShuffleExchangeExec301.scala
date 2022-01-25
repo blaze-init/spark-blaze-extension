@@ -123,9 +123,14 @@ case class ArrowShuffleExchangeExec301(
         .setSchema(NativeConverters.convertSchema(schema))
         .buildPartial())
       .build()
-    new NativeRDD(sparkContext, rdd.partitions, rdd.dependencies, nativeShuffleReaderExec, (split, partition) => {
-      rdd.compute(split, partition)
-    })
+
+    new NativeRDD(
+      sparkContext,
+      rdd.partitions,
+      rdd.dependencies,
+      nativeShuffleReaderExec,
+      precompute = rdd.compute, // store fetch iterator in jni resource before native compute
+    )
   }
 }
 
