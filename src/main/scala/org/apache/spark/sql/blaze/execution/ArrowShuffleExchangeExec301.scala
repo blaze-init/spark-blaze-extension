@@ -13,6 +13,7 @@ import org.apache.spark.serializer.Serializer
 import org.apache.spark.shuffle.ShuffleWriteMetricsReporter
 import org.apache.spark.shuffle.ShuffleWriteProcessor
 import org.apache.spark.shuffle.sort.SortShuffleManager
+import org.apache.spark.sql.blaze.MetricNode
 import org.apache.spark.sql.blaze.NativeConverters
 import org.apache.spark.sql.blaze.NativeRDD
 import org.apache.spark.sql.blaze.NativeSupports
@@ -45,7 +46,10 @@ case class ArrowShuffleExchangeExec301(
   noUserSpecifiedNumPartition: Boolean = true) extends ShuffleExchangeLike with NativeSupports {
 
   override lazy val metrics = Map(
-    "dataSize" -> SQLMetrics.createSizeMetric(sparkContext, "data size")
+    "dataSize" -> SQLMetrics.createSizeMetric(sparkContext, "data size"),
+    "numBlazeOutputIpcRows" -> SQLMetrics.createMetric(sparkContext, "number of blaze output ipc rows"),
+    "numBlazeOutputIpcBytes" -> SQLMetrics.createSizeMetric(sparkContext, "number of blaze output ipc bytes"),
+    "blazeExecTime" -> SQLMetrics.createNanoTimingMetric(sparkContext, "blaze exec time"),
   ) ++ readMetrics ++ writeMetrics
 
   @transient lazy val inputRDD: RDD[InternalRow] = child.execute()
@@ -114,6 +118,12 @@ case class ArrowShuffleExchangeExec301(
 
   override def doExecuteNative(): NativeRDD = {
     val rdd = doExecute()
+    val nativeMetrics = MetricNode(Map(
+      "output_rows" -> metrics(SQLShuffleReadMetricsReporter.RECORDS_READ),
+      "blaze_output_ipc_rows" -> metrics("numBlazeOutputIpcRows"),
+      "blaze_output_ipc_bytes" -> metrics("numBlazeOutputIpcBytes"),
+      "blaze_exec_time" -> metrics("blazeExecTime"),
+    ), Nil)
 
     // note:
     //  Reuse ballista's ShuffleReaderExecNode for transporting, will be converted
@@ -126,6 +136,7 @@ case class ArrowShuffleExchangeExec301(
 
     new NativeRDD(
       sparkContext,
+      nativeMetrics,
       rdd.partitions,
       rdd.dependencies,
       nativeShuffleReaderExec,

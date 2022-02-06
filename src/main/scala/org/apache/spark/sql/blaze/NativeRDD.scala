@@ -17,12 +17,14 @@ import org.apache.spark.sql.vectorized.ColumnarBatch
 import org.apache.spark.sql.vectorized.ColumnVector
 import org.apache.spark.Dependency
 import org.apache.spark.SparkContext
+import org.apache.spark.sql.execution.metric.SQLMetric
 import org.ballistacompute.protobuf.PartitionId
 import org.ballistacompute.protobuf.PhysicalPlanNode
 import org.ballistacompute.protobuf.TaskDefinition
 
 class NativeRDD(
   @transient private val rddSparkContext: SparkContext,
+  val metrics: MetricNode,
   private val rddPartitions: Array[Partition],
   private val rddDependencies: Seq[Dependency[_]],
   val nativePlan: PhysicalPlanNode,
@@ -53,7 +55,7 @@ class NativeRDD(
     // note: consider passing a ByteBufferOutputStream to blaze-rs to avoid copying
 
     var outputBytes: Array[Byte] = null
-    JniBridge.callNative(taskDefinitionByteBuffer, (byteBuffer: ByteBuffer) => {
+    JniBridge.callNative(taskDefinitionByteBuffer, metrics, byteBuffer => {
       if (byteBuffer != null) {
         logInfo(s"Received bytes from native computing: ${byteBuffer.limit()}")
         outputBytes = new Array[Byte](byteBuffer.limit())
@@ -116,4 +118,15 @@ object NativeRDD {
     context.partitionId(),
     context.taskAttemptId(),
   ).mkString(":")
+}
+
+case class MetricNode(
+  metrics: Map[String, SQLMetric],
+  children: Seq[MetricNode],
+) {
+  def getChild(i: Int): MetricNode =
+    children(i)
+
+  def add(metricName: String, v: Long): Unit =
+    metrics.get(metricName).foreach(_.add(v))
 }
