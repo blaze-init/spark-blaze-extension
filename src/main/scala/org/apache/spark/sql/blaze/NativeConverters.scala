@@ -160,15 +160,6 @@ object NativeConverters {
         .build())
     }
 
-    def buildExtensionExpr(name: String, args: Seq[Expression], dataType: DataType): PhysicalExprNode = buildExprNode {
-      _.setScalarFunction(PhysicalScalarFunctionNode.newBuilder()
-        .setName(s"blaze-extension-expr:${name}") // use special prefix to identify this is a custom expr
-        .setFun(ScalarFunction.CONCAT) // not used
-        .addAllArgs(args.map(convertExpr).asJava)
-        .setReturnType(convertDataType(dataType))
-        .build())
-    }
-
     sparkExpr match {
       case Literal(value, dataType) => buildExprNode {
         _.setLiteral(convertValue(value, dataType))
@@ -203,10 +194,10 @@ object NativeConverters {
       case Subtract(lhs, rhs) => buildBinaryExprNode(lhs, rhs, "Minus")
       case Multiply(lhs, rhs) => buildBinaryExprNode(lhs, rhs, "Multiply")
       case Divide(lhs, rhs) => buildBinaryExprNode(lhs, rhs, "Divide")
+      case Remainder(lhs, rhs) => buildBinaryExprNode(lhs, rhs, "Modulo")
       case Like(lhs, rhs, '\\') => buildBinaryExprNode(lhs, rhs, "Like")
       case And(lhs, rhs) => buildBinaryExprNode(lhs, rhs, "And")
       case Or(lhs, rhs) => buildBinaryExprNode(lhs, rhs, "Or")
-      case e: Remainder => buildExtensionExpr("Remainder", e.children, e.dataType)
 
       // builtin scalar functions
       case e: Sqrt => buildScalarFunction(ScalarFunction.SQRT, e.children, e.dataType)
