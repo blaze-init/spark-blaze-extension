@@ -59,25 +59,18 @@ object Converters {
 
       case _: NettyManagedBuffer | _: NioManagedBuffer =>
         val all = data.nioByteBuffer()
-        var curStart = 0
+
         var curEnd = all.limit()
+        while (curEnd > 0) {
+          val lenBuf = new Array[Byte](8)
+          all.get(lenBuf, curEnd - 8, 8)
+          val len = ByteBuffer.wrap(lenBuf).order(ByteOrder.LITTLE_ENDIAN).getInt
+          val curStart = curEnd - 8 - len
 
-        do {
-          val lenCopy = all.duplicate()
-          lenCopy.position(curEnd - 8)
-          lenCopy.limit(curEnd)
-          val lenBuf = ByteBuffer.allocate(8)
-          lenBuf.put(lenCopy)
-          val len = lenBuf.order(ByteOrder.LITTLE_ENDIAN).getInt
-
-          val cur = all.duplicate()
-          curEnd -= 8
-          curStart = curEnd - len
-          cur.position(curStart)
-          cur.limit(curEnd)
-          val sc = new NioSeekableByteChannel(cur, curStart, len)
+          val sc = new NioSeekableByteChannel(all, curStart, len)
           result += sc
-        } while (curStart > 0)
+          curEnd = curStart
+        }
       case mb =>
         throw new UnsupportedOperationException(s"ManagedBuffer of $mb not supported")
     }
