@@ -8,60 +8,38 @@ public interface ShuffleWriterExecNodeOrBuilder extends
     com.google.protobuf.MessageOrBuilder {
 
   /**
-   * <pre>
-   *TODO it seems redundant to provide job and stage id here since we also have them
-   * in the TaskDefinition that wraps this plan
-   * </pre>
-   *
-   * <code>string job_id = 1;</code>
-   * @return The jobId.
-   */
-  java.lang.String getJobId();
-  /**
-   * <pre>
-   *TODO it seems redundant to provide job and stage id here since we also have them
-   * in the TaskDefinition that wraps this plan
-   * </pre>
-   *
-   * <code>string job_id = 1;</code>
-   * @return The bytes for jobId.
-   */
-  com.google.protobuf.ByteString
-      getJobIdBytes();
-
-  /**
-   * <code>uint32 stage_id = 2;</code>
-   * @return The stageId.
-   */
-  int getStageId();
-
-  /**
-   * <code>.plan.protobuf.PhysicalPlanNode input = 3;</code>
+   * <code>.plan.protobuf.PhysicalPlanNode input = 1;</code>
    * @return Whether the input field is set.
    */
   boolean hasInput();
   /**
-   * <code>.plan.protobuf.PhysicalPlanNode input = 3;</code>
+   * <code>.plan.protobuf.PhysicalPlanNode input = 1;</code>
    * @return The input.
    */
   org.blaze.protobuf.PhysicalPlanNode getInput();
   /**
-   * <code>.plan.protobuf.PhysicalPlanNode input = 3;</code>
+   * <code>.plan.protobuf.PhysicalPlanNode input = 1;</code>
    */
   org.blaze.protobuf.PhysicalPlanNodeOrBuilder getInputOrBuilder();
 
   /**
-   * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 4;</code>
+   * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 2;</code>
    * @return Whether the outputPartitioning field is set.
    */
   boolean hasOutputPartitioning();
   /**
-   * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 4;</code>
+   * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 2;</code>
    * @return The outputPartitioning.
    */
   org.blaze.protobuf.PhysicalHashRepartition getOutputPartitioning();
   /**
-   * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 4;</code>
+   * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 2;</code>
    */
   org.blaze.protobuf.PhysicalHashRepartitionOrBuilder getOutputPartitioningOrBuilder();
+
+  /**
+   * <code>uint32 shuffleId = 3;</code>
+   * @return The shuffleId.
+   */
+  int getShuffleId();
 }

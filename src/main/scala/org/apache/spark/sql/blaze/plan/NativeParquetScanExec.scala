@@ -12,12 +12,12 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.blaze.MetricNode
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.metric.SQLMetrics
-import org.ballistacompute.protobuf.FileGroup
-import org.ballistacompute.protobuf.FileScanExecConf
-import org.ballistacompute.protobuf.ParquetScanExecNode
-import org.ballistacompute.protobuf.PartitionedFile
-import org.ballistacompute.protobuf.PhysicalPlanNode
-import org.ballistacompute.protobuf.Statistics
+import org.blaze.protobuf.FileGroup
+import org.blaze.protobuf.FileScanExecConf
+import org.blaze.protobuf.ParquetScanExecNode
+import org.blaze.protobuf.PartitionedFile
+import org.blaze.protobuf.PhysicalPlanNode
+import org.blaze.protobuf.Statistics
 
 case class NativeParquetScanExec(basedFileScan: FileSourceScanExec) extends LeafExecNode with NativeSupports {
 
@@ -46,7 +46,6 @@ case class NativeParquetScanExec(basedFileScan: FileSourceScanExec) extends Leaf
       val nativeParquetScanConfBuilder = FileScanExecConf.newBuilder()
         .setStatistics(Statistics.getDefaultInstance)
         .setSchema(NativeConverters.convertSchema(basedFileScan.requiredSchema))
-        .setBatchSize(100)
 
       partitions.foreach { filePartition =>
         val nativeFileGroupBuilder = FileGroup.newBuilder()

@@ -1,28 +1,37 @@
 package org.apache.spark.sql.blaze.execution
 
-import com.kwai.{FileSegmentSeekableByteChannel, NioSeekableByteChannel}
-import org.apache.arrow.vector._
-import org.apache.arrow.vector.dictionary.DictionaryProvider.MapDictionaryProvider
-import org.apache.arrow.vector.ipc.{ArrowFileReader, ArrowFileWriter}
-import org.apache.spark.TaskContext
-import org.apache.spark.network.buffer.{FileSegmentManagedBuffer, ManagedBuffer, NettyManagedBuffer, NioManagedBuffer}
-import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.execution.arrow.ArrowWriter
-import org.apache.spark.sql.types._
-import org.apache.spark.sql.util.ArrowUtils
-import org.apache.spark.sql.vectorized.{ArrowColumnVector, ColumnarBatch, ColumnVector}
-import org.apache.spark.util.Utils
-import java.io.{OutputStream, RandomAccessFile}
+import java.io.OutputStream
+import java.io.RandomAccessFile
 import java.nio.ByteBuffer
-import java.nio.channels.{Channels, SeekableByteChannel}
+import java.nio.channels.Channels
+import java.nio.channels.SeekableByteChannel
 import java.nio.ByteOrder
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
 
-import org.apache.arrow.vector.ipc.ArrowStreamReader
+import com.kwai.FileSegmentSeekableByteChannel
+import com.kwai.NioSeekableByteChannel
+import org.apache.arrow.vector._
+import org.apache.arrow.vector.dictionary.DictionaryProvider.MapDictionaryProvider
+import org.apache.arrow.vector.ipc.ArrowFileReader
+import org.apache.arrow.vector.ipc.ArrowFileWriter
+import org.apache.spark.TaskContext
+import org.apache.spark.internal.Logging
+import org.apache.spark.network.buffer.FileSegmentManagedBuffer
+import org.apache.spark.network.buffer.ManagedBuffer
+import org.apache.spark.network.buffer.NettyManagedBuffer
+import org.apache.spark.network.buffer.NioManagedBuffer
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.execution.arrow.ArrowWriter
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.util.ArrowUtils
+import org.apache.spark.sql.vectorized.ArrowColumnVector
+import org.apache.spark.sql.vectorized.ColumnVector
+import org.apache.spark.sql.vectorized.ColumnarBatch
+import org.apache.spark.util.Utils
 
-object Converters {
+object Converters extends Logging {
 
   /**
    * Parse ManagedBuffer from shuffle reader into record iterator.
@@ -49,9 +58,8 @@ object Converters {
           val lenBuf = new Array[Byte](8)
           lengthReader.seek(curEnd - 8)
           lengthReader.read(lenBuf)
-          val len = ByteBuffer.wrap(lenBuf).order(ByteOrder.LITTLE_ENDIAN).getInt
+          val len = ByteBuffer.wrap(lenBuf).order(ByteOrder.LITTLE_ENDIAN).getLong.toInt
           val curStart = curEnd - 8 - len
-
           val fsc = new FileSegmentSeekableByteChannel(file, curStart, len)
           result += fsc
           curEnd = curStart
@@ -64,7 +72,7 @@ object Converters {
         while (curEnd > 0) {
           val lenBuf = new Array[Byte](8)
           all.get(lenBuf, curEnd - 8, 8)
-          val len = ByteBuffer.wrap(lenBuf).order(ByteOrder.LITTLE_ENDIAN).getInt
+          val len = ByteBuffer.wrap(lenBuf).order(ByteOrder.LITTLE_ENDIAN).getLong.toInt
           val curStart = curEnd - 8 - len
 
           val sc = new NioSeekableByteChannel(all, curStart, len)

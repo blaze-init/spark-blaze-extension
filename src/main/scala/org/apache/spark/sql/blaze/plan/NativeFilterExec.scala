@@ -11,8 +11,8 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.UnaryExecNode
 import org.apache.spark.sql.execution.metric.SQLMetrics
-import org.ballistacompute.protobuf.FilterExecNode
-import org.ballistacompute.protobuf.PhysicalPlanNode
+import org.blaze.protobuf.FilterExecNode
+import org.blaze.protobuf.PhysicalPlanNode
 
 case class NativeFilterExec(
   condition: Expression,

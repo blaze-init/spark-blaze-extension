@@ -14,8 +14,8 @@ import org.apache.spark.sql.execution.AliasAwareOutputPartitioning
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.UnaryExecNode
 import org.apache.spark.sql.execution.metric.SQLMetrics
-import org.ballistacompute.protobuf.PhysicalPlanNode
-import org.ballistacompute.protobuf.ProjectionExecNode
+import org.blaze.protobuf.PhysicalPlanNode
+import org.blaze.protobuf.ProjectionExecNode
 
 case class NativeProjectExec(
   projectList: Seq[NamedExpression],

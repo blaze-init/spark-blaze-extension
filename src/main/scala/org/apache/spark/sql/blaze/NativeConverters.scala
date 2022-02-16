@@ -65,20 +65,20 @@ import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.types.TimestampType
-import org.ballistacompute.protobuf.ArrowType
-import org.ballistacompute.protobuf.EmptyMessage
-import org.ballistacompute.protobuf.Field
-import org.ballistacompute.protobuf.PhysicalBinaryExprNode
-import org.ballistacompute.protobuf.PhysicalCastNode
-import org.ballistacompute.protobuf.PhysicalColumn
-import org.ballistacompute.protobuf.PhysicalExprNode
-import org.ballistacompute.protobuf.PhysicalIsNotNull
-import org.ballistacompute.protobuf.PhysicalNot
-import org.ballistacompute.protobuf.PhysicalScalarFunctionNode
-import org.ballistacompute.protobuf.ScalarFunction
-import org.ballistacompute.protobuf.ScalarValue
-import org.ballistacompute.protobuf.Schema
-import org.ballistacompute.protobuf.Timestamp
+import org.blaze.protobuf.ArrowType
+import org.blaze.protobuf.EmptyMessage
+import org.blaze.protobuf.Field
+import org.blaze.protobuf.PhysicalBinaryExprNode
+import org.blaze.protobuf.PhysicalCastNode
+import org.blaze.protobuf.PhysicalColumn
+import org.blaze.protobuf.PhysicalExprNode
+import org.blaze.protobuf.PhysicalIsNotNull
+import org.blaze.protobuf.PhysicalNot
+import org.blaze.protobuf.PhysicalScalarFunctionNode
+import org.blaze.protobuf.ScalarFunction
+import org.blaze.protobuf.ScalarValue
+import org.blaze.protobuf.Schema
+import org.blaze.protobuf.Timestamp
 
 object NativeConverters {
   def convertDataType(sparkDataType: DataType): ArrowType = {
