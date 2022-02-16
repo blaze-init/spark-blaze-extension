@@ -3,13 +3,17 @@ package org.apache.spark.sql.blaze
 import org.apache.spark.sql.SparkSessionExtensions
 import org.apache.spark.SparkEnv
 import org.apache.spark.internal.Logging
+import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.blaze.execution.ArrowShuffleExchangeExec301
 import org.apache.spark.sql.blaze.execution.ArrowShuffleManager301
 import org.apache.spark.sql.blaze.plan.NativeFilterExec
 import org.apache.spark.sql.blaze.plan.NativeParquetScanExec
 import org.apache.spark.sql.blaze.plan.NativeProjectExec
 import org.apache.spark.sql.blaze.plan.NativeSortExec
+import org.apache.spark.sql.catalyst.expressions.Attribute
 import org.apache.spark.sql.catalyst.rules.Rule
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.exchange.ShuffleExchangeExec
 import org.apache.spark.sql.execution.FileSourceScanExec
@@ -18,7 +22,7 @@ import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
 import org.apache.spark.sql.execution.CollectLimitExec
 import org.apache.spark.sql.execution.FilterExec
 import org.apache.spark.sql.execution.ProjectExec
-import org.apache.spark.sql.execution.adaptive.ShuffleQueryStageExec
+import org.apache.spark.sql.execution.UnaryExecNode
 import org.apache.spark.sql.internal.SQLConf
 
 class BlazeSparkSessionExtension extends (SparkSessionExtensions => Unit) with Logging {
@@ -34,7 +38,6 @@ class BlazeSparkSessionExtension extends (SparkSessionExtensions => Unit) with L
 }
 
 case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
-
   override def apply(sparkPlan: SparkPlan): SparkPlan = {
     var sparkPlanTransformed = sparkPlan.transformUp {
       case exec: ShuffleExchangeExec => convertShuffleExchangeExec(exec)
@@ -60,9 +63,13 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
     val ShuffleExchangeExec(outputPartitioning, child, noUserSpecifiedNumPartition) = exec
     logInfo(s"Converting ShuffleExchangeExec: ${exec.simpleStringWithNodeId}")
 
+    val wrappedChild = child match {
+      case child: NativeSupports => WholeStageCodegenForBlazeNativeExec(child)
+      case child => child
+    }
     ArrowShuffleExchangeExec301(
       outputPartitioning,
-      child,
+      wrappedChild,
       noUserSpecifiedNumPartition,
     )
   }
@@ -115,7 +122,7 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
 
   private def convertToUnsafeRow(exec: SparkPlan): SparkPlan = {
     exec match {
-      case exec: NativeSupports => ConvertToUnsafeRowExec(exec)
+      case exec: NativeSupports => ConvertToUnsafeRowExec(WholeStageCodegenForBlazeNativeExec(exec))
       case exec => exec
     }
   }
@@ -130,4 +137,16 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
         otherPlan
     }
   }
+}
+
+case class WholeStageCodegenForBlazeNativeExec(
+  override val child: SparkPlan with NativeSupports
+) extends UnaryExecNode with NativeSupports {
+
+  override def nodeName: String = "WholeStageCodegen for Blaze Native Execution"
+  override def logicalLink: Option[LogicalPlan] = child.logicalLink
+  override def output: Seq[Attribute] = child.output
+
+  override def doExecuteNative(): NativeRDD = NativeSupports.executeNative(child)
+  override protected def doExecute(): RDD[InternalRow] = child.execute()
 }
