@@ -14,10 +14,12 @@ import org.apache.spark.sql.execution.adaptive.CustomShuffleReaderExec
 import org.apache.spark.sql.execution.adaptive.QueryStageExec
 import org.apache.spark.TaskContext
 import org.apache.spark.sql.execution.metric.SQLMetric
+import org.apache.spark.sql.execution.metric.SQLMetrics
 import org.apache.spark.sql.util.ArrowUtils
 import org.apache.spark.sql.vectorized.ArrowColumnVector
 import org.apache.spark.sql.vectorized.ColumnarBatch
 import org.apache.spark.sql.vectorized.ColumnVector
+import org.apache.spark.SparkContext
 import org.blaze.protobuf.PartitionId
 import org.blaze.protobuf.PhysicalPlanNode
 import org.blaze.protobuf.TaskDefinition
@@ -70,6 +72,13 @@ object NativeSupports {
       toIterator(new ByteArrayInputStream(outputBytes))
    }
 
+   def getDefaultNativeMetrics(sparkContext: SparkContext): Map[String, SQLMetric] = Map(
+      "numOutputRows" -> SQLMetrics.createMetric(sparkContext, "number of output rows"),
+      "blazeExecIPCWrittenRows" -> SQLMetrics.createMetric(sparkContext, "blaze exec IPC written rows"),
+      "blazeExecIPCWrittenBytes" -> SQLMetrics.createSizeMetric(sparkContext, "blaze exec IPC written bytes"),
+      "blazeExecTime" -> SQLMetrics.createNanoTimingMetric(sparkContext, "blaze exec time"),
+      "blazeShuffleWriteExecTime" -> SQLMetrics.createNanoTimingMetric(sparkContext, "blaze shuffle write exec time"),
+   )
 
    private def toIterator(inputStream: ByteArrayInputStream): Iterator[InternalRow] = {
       val allocator = ArrowUtils.rootAllocator.newChildAllocator("readNativeRDDBatches", 0, Long.MaxValue)

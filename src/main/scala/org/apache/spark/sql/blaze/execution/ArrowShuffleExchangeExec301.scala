@@ -87,7 +87,8 @@ case class ArrowShuffleExchangeExec301(
         child.output,
         outputPartitioning,
         serializer,
-        metrics)
+        metrics,
+        child.metrics) // native shuffle write exec time is written to child node's metric
     } else {
       ArrowShuffleExchangeExec301.prepareShuffleDependency(
         inputRDD,
@@ -184,6 +185,7 @@ object ArrowShuffleExchangeExec301 {
     outputPartitioning: Partitioning,
     serializer: Serializer,
     metrics: Map[String, SQLMetric],
+    childMetrics: Map[String, SQLMetric],
   ): ShuffleDependency[Int, InternalRow, InternalRow] = {
 
     val nativeInputRDD = rdd.asInstanceOf[NativeRDD]
@@ -202,7 +204,7 @@ object ArrowShuffleExchangeExec301 {
 
     val nativeShuffleRDD = new NativeRDD(
       nativeInputRDD.sparkContext,
-      MetricNode(Map("blaze_exec_time" -> metrics("blazeShuffleWriteExecTime")), Seq(nativeInputRDD.metrics)),
+      MetricNode(Map("blaze_exec_time" -> childMetrics("blazeShuffleWriteExecTime")), Seq(nativeInputRDD.metrics)),
       nativeInputRDD.partitions,
       nativeInputRDD.dependencies,
       nativeShuffleWriterExec,
