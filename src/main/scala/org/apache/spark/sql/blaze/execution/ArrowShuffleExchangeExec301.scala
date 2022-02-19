@@ -1,22 +1,31 @@
 package org.apache.spark.sql.blaze.execution
 
+import java.nio.file.Paths
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
+import java.nio.file.Files
 import java.util.Random
 import java.util.function.Supplier
 
+import scala.collection.JavaConverters._
 import scala.concurrent.Future
 import scala.reflect.ClassTag
 
 import org.apache.spark._
 import org.apache.spark.internal.config
+import org.apache.spark.rdd.MapPartitionsRDD
 import org.apache.spark.rdd.RDD
+import org.apache.spark.scheduler.MapStatus
 import org.apache.spark.serializer.Serializer
 import org.apache.spark.shuffle.ShuffleWriteMetricsReporter
 import org.apache.spark.shuffle.ShuffleWriteProcessor
 import org.apache.spark.shuffle.sort.SortShuffleManager
+import org.apache.spark.shuffle.IndexShuffleBlockResolver
 import org.apache.spark.sql.blaze.MetricNode
 import org.apache.spark.sql.blaze.NativeConverters
 import org.apache.spark.sql.blaze.NativeRDD
 import org.apache.spark.sql.blaze.NativeSupports
+import org.apache.spark.sql.blaze.execution.ArrowShuffleExchangeExec301.canUseNativeShuffleWrite
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.errors.attachTree
 import org.apache.spark.sql.catalyst.expressions.Attribute
@@ -37,8 +46,10 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.util.MutablePair
 import org.apache.spark.util.collection.unsafe.sort.PrefixComparators
 import org.apache.spark.util.collection.unsafe.sort.RecordComparator
-import org.ballistacompute.protobuf.PhysicalPlanNode
-import org.ballistacompute.protobuf.ShuffleReaderExecNode
+import org.blaze.protobuf.PhysicalHashRepartition
+import org.blaze.protobuf.PhysicalPlanNode
+import org.blaze.protobuf.ShuffleReaderExecNode
+import org.blaze.protobuf.ShuffleWriterExecNode
 
 case class ArrowShuffleExchangeExec301(
   override val outputPartitioning: Partitioning,
@@ -49,7 +60,8 @@ case class ArrowShuffleExchangeExec301(
     "dataSize" -> SQLMetrics.createSizeMetric(sparkContext, "data size"),
     "numBlazeOutputIpcRows" -> SQLMetrics.createMetric(sparkContext, "number of blaze output ipc rows"),
     "numBlazeOutputIpcBytes" -> SQLMetrics.createSizeMetric(sparkContext, "number of blaze output ipc bytes"),
-    "blazeExecTime" -> SQLMetrics.createNanoTimingMetric(sparkContext, "blaze exec time"),
+    "blazeShuffleWriteExecTime" -> SQLMetrics.createNanoTimingMetric(sparkContext, "blaze shuffle write exec time"),
+    "blazeShuffleReadExecTime" -> SQLMetrics.createNanoTimingMetric(sparkContext, "blaze shuffle read exec time"),
   ) ++ readMetrics ++ writeMetrics
 
   @transient lazy val inputRDD: RDD[InternalRow] = child.execute()
@@ -61,6 +73,7 @@ case class ArrowShuffleExchangeExec301(
       sparkContext.submitMapStage(shuffleDependency)
     }
   }
+
   /**
    * A [[ShuffleDependency]] that will partition rows of its child based on
    * the partitioning scheme defined in `newPartitioning`. Those partitions of
@@ -68,13 +81,23 @@ case class ArrowShuffleExchangeExec301(
    */
   @transient
   lazy val shuffleDependency: ShuffleDependency[Int, InternalRow, InternalRow] = {
-    ArrowShuffleExchangeExec301.prepareShuffleDependency(
-      inputRDD,
-      child.output,
-      outputPartitioning,
-      serializer,
-      writeMetrics)
+    if (canUseNativeShuffleWrite(inputRDD, outputPartitioning)) {
+      ArrowShuffleExchangeExec301.prepareNativeShuffleDependency(
+        inputRDD,
+        child.output,
+        outputPartitioning,
+        serializer,
+        metrics)
+    } else {
+      ArrowShuffleExchangeExec301.prepareShuffleDependency(
+        inputRDD,
+        child.output,
+        outputPartitioning,
+        serializer,
+        metrics)
+    }
   }
+
   private lazy val writeMetrics =
     SQLShuffleWriteMetricsReporter.createShuffleWriteMetrics(sparkContext)
   private[sql] lazy val readMetrics =
@@ -122,7 +145,7 @@ case class ArrowShuffleExchangeExec301(
       "output_rows" -> metrics(SQLShuffleReadMetricsReporter.RECORDS_READ),
       "blaze_output_ipc_rows" -> metrics("numBlazeOutputIpcRows"),
       "blaze_output_ipc_bytes" -> metrics("numBlazeOutputIpcBytes"),
-      "blaze_exec_time" -> metrics("blazeExecTime"),
+      "blaze_exec_time" -> metrics("blazeShuffleReadExecTime"),
     ), Nil)
 
     // note:
@@ -146,6 +169,56 @@ case class ArrowShuffleExchangeExec301(
 }
 
 object ArrowShuffleExchangeExec301 {
+  def canUseNativeShuffleWrite(rdd: RDD[InternalRow], outputPartitioning: Partitioning): Boolean = {
+    if (rdd.isInstanceOf[NativeRDD]) {
+      if (outputPartitioning.isInstanceOf[HashPartitioning]) {
+        return true
+      }
+    }
+    false
+  }
+
+  def prepareNativeShuffleDependency(
+    rdd: RDD[InternalRow],
+    outputAttributes: Seq[Attribute],
+    outputPartitioning: Partitioning,
+    serializer: Serializer,
+    metrics: Map[String, SQLMetric],
+  ): ShuffleDependency[Int, InternalRow, InternalRow] = {
+
+    val nativeInputRDD = rdd.asInstanceOf[NativeRDD]
+    val HashPartitioning(expressions, numPartitions) = outputPartitioning.asInstanceOf[HashPartitioning]
+
+    val nativePartitioning = PhysicalHashRepartition.newBuilder()
+      .setPartitionCount(numPartitions)
+      .addAllHashExpr(expressions.map(NativeConverters.convertExpr).asJava)
+      .build()
+    val nativeShuffleWriterExec = PhysicalPlanNode.newBuilder()
+      .setShuffleWriter(ShuffleWriterExecNode.newBuilder()
+        .setInput(nativeInputRDD.nativePlan)
+        .setOutputPartitioning(nativePartitioning)
+        .buildPartial()) // shuffleId is not set at the moment, will be set in ShuffleWriteProcessor
+      .build()
+
+    val nativeShuffleRDD = new NativeRDD(
+      nativeInputRDD.sparkContext,
+      MetricNode(Map("blaze_exec_time" -> metrics("blazeShuffleWriteExecTime")), Seq(nativeInputRDD.metrics)),
+      nativeInputRDD.partitions,
+      nativeInputRDD.dependencies,
+      nativeShuffleWriterExec,
+    )
+
+    val dependency = new ShuffleDependencySchema[Int, InternalRow, InternalRow](
+      nativeShuffleRDD.map((0, _)),
+      serializer = serializer,
+      shuffleWriterProcessor = createNativeShuffleWriteProcessor(metrics),
+      partitioner = new Partitioner {
+        override def numPartitions: Int = outputPartitioning.numPartitions
+        override def getPartition(key: Any): Int = key.asInstanceOf[Int]
+      },
+      schema = StructType.fromAttributes(outputAttributes))
+    dependency
+  }
 
   /**
    * Returns a [[ShuffleDependency]] that will partition rows of its child based on
@@ -356,6 +429,60 @@ object ArrowShuffleExchangeExec301 {
     } else {
       // Catch-all case to safely handle any future ShuffleManager implementations.
       true
+    }
+  }
+
+  def createNativeShuffleWriteProcessor(metrics: Map[String, SQLMetric]): ShuffleWriteProcessor = {
+    new ShuffleWriteProcessor {
+      override protected def createMetricsReporter(
+        context: TaskContext): ShuffleWriteMetricsReporter = {
+        new SQLShuffleWriteMetricsReporter(context.taskMetrics().shuffleWriteMetrics, metrics)
+      }
+
+      override def write(
+        rdd: RDD[_],
+        dep: ShuffleDependency[_, _, _],
+        mapId: Long,
+        context: TaskContext,
+        partition: Partition,
+      ): MapStatus = {
+
+        val nativeShuffleRDD = rdd.asInstanceOf[MapPartitionsRDD[_, _]].prev.asInstanceOf[NativeRDD]
+        val nativeShuffleWriterExec = PhysicalPlanNode.newBuilder()
+          .setShuffleWriter(ShuffleWriterExecNode.newBuilder(nativeShuffleRDD.nativePlan.getShuffleWriter)
+            .setShuffleId(dep.shuffleId)
+            .build())
+          .build()
+        val iterator = NativeSupports.executeNativePlan(
+          nativeShuffleWriterExec,
+          nativeShuffleRDD.metrics,
+          context,
+        )
+
+        // get partition lengths from shuffle write output index file
+        val indexFileTmp = iterator.map(_.getString(1)).toSeq.head
+        val dataFileTmp = indexFileTmp.replace(".index.tmp", ".data.tmp")
+        var offset = 0L
+        val partitionLengths = Files.readAllBytes(Paths.get(indexFileTmp)).grouped(8)
+          .drop(1) // first partition offset is always 0
+          .map(indexBytes => {
+            val partitionOffset = ByteBuffer.wrap(indexBytes).order(ByteOrder.LITTLE_ENDIAN).getLong
+            val partitionLength = partitionOffset - offset
+            offset = partitionOffset
+            partitionLength
+          })
+          .toArray
+
+        // commit
+        SparkEnv.get.shuffleManager.shuffleBlockResolver.asInstanceOf[IndexShuffleBlockResolver]
+          .writeIndexFileAndCommit(
+            dep.shuffleId,
+            mapId,
+            partitionLengths,
+            Paths.get(dataFileTmp).toFile,
+          )
+        MapStatus.apply(SparkEnv.get.blockManager.shuffleServerId, partitionLengths, mapId)
+      }
     }
   }
 

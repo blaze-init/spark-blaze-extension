@@ -23,6 +23,7 @@ import org.apache.spark.sql.execution.CollectLimitExec
 import org.apache.spark.sql.execution.FilterExec
 import org.apache.spark.sql.execution.ProjectExec
 import org.apache.spark.sql.execution.UnaryExecNode
+import org.apache.spark.sql.execution.joins.SortMergeJoinExec
 import org.apache.spark.sql.internal.SQLConf
 
 class BlazeSparkSessionExtension extends (SparkSessionExtensions => Unit) with Logging {
@@ -63,15 +64,11 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
     val ShuffleExchangeExec(outputPartitioning, child, noUserSpecifiedNumPartition) = exec
     logInfo(s"Converting ShuffleExchangeExec: ${exec.simpleStringWithNodeId}")
 
-    val wrappedChild = child match {
+    val childWithWholeStageCodegen = child match {
       case child: NativeSupports => WholeStageCodegenForBlazeNativeExec(child)
       case child => child
     }
-    ArrowShuffleExchangeExec301(
-      outputPartitioning,
-      wrappedChild,
-      noUserSpecifiedNumPartition,
-    )
+    ArrowShuffleExchangeExec301(outputPartitioning, childWithWholeStageCodegen, noUserSpecifiedNumPartition)
   }
 
   private def convertFileSourceScanExec(exec: FileSourceScanExec): SparkPlan = {
@@ -133,6 +130,8 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
         exec.copy(child = convertToUnsafeRow(exec.child))
       case exec: CollectLimitExec =>
         exec.copy(child = convertToUnsafeRow(exec.child))
+      case exec: SortMergeJoinExec =>
+        exec.copy(left = convertToUnsafeRow(exec.left), right = convertToUnsafeRow(exec.right))
       case otherPlan =>
         otherPlan
     }

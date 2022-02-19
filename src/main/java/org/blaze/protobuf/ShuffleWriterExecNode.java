@@ -16,7 +16,6 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private ShuffleWriterExecNode() {
-    jobId_ = "";
   }
 
   @java.lang.Override
@@ -50,17 +49,6 @@ private static final long serialVersionUID = 0L;
             done = true;
             break;
           case 10: {
-            java.lang.String s = input.readStringRequireUtf8();
-
-            jobId_ = s;
-            break;
-          }
-          case 16: {
-
-            stageId_ = input.readUInt32();
-            break;
-          }
-          case 26: {
             org.blaze.protobuf.PhysicalPlanNode.Builder subBuilder = null;
             if (input_ != null) {
               subBuilder = input_.toBuilder();
@@ -73,7 +61,7 @@ private static final long serialVersionUID = 0L;
 
             break;
           }
-          case 34: {
+          case 18: {
             org.blaze.protobuf.PhysicalHashRepartition.Builder subBuilder = null;
             if (outputPartitioning_ != null) {
               subBuilder = outputPartitioning_.toBuilder();
@@ -84,6 +72,11 @@ private static final long serialVersionUID = 0L;
               outputPartitioning_ = subBuilder.buildPartial();
             }
 
+            break;
+          }
+          case 24: {
+
+            shuffleId_ = input.readUInt32();
             break;
           }
           default: {
@@ -118,69 +111,10 @@ private static final long serialVersionUID = 0L;
             org.blaze.protobuf.ShuffleWriterExecNode.class, org.blaze.protobuf.ShuffleWriterExecNode.Builder.class);
   }
 
-  public static final int JOB_ID_FIELD_NUMBER = 1;
-  private volatile java.lang.Object jobId_;
-  /**
-   * <pre>
-   *TODO it seems redundant to provide job and stage id here since we also have them
-   * in the TaskDefinition that wraps this plan
-   * </pre>
-   *
-   * <code>string job_id = 1;</code>
-   * @return The jobId.
-   */
-  @java.lang.Override
-  public java.lang.String getJobId() {
-    java.lang.Object ref = jobId_;
-    if (ref instanceof java.lang.String) {
-      return (java.lang.String) ref;
-    } else {
-      com.google.protobuf.ByteString bs = 
-          (com.google.protobuf.ByteString) ref;
-      java.lang.String s = bs.toStringUtf8();
-      jobId_ = s;
-      return s;
-    }
-  }
-  /**
-   * <pre>
-   *TODO it seems redundant to provide job and stage id here since we also have them
-   * in the TaskDefinition that wraps this plan
-   * </pre>
-   *
-   * <code>string job_id = 1;</code>
-   * @return The bytes for jobId.
-   */
-  @java.lang.Override
-  public com.google.protobuf.ByteString
-      getJobIdBytes() {
-    java.lang.Object ref = jobId_;
-    if (ref instanceof java.lang.String) {
-      com.google.protobuf.ByteString b = 
-          com.google.protobuf.ByteString.copyFromUtf8(
-              (java.lang.String) ref);
-      jobId_ = b;
-      return b;
-    } else {
-      return (com.google.protobuf.ByteString) ref;
-    }
-  }
-
-  public static final int STAGE_ID_FIELD_NUMBER = 2;
-  private int stageId_;
-  /**
-   * <code>uint32 stage_id = 2;</code>
-   * @return The stageId.
-   */
-  @java.lang.Override
-  public int getStageId() {
-    return stageId_;
-  }
-
-  public static final int INPUT_FIELD_NUMBER = 3;
+  public static final int INPUT_FIELD_NUMBER = 1;
   private org.blaze.protobuf.PhysicalPlanNode input_;
   /**
-   * <code>.plan.protobuf.PhysicalPlanNode input = 3;</code>
+   * <code>.plan.protobuf.PhysicalPlanNode input = 1;</code>
    * @return Whether the input field is set.
    */
   @java.lang.Override
@@ -188,7 +122,7 @@ private static final long serialVersionUID = 0L;
     return input_ != null;
   }
   /**
-   * <code>.plan.protobuf.PhysicalPlanNode input = 3;</code>
+   * <code>.plan.protobuf.PhysicalPlanNode input = 1;</code>
    * @return The input.
    */
   @java.lang.Override
@@ -196,17 +130,17 @@ private static final long serialVersionUID = 0L;
     return input_ == null ? org.blaze.protobuf.PhysicalPlanNode.getDefaultInstance() : input_;
   }
   /**
-   * <code>.plan.protobuf.PhysicalPlanNode input = 3;</code>
+   * <code>.plan.protobuf.PhysicalPlanNode input = 1;</code>
    */
   @java.lang.Override
   public org.blaze.protobuf.PhysicalPlanNodeOrBuilder getInputOrBuilder() {
     return getInput();
   }
 
-  public static final int OUTPUT_PARTITIONING_FIELD_NUMBER = 4;
+  public static final int OUTPUT_PARTITIONING_FIELD_NUMBER = 2;
   private org.blaze.protobuf.PhysicalHashRepartition outputPartitioning_;
   /**
-   * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 4;</code>
+   * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 2;</code>
    * @return Whether the outputPartitioning field is set.
    */
   @java.lang.Override
@@ -214,7 +148,7 @@ private static final long serialVersionUID = 0L;
     return outputPartitioning_ != null;
   }
   /**
-   * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 4;</code>
+   * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 2;</code>
    * @return The outputPartitioning.
    */
   @java.lang.Override
@@ -222,11 +156,22 @@ private static final long serialVersionUID = 0L;
     return outputPartitioning_ == null ? org.blaze.protobuf.PhysicalHashRepartition.getDefaultInstance() : outputPartitioning_;
   }
   /**
-   * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 4;</code>
+   * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 2;</code>
    */
   @java.lang.Override
   public org.blaze.protobuf.PhysicalHashRepartitionOrBuilder getOutputPartitioningOrBuilder() {
     return getOutputPartitioning();
+  }
+
+  public static final int SHUFFLEID_FIELD_NUMBER = 3;
+  private int shuffleId_;
+  /**
+   * <code>uint32 shuffleId = 3;</code>
+   * @return The shuffleId.
+   */
+  @java.lang.Override
+  public int getShuffleId() {
+    return shuffleId_;
   }
 
   private byte memoizedIsInitialized = -1;
@@ -243,17 +188,14 @@ private static final long serialVersionUID = 0L;
   @java.lang.Override
   public void writeTo(com.google.protobuf.CodedOutputStream output)
                       throws java.io.IOException {
-    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(jobId_)) {
-      com.google.protobuf.GeneratedMessageV3.writeString(output, 1, jobId_);
-    }
-    if (stageId_ != 0) {
-      output.writeUInt32(2, stageId_);
-    }
     if (input_ != null) {
-      output.writeMessage(3, getInput());
+      output.writeMessage(1, getInput());
     }
     if (outputPartitioning_ != null) {
-      output.writeMessage(4, getOutputPartitioning());
+      output.writeMessage(2, getOutputPartitioning());
+    }
+    if (shuffleId_ != 0) {
+      output.writeUInt32(3, shuffleId_);
     }
     unknownFields.writeTo(output);
   }
@@ -264,20 +206,17 @@ private static final long serialVersionUID = 0L;
     if (size != -1) return size;
 
     size = 0;
-    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(jobId_)) {
-      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(1, jobId_);
-    }
-    if (stageId_ != 0) {
-      size += com.google.protobuf.CodedOutputStream
-        .computeUInt32Size(2, stageId_);
-    }
     if (input_ != null) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(3, getInput());
+        .computeMessageSize(1, getInput());
     }
     if (outputPartitioning_ != null) {
       size += com.google.protobuf.CodedOutputStream
-        .computeMessageSize(4, getOutputPartitioning());
+        .computeMessageSize(2, getOutputPartitioning());
+    }
+    if (shuffleId_ != 0) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeUInt32Size(3, shuffleId_);
     }
     size += unknownFields.getSerializedSize();
     memoizedSize = size;
@@ -294,10 +233,6 @@ private static final long serialVersionUID = 0L;
     }
     org.blaze.protobuf.ShuffleWriterExecNode other = (org.blaze.protobuf.ShuffleWriterExecNode) obj;
 
-    if (!getJobId()
-        .equals(other.getJobId())) return false;
-    if (getStageId()
-        != other.getStageId()) return false;
     if (hasInput() != other.hasInput()) return false;
     if (hasInput()) {
       if (!getInput()
@@ -308,6 +243,8 @@ private static final long serialVersionUID = 0L;
       if (!getOutputPartitioning()
           .equals(other.getOutputPartitioning())) return false;
     }
+    if (getShuffleId()
+        != other.getShuffleId()) return false;
     if (!unknownFields.equals(other.unknownFields)) return false;
     return true;
   }
@@ -319,10 +256,6 @@ private static final long serialVersionUID = 0L;
     }
     int hash = 41;
     hash = (19 * hash) + getDescriptor().hashCode();
-    hash = (37 * hash) + JOB_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getJobId().hashCode();
-    hash = (37 * hash) + STAGE_ID_FIELD_NUMBER;
-    hash = (53 * hash) + getStageId();
     if (hasInput()) {
       hash = (37 * hash) + INPUT_FIELD_NUMBER;
       hash = (53 * hash) + getInput().hashCode();
@@ -331,6 +264,8 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + OUTPUT_PARTITIONING_FIELD_NUMBER;
       hash = (53 * hash) + getOutputPartitioning().hashCode();
     }
+    hash = (37 * hash) + SHUFFLEID_FIELD_NUMBER;
+    hash = (53 * hash) + getShuffleId();
     hash = (29 * hash) + unknownFields.hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -464,10 +399,6 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public Builder clear() {
       super.clear();
-      jobId_ = "";
-
-      stageId_ = 0;
-
       if (inputBuilder_ == null) {
         input_ = null;
       } else {
@@ -480,6 +411,8 @@ private static final long serialVersionUID = 0L;
         outputPartitioning_ = null;
         outputPartitioningBuilder_ = null;
       }
+      shuffleId_ = 0;
+
       return this;
     }
 
@@ -506,8 +439,6 @@ private static final long serialVersionUID = 0L;
     @java.lang.Override
     public org.blaze.protobuf.ShuffleWriterExecNode buildPartial() {
       org.blaze.protobuf.ShuffleWriterExecNode result = new org.blaze.protobuf.ShuffleWriterExecNode(this);
-      result.jobId_ = jobId_;
-      result.stageId_ = stageId_;
       if (inputBuilder_ == null) {
         result.input_ = input_;
       } else {
@@ -518,6 +449,7 @@ private static final long serialVersionUID = 0L;
       } else {
         result.outputPartitioning_ = outputPartitioningBuilder_.build();
       }
+      result.shuffleId_ = shuffleId_;
       onBuilt();
       return result;
     }
@@ -566,18 +498,14 @@ private static final long serialVersionUID = 0L;
 
     public Builder mergeFrom(org.blaze.protobuf.ShuffleWriterExecNode other) {
       if (other == org.blaze.protobuf.ShuffleWriterExecNode.getDefaultInstance()) return this;
-      if (!other.getJobId().isEmpty()) {
-        jobId_ = other.jobId_;
-        onChanged();
-      }
-      if (other.getStageId() != 0) {
-        setStageId(other.getStageId());
-      }
       if (other.hasInput()) {
         mergeInput(other.getInput());
       }
       if (other.hasOutputPartitioning()) {
         mergeOutputPartitioning(other.getOutputPartitioning());
+      }
+      if (other.getShuffleId() != 0) {
+        setShuffleId(other.getShuffleId());
       }
       this.mergeUnknownFields(other.unknownFields);
       onChanged();
@@ -608,150 +536,18 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object jobId_ = "";
-    /**
-     * <pre>
-     *TODO it seems redundant to provide job and stage id here since we also have them
-     * in the TaskDefinition that wraps this plan
-     * </pre>
-     *
-     * <code>string job_id = 1;</code>
-     * @return The jobId.
-     */
-    public java.lang.String getJobId() {
-      java.lang.Object ref = jobId_;
-      if (!(ref instanceof java.lang.String)) {
-        com.google.protobuf.ByteString bs =
-            (com.google.protobuf.ByteString) ref;
-        java.lang.String s = bs.toStringUtf8();
-        jobId_ = s;
-        return s;
-      } else {
-        return (java.lang.String) ref;
-      }
-    }
-    /**
-     * <pre>
-     *TODO it seems redundant to provide job and stage id here since we also have them
-     * in the TaskDefinition that wraps this plan
-     * </pre>
-     *
-     * <code>string job_id = 1;</code>
-     * @return The bytes for jobId.
-     */
-    public com.google.protobuf.ByteString
-        getJobIdBytes() {
-      java.lang.Object ref = jobId_;
-      if (ref instanceof String) {
-        com.google.protobuf.ByteString b = 
-            com.google.protobuf.ByteString.copyFromUtf8(
-                (java.lang.String) ref);
-        jobId_ = b;
-        return b;
-      } else {
-        return (com.google.protobuf.ByteString) ref;
-      }
-    }
-    /**
-     * <pre>
-     *TODO it seems redundant to provide job and stage id here since we also have them
-     * in the TaskDefinition that wraps this plan
-     * </pre>
-     *
-     * <code>string job_id = 1;</code>
-     * @param value The jobId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setJobId(
-        java.lang.String value) {
-      if (value == null) {
-    throw new NullPointerException();
-  }
-  
-      jobId_ = value;
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     *TODO it seems redundant to provide job and stage id here since we also have them
-     * in the TaskDefinition that wraps this plan
-     * </pre>
-     *
-     * <code>string job_id = 1;</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearJobId() {
-      
-      jobId_ = getDefaultInstance().getJobId();
-      onChanged();
-      return this;
-    }
-    /**
-     * <pre>
-     *TODO it seems redundant to provide job and stage id here since we also have them
-     * in the TaskDefinition that wraps this plan
-     * </pre>
-     *
-     * <code>string job_id = 1;</code>
-     * @param value The bytes for jobId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setJobIdBytes(
-        com.google.protobuf.ByteString value) {
-      if (value == null) {
-    throw new NullPointerException();
-  }
-  checkByteStringIsUtf8(value);
-      
-      jobId_ = value;
-      onChanged();
-      return this;
-    }
-
-    private int stageId_ ;
-    /**
-     * <code>uint32 stage_id = 2;</code>
-     * @return The stageId.
-     */
-    @java.lang.Override
-    public int getStageId() {
-      return stageId_;
-    }
-    /**
-     * <code>uint32 stage_id = 2;</code>
-     * @param value The stageId to set.
-     * @return This builder for chaining.
-     */
-    public Builder setStageId(int value) {
-      
-      stageId_ = value;
-      onChanged();
-      return this;
-    }
-    /**
-     * <code>uint32 stage_id = 2;</code>
-     * @return This builder for chaining.
-     */
-    public Builder clearStageId() {
-      
-      stageId_ = 0;
-      onChanged();
-      return this;
-    }
-
     private org.blaze.protobuf.PhysicalPlanNode input_;
     private com.google.protobuf.SingleFieldBuilderV3<
         org.blaze.protobuf.PhysicalPlanNode, org.blaze.protobuf.PhysicalPlanNode.Builder, org.blaze.protobuf.PhysicalPlanNodeOrBuilder> inputBuilder_;
     /**
-     * <code>.plan.protobuf.PhysicalPlanNode input = 3;</code>
+     * <code>.plan.protobuf.PhysicalPlanNode input = 1;</code>
      * @return Whether the input field is set.
      */
     public boolean hasInput() {
       return inputBuilder_ != null || input_ != null;
     }
     /**
-     * <code>.plan.protobuf.PhysicalPlanNode input = 3;</code>
+     * <code>.plan.protobuf.PhysicalPlanNode input = 1;</code>
      * @return The input.
      */
     public org.blaze.protobuf.PhysicalPlanNode getInput() {
@@ -762,7 +558,7 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>.plan.protobuf.PhysicalPlanNode input = 3;</code>
+     * <code>.plan.protobuf.PhysicalPlanNode input = 1;</code>
      */
     public Builder setInput(org.blaze.protobuf.PhysicalPlanNode value) {
       if (inputBuilder_ == null) {
@@ -778,7 +574,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>.plan.protobuf.PhysicalPlanNode input = 3;</code>
+     * <code>.plan.protobuf.PhysicalPlanNode input = 1;</code>
      */
     public Builder setInput(
         org.blaze.protobuf.PhysicalPlanNode.Builder builderForValue) {
@@ -792,7 +588,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>.plan.protobuf.PhysicalPlanNode input = 3;</code>
+     * <code>.plan.protobuf.PhysicalPlanNode input = 1;</code>
      */
     public Builder mergeInput(org.blaze.protobuf.PhysicalPlanNode value) {
       if (inputBuilder_ == null) {
@@ -810,7 +606,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>.plan.protobuf.PhysicalPlanNode input = 3;</code>
+     * <code>.plan.protobuf.PhysicalPlanNode input = 1;</code>
      */
     public Builder clearInput() {
       if (inputBuilder_ == null) {
@@ -824,7 +620,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>.plan.protobuf.PhysicalPlanNode input = 3;</code>
+     * <code>.plan.protobuf.PhysicalPlanNode input = 1;</code>
      */
     public org.blaze.protobuf.PhysicalPlanNode.Builder getInputBuilder() {
       
@@ -832,7 +628,7 @@ private static final long serialVersionUID = 0L;
       return getInputFieldBuilder().getBuilder();
     }
     /**
-     * <code>.plan.protobuf.PhysicalPlanNode input = 3;</code>
+     * <code>.plan.protobuf.PhysicalPlanNode input = 1;</code>
      */
     public org.blaze.protobuf.PhysicalPlanNodeOrBuilder getInputOrBuilder() {
       if (inputBuilder_ != null) {
@@ -843,7 +639,7 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>.plan.protobuf.PhysicalPlanNode input = 3;</code>
+     * <code>.plan.protobuf.PhysicalPlanNode input = 1;</code>
      */
     private com.google.protobuf.SingleFieldBuilderV3<
         org.blaze.protobuf.PhysicalPlanNode, org.blaze.protobuf.PhysicalPlanNode.Builder, org.blaze.protobuf.PhysicalPlanNodeOrBuilder> 
@@ -863,14 +659,14 @@ private static final long serialVersionUID = 0L;
     private com.google.protobuf.SingleFieldBuilderV3<
         org.blaze.protobuf.PhysicalHashRepartition, org.blaze.protobuf.PhysicalHashRepartition.Builder, org.blaze.protobuf.PhysicalHashRepartitionOrBuilder> outputPartitioningBuilder_;
     /**
-     * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 4;</code>
+     * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 2;</code>
      * @return Whether the outputPartitioning field is set.
      */
     public boolean hasOutputPartitioning() {
       return outputPartitioningBuilder_ != null || outputPartitioning_ != null;
     }
     /**
-     * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 4;</code>
+     * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 2;</code>
      * @return The outputPartitioning.
      */
     public org.blaze.protobuf.PhysicalHashRepartition getOutputPartitioning() {
@@ -881,7 +677,7 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 4;</code>
+     * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 2;</code>
      */
     public Builder setOutputPartitioning(org.blaze.protobuf.PhysicalHashRepartition value) {
       if (outputPartitioningBuilder_ == null) {
@@ -897,7 +693,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 4;</code>
+     * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 2;</code>
      */
     public Builder setOutputPartitioning(
         org.blaze.protobuf.PhysicalHashRepartition.Builder builderForValue) {
@@ -911,7 +707,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 4;</code>
+     * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 2;</code>
      */
     public Builder mergeOutputPartitioning(org.blaze.protobuf.PhysicalHashRepartition value) {
       if (outputPartitioningBuilder_ == null) {
@@ -929,7 +725,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 4;</code>
+     * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 2;</code>
      */
     public Builder clearOutputPartitioning() {
       if (outputPartitioningBuilder_ == null) {
@@ -943,7 +739,7 @@ private static final long serialVersionUID = 0L;
       return this;
     }
     /**
-     * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 4;</code>
+     * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 2;</code>
      */
     public org.blaze.protobuf.PhysicalHashRepartition.Builder getOutputPartitioningBuilder() {
       
@@ -951,7 +747,7 @@ private static final long serialVersionUID = 0L;
       return getOutputPartitioningFieldBuilder().getBuilder();
     }
     /**
-     * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 4;</code>
+     * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 2;</code>
      */
     public org.blaze.protobuf.PhysicalHashRepartitionOrBuilder getOutputPartitioningOrBuilder() {
       if (outputPartitioningBuilder_ != null) {
@@ -962,7 +758,7 @@ private static final long serialVersionUID = 0L;
       }
     }
     /**
-     * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 4;</code>
+     * <code>.plan.protobuf.PhysicalHashRepartition output_partitioning = 2;</code>
      */
     private com.google.protobuf.SingleFieldBuilderV3<
         org.blaze.protobuf.PhysicalHashRepartition, org.blaze.protobuf.PhysicalHashRepartition.Builder, org.blaze.protobuf.PhysicalHashRepartitionOrBuilder> 
@@ -976,6 +772,37 @@ private static final long serialVersionUID = 0L;
         outputPartitioning_ = null;
       }
       return outputPartitioningBuilder_;
+    }
+
+    private int shuffleId_ ;
+    /**
+     * <code>uint32 shuffleId = 3;</code>
+     * @return The shuffleId.
+     */
+    @java.lang.Override
+    public int getShuffleId() {
+      return shuffleId_;
+    }
+    /**
+     * <code>uint32 shuffleId = 3;</code>
+     * @param value The shuffleId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setShuffleId(int value) {
+      
+      shuffleId_ = value;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>uint32 shuffleId = 3;</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearShuffleId() {
+      
+      shuffleId_ = 0;
+      onChanged();
+      return this;
     }
     @java.lang.Override
     public final Builder setUnknownFields(

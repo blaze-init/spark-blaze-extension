@@ -2,7 +2,6 @@ package org.apache.spark.sql.blaze;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
@@ -10,7 +9,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.spark.SparkEnv;
 import org.apache.spark.deploy.SparkHadoopUtil;
-import org.apache.spark.sql.execution.metric.SQLMetric;
+import org.apache.spark.shuffle.ShuffleManager;
 
 public class JniBridge {
     static final public ConcurrentHashMap<String, Object> resourcesMap = new ConcurrentHashMap<>();
@@ -20,6 +19,7 @@ public class JniBridge {
         System.loadLibrary("blaze_rs");
         try {
             conf = SparkHadoopUtil.get().newConfiguration(SparkEnv.get().conf());
+            conf.setBoolean("fs.hdfs.impl.disable.cache", true);
             fs = FileSystem.get(conf);
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -29,6 +29,11 @@ public class JniBridge {
     // JVM -> Native
     public static FileSystem getHDFSFileSystem() {
         return fs;
+    }
+
+    // JVM -> Native
+    public static ShuffleManager getShuffleManager() {
+        return SparkEnv.get().shuffleManager();
     }
 
     // JVM -> Native

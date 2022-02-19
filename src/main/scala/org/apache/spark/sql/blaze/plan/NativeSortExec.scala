@@ -17,10 +17,10 @@ import org.apache.spark.sql.catalyst.plans.physical.UnspecifiedDistribution
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.UnaryExecNode
 import org.apache.spark.sql.execution.metric.SQLMetrics
-import org.ballistacompute.protobuf.PhysicalExprNode
-import org.ballistacompute.protobuf.PhysicalPlanNode
-import org.ballistacompute.protobuf.PhysicalSortExprNode
-import org.ballistacompute.protobuf.SortExecNode
+import org.blaze.protobuf.PhysicalExprNode
+import org.blaze.protobuf.PhysicalPlanNode
+import org.blaze.protobuf.PhysicalSortExprNode
+import org.blaze.protobuf.SortExecNode
 
 case class NativeSortExec(
   sortOrder: Seq[SortOrder],
