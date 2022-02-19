@@ -24,6 +24,7 @@ import org.apache.spark.sql.execution.FilterExec
 import org.apache.spark.sql.execution.ProjectExec
 import org.apache.spark.sql.execution.UnaryExecNode
 import org.apache.spark.sql.execution.joins.SortMergeJoinExec
+import org.apache.spark.sql.execution.metric.SQLMetric
 import org.apache.spark.sql.internal.SQLConf
 
 class BlazeSparkSessionExtension extends (SparkSessionExtensions => Unit) with Logging {
@@ -145,6 +146,7 @@ case class WholeStageCodegenForBlazeNativeExec(
   override def nodeName: String = "WholeStageCodegen for Blaze Native Execution"
   override def logicalLink: Option[LogicalPlan] = child.logicalLink
   override def output: Seq[Attribute] = child.output
+  override def metrics: Map[String, SQLMetric] = child.metrics
 
   override def doExecuteNative(): NativeRDD = NativeSupports.executeNative(child)
   override protected def doExecute(): RDD[InternalRow] = child.execute()

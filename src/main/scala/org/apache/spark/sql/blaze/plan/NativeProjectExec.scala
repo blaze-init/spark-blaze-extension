@@ -13,7 +13,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.AliasAwareOutputPartitioning
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.UnaryExecNode
-import org.apache.spark.sql.execution.metric.SQLMetrics
+import org.apache.spark.sql.execution.metric.SQLMetric
 import org.blaze.protobuf.PhysicalPlanNode
 import org.blaze.protobuf.ProjectionExecNode
 
@@ -22,25 +22,20 @@ case class NativeProjectExec(
   override val child: SparkPlan,
 ) extends UnaryExecNode with NativeSupports with AliasAwareOutputPartitioning {
 
+  override lazy val metrics: Map[String, SQLMetric] = NativeSupports.getDefaultNativeMetrics(sparkContext)
+
   override def outputExpressions: Seq[NamedExpression] = projectList
 
   override def output: Seq[Attribute] = outputExpressions.map(_.toAttribute)
 
   override def doExecute(): RDD[InternalRow] = doExecuteNative()
 
-  override lazy val metrics = Map(
-    "numOutputRows" -> SQLMetrics.createMetric(sparkContext, "number of output rows"),
-    "numBlazeOutputIpcRows" -> SQLMetrics.createMetric(sparkContext, "number of blaze output ipc rows"),
-    "numBlazeOutputIpcBytes" -> SQLMetrics.createSizeMetric(sparkContext, "number of blaze output ipc bytes"),
-    "blazeExecTime" -> SQLMetrics.createNanoTimingMetric(sparkContext, "blaze exec time"),
-  )
-
   override def doExecuteNative(): NativeRDD = {
     val inputRDD = NativeSupports.executeNative(child)
     val nativeMetrics = MetricNode(Map(
       "output_rows" -> metrics("numOutputRows"),
-      "blaze_output_ipc_rows" -> metrics("numBlazeOutputIpcRows"),
-      "blaze_output_ipc_bytes" -> metrics("numBlazeOutputIpcBytes"),
+      "blaze_output_ipc_rows" -> metrics("blazeExecIPCWrittenRows"),
+      "blaze_output_ipc_bytes" -> metrics("blazeExecIPCWrittenBytes"),
       "blaze_exec_time" -> metrics("blazeExecTime"),
     ), Seq(inputRDD.metrics))
 

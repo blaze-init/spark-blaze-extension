@@ -10,7 +10,7 @@ import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.UnaryExecNode
-import org.apache.spark.sql.execution.metric.SQLMetrics
+import org.apache.spark.sql.execution.metric.SQLMetric
 import org.blaze.protobuf.FilterExecNode
 import org.blaze.protobuf.PhysicalPlanNode
 
@@ -19,23 +19,18 @@ case class NativeFilterExec(
   override val child: SparkPlan,
 ) extends UnaryExecNode with NativeSupports {
 
+  override lazy val metrics: Map[String, SQLMetric] = NativeSupports.getDefaultNativeMetrics(sparkContext)
+
   override def output: Seq[Attribute] = child.output
 
   override def doExecute(): RDD[InternalRow] = doExecuteNative()
-
-  override lazy val metrics = Map(
-    "numOutputRows" -> SQLMetrics.createMetric(sparkContext, "number of output rows"),
-    "numBlazeOutputIpcRows" -> SQLMetrics.createMetric(sparkContext, "number of blaze output ipc rows"),
-    "numBlazeOutputIpcBytes" -> SQLMetrics.createSizeMetric(sparkContext, "number of blaze output ipc bytes"),
-    "blazeExecTime" -> SQLMetrics.createNanoTimingMetric(sparkContext, "blaze exec time"),
-  )
 
   override def doExecuteNative(): NativeRDD = {
     val inputRDD = NativeSupports.executeNative(child)
     val nativeMetrics = MetricNode(Map(
       "output_rows" -> metrics("numOutputRows"),
-      "blaze_output_ipc_rows" -> metrics("numBlazeOutputIpcRows"),
-      "blaze_output_ipc_bytes" -> metrics("numBlazeOutputIpcBytes"),
+      "blaze_output_ipc_rows" -> metrics("blazeExecIPCWrittenRows"),
+      "blaze_output_ipc_bytes" -> metrics("blazeExecIPCWrittenBytes"),
       "blaze_exec_time" -> metrics("blazeExecTime"),
     ), Seq(inputRDD.metrics))
 

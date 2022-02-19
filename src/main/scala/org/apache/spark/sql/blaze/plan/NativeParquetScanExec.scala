@@ -11,7 +11,7 @@ import org.apache.spark.Partition
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.blaze.MetricNode
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.execution.metric.SQLMetrics
+import org.apache.spark.sql.execution.metric.SQLMetric
 import org.blaze.protobuf.FileGroup
 import org.blaze.protobuf.FileScanExecConf
 import org.blaze.protobuf.ParquetScanExecNode
@@ -21,24 +21,19 @@ import org.blaze.protobuf.Statistics
 
 case class NativeParquetScanExec(basedFileScan: FileSourceScanExec) extends LeafExecNode with NativeSupports {
 
+  override lazy val metrics: Map[String, SQLMetric] = NativeSupports.getDefaultNativeMetrics(sparkContext)
+
   override def output: Seq[Attribute] = basedFileScan.output
 
   override def doExecute(): RDD[InternalRow] = doExecuteNative()
-
-  override lazy val metrics = Map(
-    "numOutputRows" -> SQLMetrics.createMetric(sparkContext, "number of output rows"),
-    "numBlazeOutputIpcRows" -> SQLMetrics.createMetric(sparkContext, "number of blaze output ipc rows"),
-    "numBlazeOutputIpcBytes" -> SQLMetrics.createSizeMetric(sparkContext, "number of blaze output ipc bytes"),
-    "blazeExecTime" -> SQLMetrics.createNanoTimingMetric(sparkContext, "blaze exec time"),
-  )
 
   override def doExecuteNative(): NativeRDD = {
     val inputFileScanRDD = basedFileScan.inputRDD.asInstanceOf[FileScanRDD]
     val partitions = inputFileScanRDD.filePartitions.toArray
     val nativeMetrics = MetricNode(Map(
       "output_rows" -> metrics("numOutputRows"),
-      "blaze_output_ipc_rows" -> metrics("numBlazeOutputIpcRows"),
-      "blaze_output_ipc_bytes" -> metrics("numBlazeOutputIpcBytes"),
+      "blaze_output_ipc_rows" -> metrics("blazeExecIPCWrittenRows"),
+      "blaze_output_ipc_bytes" -> metrics("blazeExecIPCWrittenBytes"),
       "blaze_exec_time" -> metrics("blazeExecTime"),
     ), Nil)
 
@@ -65,6 +60,9 @@ case class NativeParquetScanExec(basedFileScan: FileSourceScanExec) extends Leaf
       PhysicalPlanNode.newBuilder().setParquetScan(nativeParquetScanExec).build()
     })
   }
+
+  override val nodeName: String =
+    s"NativeParquetScan ${basedFileScan.tableIdentifier.map(_.unquotedString).getOrElse("")}"
 
   override def simpleString(maxFields: Int): String =
     s"$nodeName (${basedFileScan.simpleString(maxFields)})"
