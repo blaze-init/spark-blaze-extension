@@ -1,9 +1,7 @@
 package org.apache.spark.sql.blaze
 
 import scala.collection.JavaConverters._
-import scala.reflect.ClassTag.Nothing
 
-import com.univocity.parsers.annotations.Trim
 import org.apache.spark.sql.catalyst.expressions.Abs
 import org.apache.spark.sql.catalyst.expressions.Acos
 import org.apache.spark.sql.catalyst.expressions.Add
@@ -112,7 +110,7 @@ object NativeConverters {
       case LongType => scalarValueBuilder.setInt64Value(sparkValue.asInstanceOf[Long])
       case FloatType => scalarValueBuilder.setFloat32Value(sparkValue.asInstanceOf[Float])
       case DoubleType => scalarValueBuilder.setFloat64Value(sparkValue.asInstanceOf[Double])
-      case StringType => scalarValueBuilder.setUtf8Value(sparkValue.asInstanceOf[String])
+      case StringType => scalarValueBuilder.setUtf8Value(sparkValue.toString)
       case BinaryType => throw new NotImplementedError("???")
       case DateType => scalarValueBuilder.setDate32Value(sparkValue.asInstanceOf[Int])
       case TimestampType => scalarValueBuilder.setTimeMicrosecondValue(sparkValue.asInstanceOf[Long])
