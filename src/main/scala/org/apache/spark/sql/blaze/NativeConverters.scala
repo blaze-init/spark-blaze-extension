@@ -158,6 +158,11 @@ object NativeConverters {
         .build())
     }
 
+    def unpackBinaryTypeCast(expr: Expression) = expr match {
+      case Cast(inner, BinaryType, _) => inner
+      case expr => expr
+    }
+
     sparkExpr match {
       case Literal(value, dataType) => buildExprNode {
         _.setLiteral(convertValue(value, dataType))
@@ -227,12 +232,12 @@ object NativeConverters {
       case e: NullIf => buildScalarFunction(ScalarFunction.NULLIF, e.children, e.dataType)
       case e: DatePart => buildScalarFunction(ScalarFunction.DATEPART, e.children, e.dataType)
       case e: TruncDate => buildScalarFunction(ScalarFunction.DATEPART, e.children, e.dataType)
-      case Md5(_1) => buildScalarFunction(ScalarFunction.MD5, Seq(_1), StringType)
-      case Sha2(_1, Literal(224, _)) => buildScalarFunction(ScalarFunction.SHA224, Seq(_1), StringType)
-      case Sha2(_1, Literal(  0, _)) => buildScalarFunction(ScalarFunction.SHA256, Seq(_1), StringType)
-      case Sha2(_1, Literal(256, _)) => buildScalarFunction(ScalarFunction.SHA256, Seq(_1), StringType)
-      case Sha2(_1, Literal(384, _)) => buildScalarFunction(ScalarFunction.SHA384, Seq(_1), StringType)
-      case Sha2(_1, Literal(512, _)) => buildScalarFunction(ScalarFunction.SHA512, Seq(_1), StringType)
+      case Md5(_1) => buildScalarFunction(ScalarFunction.MD5, Seq(unpackBinaryTypeCast(_1)), StringType)
+      case Sha2(_1, Literal(224, _)) => buildScalarFunction(ScalarFunction.SHA224, Seq(unpackBinaryTypeCast(_1)), StringType)
+      case Sha2(_1, Literal(  0, _)) => buildScalarFunction(ScalarFunction.SHA256, Seq(unpackBinaryTypeCast(_1)), StringType)
+      case Sha2(_1, Literal(256, _)) => buildScalarFunction(ScalarFunction.SHA256, Seq(unpackBinaryTypeCast(_1)), StringType)
+      case Sha2(_1, Literal(384, _)) => buildScalarFunction(ScalarFunction.SHA384, Seq(unpackBinaryTypeCast(_1)), StringType)
+      case Sha2(_1, Literal(512, _)) => buildScalarFunction(ScalarFunction.SHA512, Seq(unpackBinaryTypeCast(_1)), StringType)
       case e: Log => buildScalarFunction(ScalarFunction.LN, e.children, e.dataType)
       // case Nothing => buildScalarFunction(ScalarFunction.TOTIMESTAMPMILLIS, Nil)
 
