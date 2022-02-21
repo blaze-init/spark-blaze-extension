@@ -156,6 +156,10 @@ public enum ScalarFunction
    * <code>DIGEST = 36;</code>
    */
   DIGEST(36),
+  /**
+   * <code>STARTS_WITH = 1001;</code>
+   */
+  STARTS_WITH(1001),
   UNRECOGNIZED(-1),
   ;
 
@@ -307,6 +311,10 @@ public enum ScalarFunction
    * <code>DIGEST = 36;</code>
    */
   public static final int DIGEST_VALUE = 36;
+  /**
+   * <code>STARTS_WITH = 1001;</code>
+   */
+  public static final int STARTS_WITH_VALUE = 1001;
 
 
   public final int getNumber() {
@@ -370,6 +378,7 @@ public enum ScalarFunction
       case 34: return LN;
       case 35: return TOTIMESTAMPMILLIS;
       case 36: return DIGEST;
+      case 1001: return STARTS_WITH;
       default: return null;
     }
   }

@@ -42,6 +42,7 @@ import org.apache.spark.sql.catalyst.expressions.Sha2
 import org.apache.spark.sql.catalyst.expressions.Signum
 import org.apache.spark.sql.catalyst.expressions.Sin
 import org.apache.spark.sql.catalyst.expressions.Sqrt
+import org.apache.spark.sql.catalyst.expressions.StartsWith
 import org.apache.spark.sql.catalyst.expressions.StringTrim
 import org.apache.spark.sql.catalyst.expressions.StringTrimLeft
 import org.apache.spark.sql.catalyst.expressions.StringTrimRight
@@ -240,6 +241,7 @@ object NativeConverters {
       case Sha2(_1, Literal(512, _)) => buildScalarFunction(ScalarFunction.SHA512, Seq(unpackBinaryTypeCast(_1)), StringType)
       case e: Log => buildScalarFunction(ScalarFunction.LN, e.children, e.dataType)
       // case Nothing => buildScalarFunction(ScalarFunction.TOTIMESTAMPMILLIS, Nil)
+      case StartsWith(_1, _2) => buildScalarFunction(ScalarFunction.STARTS_WITH, Seq(_1, _2), BooleanType)
 
       case unsupportedExpression =>
         throw new NotImplementedExpressionConversion(unsupportedExpression)
