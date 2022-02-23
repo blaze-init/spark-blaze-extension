@@ -453,6 +453,7 @@ object ArrowShuffleExchangeExec301 {
         val nativeShuffleWriterExec = PhysicalPlanNode.newBuilder()
           .setShuffleWriter(ShuffleWriterExecNode.newBuilder(nativeShuffleRDD.nativePlan.getShuffleWriter)
             .setShuffleId(dep.shuffleId)
+            .setMapId(mapId)
             .build())
           .build()
         val iterator = NativeSupports.executeNativePlan(

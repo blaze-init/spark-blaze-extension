@@ -522,176 +522,176 @@ public final class BlazeProto {
       "gateMode\022.\n\005input\030\004 \001(\0132\037.plan.protobuf." +
       "PhysicalPlanNode\022\027\n\017group_expr_name\030\005 \003(" +
       "\t\022\026\n\016aggr_expr_name\030\006 \003(\t\022+\n\014input_schem" +
-      "a\030\007 \001(\0132\025.plan.protobuf.Schema\"\237\001\n\025Shuff" +
+      "a\030\007 \001(\0132\025.plan.protobuf.Schema\"\256\001\n\025Shuff" +
       "leWriterExecNode\022.\n\005input\030\001 \001(\0132\037.plan.p" +
       "rotobuf.PhysicalPlanNode\022C\n\023output_parti" +
       "tioning\030\002 \001(\0132&.plan.protobuf.PhysicalHa" +
-      "shRepartition\022\021\n\tshuffleId\030\003 \001(\r\">\n\025Shuf" +
-      "fleReaderExecNode\022%\n\006schema\030\002 \001(\0132\025.plan" +
-      ".protobuf.Schema\"T\n\023GlobalLimitExecNode\022" +
-      ".\n\005input\030\001 \001(\0132\037.plan.protobuf.PhysicalP" +
-      "lanNode\022\r\n\005limit\030\002 \001(\r\"S\n\022LocalLimitExec" +
-      "Node\022.\n\005input\030\001 \001(\0132\037.plan.protobuf.Phys" +
-      "icalPlanNode\022\r\n\005limit\030\002 \001(\r\"m\n\014SortExecN" +
-      "ode\022.\n\005input\030\001 \001(\0132\037.plan.protobuf.Physi" +
-      "calPlanNode\022-\n\004expr\030\002 \003(\0132\037.plan.protobu" +
-      "f.PhysicalExprNode\"d\n\027CoalesceBatchesExe" +
+      "shRepartition\022\021\n\tshuffleId\030\003 \001(\r\022\r\n\005mapI" +
+      "d\030\004 \001(\r\">\n\025ShuffleReaderExecNode\022%\n\006sche" +
+      "ma\030\002 \001(\0132\025.plan.protobuf.Schema\"T\n\023Globa" +
+      "lLimitExecNode\022.\n\005input\030\001 \001(\0132\037.plan.pro" +
+      "tobuf.PhysicalPlanNode\022\r\n\005limit\030\002 \001(\r\"S\n" +
+      "\022LocalLimitExecNode\022.\n\005input\030\001 \001(\0132\037.pla" +
+      "n.protobuf.PhysicalPlanNode\022\r\n\005limit\030\002 \001" +
+      "(\r\"m\n\014SortExecNode\022.\n\005input\030\001 \001(\0132\037.plan" +
+      ".protobuf.PhysicalPlanNode\022-\n\004expr\030\002 \003(\013" +
+      "2\037.plan.protobuf.PhysicalExprNode\"d\n\027Coa" +
+      "lesceBatchesExecNode\022.\n\005input\030\001 \001(\0132\037.pl" +
+      "an.protobuf.PhysicalPlanNode\022\031\n\021target_b" +
+      "atch_size\030\002 \001(\r\"L\n\032CoalescePartitionsExe" +
       "cNode\022.\n\005input\030\001 \001(\0132\037.plan.protobuf.Phy" +
-      "sicalPlanNode\022\031\n\021target_batch_size\030\002 \001(\r" +
-      "\"L\n\032CoalescePartitionsExecNode\022.\n\005input\030" +
-      "\001 \001(\0132\037.plan.protobuf.PhysicalPlanNode\"f" +
-      "\n\027PhysicalHashRepartition\0222\n\thash_expr\030\001" +
-      " \003(\0132\037.plan.protobuf.PhysicalExprNode\022\027\n" +
-      "\017partition_count\030\002 \001(\004\"\273\001\n\023RepartitionEx" +
-      "ecNode\022.\n\005input\030\001 \001(\0132\037.plan.protobuf.Ph" +
-      "ysicalPlanNode\022\025\n\013round_robin\030\002 \001(\004H\000\0226\n" +
-      "\004hash\030\003 \001(\0132&.plan.protobuf.PhysicalHash" +
-      "RepartitionH\000\022\021\n\007unknown\030\004 \001(\004H\000B\022\n\020part" +
-      "ition_method\"E\n\013PartitionId\022\016\n\006job_id\030\001 " +
-      "\001(\t\022\020\n\010stage_id\030\002 \001(\r\022\024\n\014partition_id\030\004 " +
-      "\001(\r\"|\n\016PartitionStats\022\020\n\010num_rows\030\001 \001(\003\022" +
-      "\023\n\013num_batches\030\002 \001(\003\022\021\n\tnum_bytes\030\003 \001(\003\022" +
-      "0\n\014column_stats\030\004 \003(\0132\032.plan.protobuf.Co" +
-      "lumnStats\"\227\001\n\013ColumnStats\022-\n\tmin_value\030\001" +
-      " \001(\0132\032.plan.protobuf.ScalarValue\022-\n\tmax_" +
-      "value\030\002 \001(\0132\032.plan.protobuf.ScalarValue\022" +
-      "\022\n\nnull_count\030\003 \001(\r\022\026\n\016distinct_count\030\004 " +
-      "\001(\r\"\"\n\013RunningTask\022\023\n\013executor_id\030\001 \001(\t\"" +
-      "\033\n\nFailedTask\022\r\n\005error\030\001 \001(\t\"^\n\rComplete" +
-      "dTask\022\023\n\013executor_id\030\001 \001(\t\0228\n\npartitions" +
-      "\030\002 \003(\0132$.plan.protobuf.ShuffleWriteParti" +
-      "tion\"u\n\025ShuffleWritePartition\022\024\n\014partiti" +
-      "on_id\030\001 \001(\004\022\014\n\004path\030\002 \001(\t\022\023\n\013num_batches" +
-      "\030\003 \001(\004\022\020\n\010num_rows\030\004 \001(\004\022\021\n\tnum_bytes\030\005 " +
-      "\001(\004\"\327\001\n\nTaskStatus\0220\n\014partition_id\030\001 \001(\013" +
-      "2\032.plan.protobuf.PartitionId\022-\n\007running\030" +
-      "\002 \001(\0132\032.plan.protobuf.RunningTaskH\000\022+\n\006f" +
-      "ailed\030\003 \001(\0132\031.plan.protobuf.FailedTaskH\000" +
-      "\0221\n\tcompleted\030\004 \001(\0132\034.plan.protobuf.Comp" +
-      "letedTaskH\000B\010\n\006status\"\261\001\n\016TaskDefinition" +
-      "\022+\n\007task_id\030\001 \001(\0132\032.plan.protobuf.Partit" +
-      "ionId\022-\n\004plan\030\002 \001(\0132\037.plan.protobuf.Phys" +
-      "icalPlanNode\022C\n\023output_partitioning\030\003 \001(" +
-      "\0132&.plan.protobuf.PhysicalHashRepartitio" +
-      "n\"/\n\006Schema\022%\n\007columns\030\001 \003(\0132\024.plan.prot" +
-      "obuf.Field\"}\n\005Field\022\014\n\004name\030\001 \001(\t\022,\n\narr" +
-      "ow_type\030\002 \001(\0132\030.plan.protobuf.ArrowType\022" +
-      "\020\n\010nullable\030\003 \001(\010\022&\n\010children\030\004 \003(\0132\024.pl" +
-      "an.protobuf.Field\"!\n\017FixedSizeBinary\022\016\n\006" +
-      "length\030\001 \001(\005\"I\n\tTimestamp\022*\n\ttime_unit\030\001" +
-      " \001(\0162\027.plan.protobuf.TimeUnit\022\020\n\010timezon" +
-      "e\030\002 \001(\t\",\n\007Decimal\022\r\n\005whole\030\001 \001(\004\022\022\n\nfra" +
-      "ctional\030\002 \001(\004\"0\n\004List\022(\n\nfield_type\030\001 \001(" +
-      "\0132\024.plan.protobuf.Field\"L\n\rFixedSizeList" +
-      "\022(\n\nfield_type\030\001 \001(\0132\024.plan.protobuf.Fie" +
-      "ld\022\021\n\tlist_size\030\002 \001(\005\"\\\n\nDictionary\022%\n\003k" +
-      "ey\030\001 \001(\0132\030.plan.protobuf.ArrowType\022\'\n\005va" +
-      "lue\030\002 \001(\0132\030.plan.protobuf.ArrowType\"7\n\006S" +
-      "truct\022-\n\017sub_field_types\030\001 \003(\0132\024.plan.pr" +
-      "otobuf.Field\"`\n\005Union\022)\n\013union_types\030\001 \003" +
-      "(\0132\024.plan.protobuf.Field\022,\n\nunion_mode\030\002" +
-      " \001(\0162\030.plan.protobuf.UnionMode\"j\n\017Scalar" +
-      "ListValue\022+\n\010datatype\030\001 \001(\0132\031.plan.proto" +
-      "buf.ScalarType\022*\n\006values\030\002 \003(\0132\032.plan.pr" +
-      "otobuf.ScalarValue\"\314\004\n\013ScalarValue\022\024\n\nbo" +
-      "ol_value\030\001 \001(\010H\000\022\024\n\nutf8_value\030\002 \001(\tH\000\022\032" +
-      "\n\020large_utf8_value\030\003 \001(\tH\000\022\024\n\nint8_value" +
-      "\030\004 \001(\005H\000\022\025\n\013int16_value\030\005 \001(\005H\000\022\025\n\013int32" +
-      "_value\030\006 \001(\005H\000\022\025\n\013int64_value\030\007 \001(\003H\000\022\025\n" +
-      "\013uint8_value\030\010 \001(\rH\000\022\026\n\014uint16_value\030\t \001" +
-      "(\rH\000\022\026\n\014uint32_value\030\n \001(\rH\000\022\026\n\014uint64_v" +
-      "alue\030\013 \001(\004H\000\022\027\n\rfloat32_value\030\014 \001(\002H\000\022\027\n" +
-      "\rfloat64_value\030\r \001(\001H\000\022\027\n\rdate_32_value\030" +
-      "\016 \001(\005H\000\022 \n\026time_microsecond_value\030\017 \001(\003H" +
-      "\000\022\037\n\025time_nanosecond_value\030\020 \001(\003H\000\0224\n\nli" +
-      "st_value\030\021 \001(\0132\036.plan.protobuf.ScalarLis" +
-      "tValueH\000\0224\n\017null_list_value\030\022 \001(\0132\031.plan" +
-      ".protobuf.ScalarTypeH\000\0228\n\nnull_value\030\023 \001" +
-      "(\0162\".plan.protobuf.PrimitiveScalarTypeH\000" +
-      "B\007\n\005value\"}\n\nScalarType\0224\n\006scalar\030\001 \001(\0162" +
-      "\".plan.protobuf.PrimitiveScalarTypeH\000\022-\n" +
-      "\004list\030\002 \001(\0132\035.plan.protobuf.ScalarListTy" +
-      "peH\000B\n\n\010datatype\"_\n\016ScalarListType\022\023\n\013fi" +
-      "eld_names\030\003 \003(\t\0228\n\014deepest_type\030\002 \001(\0162\"." +
-      "plan.protobuf.PrimitiveScalarType\"\321\013\n\tAr" +
-      "rowType\022+\n\004NONE\030\001 \001(\0132\033.plan.protobuf.Em" +
-      "ptyMessageH\000\022+\n\004BOOL\030\002 \001(\0132\033.plan.protob" +
-      "uf.EmptyMessageH\000\022,\n\005UINT8\030\003 \001(\0132\033.plan." +
-      "protobuf.EmptyMessageH\000\022+\n\004INT8\030\004 \001(\0132\033." +
-      "plan.protobuf.EmptyMessageH\000\022-\n\006UINT16\030\005" +
-      " \001(\0132\033.plan.protobuf.EmptyMessageH\000\022,\n\005I" +
-      "NT16\030\006 \001(\0132\033.plan.protobuf.EmptyMessageH" +
-      "\000\022-\n\006UINT32\030\007 \001(\0132\033.plan.protobuf.EmptyM" +
-      "essageH\000\022,\n\005INT32\030\010 \001(\0132\033.plan.protobuf." +
-      "EmptyMessageH\000\022-\n\006UINT64\030\t \001(\0132\033.plan.pr" +
-      "otobuf.EmptyMessageH\000\022,\n\005INT64\030\n \001(\0132\033.p" +
-      "lan.protobuf.EmptyMessageH\000\022.\n\007FLOAT16\030\013" +
-      " \001(\0132\033.plan.protobuf.EmptyMessageH\000\022.\n\007F" +
-      "LOAT32\030\014 \001(\0132\033.plan.protobuf.EmptyMessag" +
-      "eH\000\022.\n\007FLOAT64\030\r \001(\0132\033.plan.protobuf.Emp" +
-      "tyMessageH\000\022+\n\004UTF8\030\016 \001(\0132\033.plan.protobu" +
-      "f.EmptyMessageH\000\0221\n\nLARGE_UTF8\030  \001(\0132\033.p" +
-      "lan.protobuf.EmptyMessageH\000\022-\n\006BINARY\030\017 " +
-      "\001(\0132\033.plan.protobuf.EmptyMessageH\000\022\033\n\021FI" +
-      "XED_SIZE_BINARY\030\020 \001(\005H\000\0223\n\014LARGE_BINARY\030" +
-      "\037 \001(\0132\033.plan.protobuf.EmptyMessageH\000\022-\n\006" +
-      "DATE32\030\021 \001(\0132\033.plan.protobuf.EmptyMessag" +
-      "eH\000\022-\n\006DATE64\030\022 \001(\0132\033.plan.protobuf.Empt" +
-      "yMessageH\000\022+\n\010DURATION\030\023 \001(\0162\027.plan.prot" +
-      "obuf.TimeUnitH\000\022-\n\tTIMESTAMP\030\024 \001(\0132\030.pla" +
-      "n.protobuf.TimestampH\000\022)\n\006TIME32\030\025 \001(\0162\027" +
-      ".plan.protobuf.TimeUnitH\000\022)\n\006TIME64\030\026 \001(" +
-      "\0162\027.plan.protobuf.TimeUnitH\000\022/\n\010INTERVAL" +
-      "\030\027 \001(\0162\033.plan.protobuf.IntervalUnitH\000\022)\n" +
-      "\007DECIMAL\030\030 \001(\0132\026.plan.protobuf.DecimalH\000" +
-      "\022#\n\004LIST\030\031 \001(\0132\023.plan.protobuf.ListH\000\022)\n" +
-      "\nLARGE_LIST\030\032 \001(\0132\023.plan.protobuf.ListH\000" +
-      "\0227\n\017FIXED_SIZE_LIST\030\033 \001(\0132\034.plan.protobu" +
-      "f.FixedSizeListH\000\022\'\n\006STRUCT\030\034 \001(\0132\025.plan" +
-      ".protobuf.StructH\000\022%\n\005UNION\030\035 \001(\0132\024.plan" +
-      ".protobuf.UnionH\000\022/\n\nDICTIONARY\030\036 \001(\0132\031." +
-      "plan.protobuf.DictionaryH\000B\021\n\017arrow_type" +
-      "_enum\"\016\n\014EmptyMessage*#\n\016JoinConstraint\022" +
-      "\006\n\002ON\020\000\022\t\n\005USING\020\001*\327\001\n\021AggregateFunction" +
-      "\022\007\n\003MIN\020\000\022\007\n\003MAX\020\001\022\007\n\003SUM\020\002\022\007\n\003AVG\020\003\022\t\n\005" +
-      "COUNT\020\004\022\023\n\017APPROX_DISTINCT\020\005\022\r\n\tARRAY_AG" +
-      "G\020\006\022\014\n\010VARIANCE\020\007\022\020\n\014VARIANCE_POP\020\010\022\016\n\nC" +
-      "OVARIANCE\020\t\022\022\n\016COVARIANCE_POP\020\n\022\n\n\006STDDE" +
-      "V\020\013\022\016\n\nSTDDEV_POP\020\014\022\017\n\013CORRELATION\020\r*\260\001\n" +
-      "\025BuiltInWindowFunction\022\016\n\nROW_NUMBER\020\000\022\010" +
-      "\n\004RANK\020\001\022\016\n\nDENSE_RANK\020\002\022\020\n\014PERCENT_RANK" +
-      "\020\003\022\r\n\tCUME_DIST\020\004\022\t\n\005NTILE\020\005\022\007\n\003LAG\020\006\022\010\n" +
-      "\004LEAD\020\007\022\017\n\013FIRST_VALUE\020\010\022\016\n\nLAST_VALUE\020\t" +
-      "\022\r\n\tNTH_VALUE\020\n*\310\003\n\016ScalarFunction\022\010\n\004SQ" +
-      "RT\020\000\022\007\n\003SIN\020\001\022\007\n\003COS\020\002\022\007\n\003TAN\020\003\022\010\n\004ASIN\020" +
-      "\004\022\010\n\004ACOS\020\005\022\010\n\004ATAN\020\006\022\007\n\003EXP\020\007\022\007\n\003LOG\020\010\022" +
-      "\010\n\004LOG2\020\t\022\t\n\005LOG10\020\n\022\t\n\005FLOOR\020\013\022\010\n\004CEIL\020" +
-      "\014\022\t\n\005ROUND\020\r\022\t\n\005TRUNC\020\016\022\007\n\003ABS\020\017\022\n\n\006SIGN" +
-      "UM\020\020\022\017\n\013OCTETLENGTH\020\021\022\n\n\006CONCAT\020\022\022\t\n\005LOW" +
-      "ER\020\023\022\t\n\005UPPER\020\024\022\010\n\004TRIM\020\025\022\t\n\005LTRIM\020\026\022\t\n\005" +
-      "RTRIM\020\027\022\017\n\013TOTIMESTAMP\020\030\022\t\n\005ARRAY\020\031\022\n\n\006N" +
-      "ULLIF\020\032\022\014\n\010DATEPART\020\033\022\r\n\tDATETRUNC\020\034\022\007\n\003" +
-      "MD5\020\035\022\n\n\006SHA224\020\036\022\n\n\006SHA256\020\037\022\n\n\006SHA384\020" +
-      " \022\n\n\006SHA512\020!\022\006\n\002LN\020\"\022\025\n\021TOTIMESTAMPMILL" +
-      "IS\020#\022\n\n\006DIGEST\020$\022\020\n\013STARTS_WITH\020\351\007*2\n\rPa" +
-      "rtitionMode\022\020\n\014COLLECT_LEFT\020\000\022\017\n\013PARTITI" +
-      "ONED\020\001*H\n\010JoinType\022\t\n\005INNER\020\000\022\010\n\004LEFT\020\001\022" +
-      "\t\n\005RIGHT\020\002\022\010\n\004FULL\020\003\022\010\n\004SEMI\020\004\022\010\n\004ANTI\020\005" +
-      "*>\n\rAggregateMode\022\013\n\007PARTIAL\020\000\022\t\n\005FINAL\020" +
-      "\001\022\025\n\021FINAL_PARTITIONED\020\002*(\n\010DateUnit\022\007\n\003" +
-      "Day\020\000\022\023\n\017DateMillisecond\020\001*L\n\010TimeUnit\022\n" +
-      "\n\006Second\020\000\022\023\n\017TimeMillisecond\020\001\022\017\n\013Micro" +
-      "second\020\002\022\016\n\nNanosecond\020\003*<\n\014IntervalUnit" +
-      "\022\r\n\tYearMonth\020\000\022\013\n\007DayTime\020\001\022\020\n\014MonthDay" +
-      "Nano\020\002*\"\n\tUnionMode\022\n\n\006sparse\020\000\022\t\n\005dense" +
-      "\020\001*\356\001\n\023PrimitiveScalarType\022\010\n\004BOOL\020\000\022\t\n\005" +
-      "UINT8\020\001\022\010\n\004INT8\020\002\022\n\n\006UINT16\020\003\022\t\n\005INT16\020\004" +
-      "\022\n\n\006UINT32\020\005\022\t\n\005INT32\020\006\022\n\n\006UINT64\020\007\022\t\n\005I" +
-      "NT64\020\010\022\013\n\007FLOAT32\020\t\022\013\n\007FLOAT64\020\n\022\010\n\004UTF8" +
-      "\020\013\022\016\n\nLARGE_UTF8\020\014\022\n\n\006DATE32\020\r\022\024\n\020TIME_M" +
-      "ICROSECOND\020\016\022\023\n\017TIME_NANOSECOND\020\017\022\010\n\004NUL" +
-      "L\020\020B\"\n\022org.blaze.protobufB\nBlazeProtoP\001b" +
-      "\006proto3"
+      "sicalPlanNode\"f\n\027PhysicalHashRepartition" +
+      "\0222\n\thash_expr\030\001 \003(\0132\037.plan.protobuf.Phys" +
+      "icalExprNode\022\027\n\017partition_count\030\002 \001(\004\"\273\001" +
+      "\n\023RepartitionExecNode\022.\n\005input\030\001 \001(\0132\037.p" +
+      "lan.protobuf.PhysicalPlanNode\022\025\n\013round_r" +
+      "obin\030\002 \001(\004H\000\0226\n\004hash\030\003 \001(\0132&.plan.protob" +
+      "uf.PhysicalHashRepartitionH\000\022\021\n\007unknown\030" +
+      "\004 \001(\004H\000B\022\n\020partition_method\"E\n\013Partition" +
+      "Id\022\016\n\006job_id\030\001 \001(\t\022\020\n\010stage_id\030\002 \001(\r\022\024\n\014" +
+      "partition_id\030\004 \001(\r\"|\n\016PartitionStats\022\020\n\010" +
+      "num_rows\030\001 \001(\003\022\023\n\013num_batches\030\002 \001(\003\022\021\n\tn" +
+      "um_bytes\030\003 \001(\003\0220\n\014column_stats\030\004 \003(\0132\032.p" +
+      "lan.protobuf.ColumnStats\"\227\001\n\013ColumnStats" +
+      "\022-\n\tmin_value\030\001 \001(\0132\032.plan.protobuf.Scal" +
+      "arValue\022-\n\tmax_value\030\002 \001(\0132\032.plan.protob" +
+      "uf.ScalarValue\022\022\n\nnull_count\030\003 \001(\r\022\026\n\016di" +
+      "stinct_count\030\004 \001(\r\"\"\n\013RunningTask\022\023\n\013exe" +
+      "cutor_id\030\001 \001(\t\"\033\n\nFailedTask\022\r\n\005error\030\001 " +
+      "\001(\t\"^\n\rCompletedTask\022\023\n\013executor_id\030\001 \001(" +
+      "\t\0228\n\npartitions\030\002 \003(\0132$.plan.protobuf.Sh" +
+      "uffleWritePartition\"u\n\025ShuffleWriteParti" +
+      "tion\022\024\n\014partition_id\030\001 \001(\004\022\014\n\004path\030\002 \001(\t" +
+      "\022\023\n\013num_batches\030\003 \001(\004\022\020\n\010num_rows\030\004 \001(\004\022" +
+      "\021\n\tnum_bytes\030\005 \001(\004\"\327\001\n\nTaskStatus\0220\n\014par" +
+      "tition_id\030\001 \001(\0132\032.plan.protobuf.Partitio" +
+      "nId\022-\n\007running\030\002 \001(\0132\032.plan.protobuf.Run" +
+      "ningTaskH\000\022+\n\006failed\030\003 \001(\0132\031.plan.protob" +
+      "uf.FailedTaskH\000\0221\n\tcompleted\030\004 \001(\0132\034.pla" +
+      "n.protobuf.CompletedTaskH\000B\010\n\006status\"\261\001\n" +
+      "\016TaskDefinition\022+\n\007task_id\030\001 \001(\0132\032.plan." +
+      "protobuf.PartitionId\022-\n\004plan\030\002 \001(\0132\037.pla" +
+      "n.protobuf.PhysicalPlanNode\022C\n\023output_pa" +
+      "rtitioning\030\003 \001(\0132&.plan.protobuf.Physica" +
+      "lHashRepartition\"/\n\006Schema\022%\n\007columns\030\001 " +
+      "\003(\0132\024.plan.protobuf.Field\"}\n\005Field\022\014\n\004na" +
+      "me\030\001 \001(\t\022,\n\narrow_type\030\002 \001(\0132\030.plan.prot" +
+      "obuf.ArrowType\022\020\n\010nullable\030\003 \001(\010\022&\n\010chil" +
+      "dren\030\004 \003(\0132\024.plan.protobuf.Field\"!\n\017Fixe" +
+      "dSizeBinary\022\016\n\006length\030\001 \001(\005\"I\n\tTimestamp" +
+      "\022*\n\ttime_unit\030\001 \001(\0162\027.plan.protobuf.Time" +
+      "Unit\022\020\n\010timezone\030\002 \001(\t\",\n\007Decimal\022\r\n\005who" +
+      "le\030\001 \001(\004\022\022\n\nfractional\030\002 \001(\004\"0\n\004List\022(\n\n" +
+      "field_type\030\001 \001(\0132\024.plan.protobuf.Field\"L" +
+      "\n\rFixedSizeList\022(\n\nfield_type\030\001 \001(\0132\024.pl" +
+      "an.protobuf.Field\022\021\n\tlist_size\030\002 \001(\005\"\\\n\n" +
+      "Dictionary\022%\n\003key\030\001 \001(\0132\030.plan.protobuf." +
+      "ArrowType\022\'\n\005value\030\002 \001(\0132\030.plan.protobuf" +
+      ".ArrowType\"7\n\006Struct\022-\n\017sub_field_types\030" +
+      "\001 \003(\0132\024.plan.protobuf.Field\"`\n\005Union\022)\n\013" +
+      "union_types\030\001 \003(\0132\024.plan.protobuf.Field\022" +
+      ",\n\nunion_mode\030\002 \001(\0162\030.plan.protobuf.Unio" +
+      "nMode\"j\n\017ScalarListValue\022+\n\010datatype\030\001 \001" +
+      "(\0132\031.plan.protobuf.ScalarType\022*\n\006values\030" +
+      "\002 \003(\0132\032.plan.protobuf.ScalarValue\"\314\004\n\013Sc" +
+      "alarValue\022\024\n\nbool_value\030\001 \001(\010H\000\022\024\n\nutf8_" +
+      "value\030\002 \001(\tH\000\022\032\n\020large_utf8_value\030\003 \001(\tH" +
+      "\000\022\024\n\nint8_value\030\004 \001(\005H\000\022\025\n\013int16_value\030\005" +
+      " \001(\005H\000\022\025\n\013int32_value\030\006 \001(\005H\000\022\025\n\013int64_v" +
+      "alue\030\007 \001(\003H\000\022\025\n\013uint8_value\030\010 \001(\rH\000\022\026\n\014u" +
+      "int16_value\030\t \001(\rH\000\022\026\n\014uint32_value\030\n \001(" +
+      "\rH\000\022\026\n\014uint64_value\030\013 \001(\004H\000\022\027\n\rfloat32_v" +
+      "alue\030\014 \001(\002H\000\022\027\n\rfloat64_value\030\r \001(\001H\000\022\027\n" +
+      "\rdate_32_value\030\016 \001(\005H\000\022 \n\026time_microseco" +
+      "nd_value\030\017 \001(\003H\000\022\037\n\025time_nanosecond_valu" +
+      "e\030\020 \001(\003H\000\0224\n\nlist_value\030\021 \001(\0132\036.plan.pro" +
+      "tobuf.ScalarListValueH\000\0224\n\017null_list_val" +
+      "ue\030\022 \001(\0132\031.plan.protobuf.ScalarTypeH\000\0228\n" +
+      "\nnull_value\030\023 \001(\0162\".plan.protobuf.Primit" +
+      "iveScalarTypeH\000B\007\n\005value\"}\n\nScalarType\0224" +
+      "\n\006scalar\030\001 \001(\0162\".plan.protobuf.Primitive" +
+      "ScalarTypeH\000\022-\n\004list\030\002 \001(\0132\035.plan.protob" +
+      "uf.ScalarListTypeH\000B\n\n\010datatype\"_\n\016Scala" +
+      "rListType\022\023\n\013field_names\030\003 \003(\t\0228\n\014deepes" +
+      "t_type\030\002 \001(\0162\".plan.protobuf.PrimitiveSc" +
+      "alarType\"\321\013\n\tArrowType\022+\n\004NONE\030\001 \001(\0132\033.p" +
+      "lan.protobuf.EmptyMessageH\000\022+\n\004BOOL\030\002 \001(" +
+      "\0132\033.plan.protobuf.EmptyMessageH\000\022,\n\005UINT" +
+      "8\030\003 \001(\0132\033.plan.protobuf.EmptyMessageH\000\022+" +
+      "\n\004INT8\030\004 \001(\0132\033.plan.protobuf.EmptyMessag" +
+      "eH\000\022-\n\006UINT16\030\005 \001(\0132\033.plan.protobuf.Empt" +
+      "yMessageH\000\022,\n\005INT16\030\006 \001(\0132\033.plan.protobu" +
+      "f.EmptyMessageH\000\022-\n\006UINT32\030\007 \001(\0132\033.plan." +
+      "protobuf.EmptyMessageH\000\022,\n\005INT32\030\010 \001(\0132\033" +
+      ".plan.protobuf.EmptyMessageH\000\022-\n\006UINT64\030" +
+      "\t \001(\0132\033.plan.protobuf.EmptyMessageH\000\022,\n\005" +
+      "INT64\030\n \001(\0132\033.plan.protobuf.EmptyMessage" +
+      "H\000\022.\n\007FLOAT16\030\013 \001(\0132\033.plan.protobuf.Empt" +
+      "yMessageH\000\022.\n\007FLOAT32\030\014 \001(\0132\033.plan.proto" +
+      "buf.EmptyMessageH\000\022.\n\007FLOAT64\030\r \001(\0132\033.pl" +
+      "an.protobuf.EmptyMessageH\000\022+\n\004UTF8\030\016 \001(\013" +
+      "2\033.plan.protobuf.EmptyMessageH\000\0221\n\nLARGE" +
+      "_UTF8\030  \001(\0132\033.plan.protobuf.EmptyMessage" +
+      "H\000\022-\n\006BINARY\030\017 \001(\0132\033.plan.protobuf.Empty" +
+      "MessageH\000\022\033\n\021FIXED_SIZE_BINARY\030\020 \001(\005H\000\0223" +
+      "\n\014LARGE_BINARY\030\037 \001(\0132\033.plan.protobuf.Emp" +
+      "tyMessageH\000\022-\n\006DATE32\030\021 \001(\0132\033.plan.proto" +
+      "buf.EmptyMessageH\000\022-\n\006DATE64\030\022 \001(\0132\033.pla" +
+      "n.protobuf.EmptyMessageH\000\022+\n\010DURATION\030\023 " +
+      "\001(\0162\027.plan.protobuf.TimeUnitH\000\022-\n\tTIMEST" +
+      "AMP\030\024 \001(\0132\030.plan.protobuf.TimestampH\000\022)\n" +
+      "\006TIME32\030\025 \001(\0162\027.plan.protobuf.TimeUnitH\000" +
+      "\022)\n\006TIME64\030\026 \001(\0162\027.plan.protobuf.TimeUni" +
+      "tH\000\022/\n\010INTERVAL\030\027 \001(\0162\033.plan.protobuf.In" +
+      "tervalUnitH\000\022)\n\007DECIMAL\030\030 \001(\0132\026.plan.pro" +
+      "tobuf.DecimalH\000\022#\n\004LIST\030\031 \001(\0132\023.plan.pro" +
+      "tobuf.ListH\000\022)\n\nLARGE_LIST\030\032 \001(\0132\023.plan." +
+      "protobuf.ListH\000\0227\n\017FIXED_SIZE_LIST\030\033 \001(\013" +
+      "2\034.plan.protobuf.FixedSizeListH\000\022\'\n\006STRU" +
+      "CT\030\034 \001(\0132\025.plan.protobuf.StructH\000\022%\n\005UNI" +
+      "ON\030\035 \001(\0132\024.plan.protobuf.UnionH\000\022/\n\nDICT" +
+      "IONARY\030\036 \001(\0132\031.plan.protobuf.DictionaryH" +
+      "\000B\021\n\017arrow_type_enum\"\016\n\014EmptyMessage*#\n\016" +
+      "JoinConstraint\022\006\n\002ON\020\000\022\t\n\005USING\020\001*\327\001\n\021Ag" +
+      "gregateFunction\022\007\n\003MIN\020\000\022\007\n\003MAX\020\001\022\007\n\003SUM" +
+      "\020\002\022\007\n\003AVG\020\003\022\t\n\005COUNT\020\004\022\023\n\017APPROX_DISTINC" +
+      "T\020\005\022\r\n\tARRAY_AGG\020\006\022\014\n\010VARIANCE\020\007\022\020\n\014VARI" +
+      "ANCE_POP\020\010\022\016\n\nCOVARIANCE\020\t\022\022\n\016COVARIANCE" +
+      "_POP\020\n\022\n\n\006STDDEV\020\013\022\016\n\nSTDDEV_POP\020\014\022\017\n\013CO" +
+      "RRELATION\020\r*\260\001\n\025BuiltInWindowFunction\022\016\n" +
+      "\nROW_NUMBER\020\000\022\010\n\004RANK\020\001\022\016\n\nDENSE_RANK\020\002\022" +
+      "\020\n\014PERCENT_RANK\020\003\022\r\n\tCUME_DIST\020\004\022\t\n\005NTIL" +
+      "E\020\005\022\007\n\003LAG\020\006\022\010\n\004LEAD\020\007\022\017\n\013FIRST_VALUE\020\010\022" +
+      "\016\n\nLAST_VALUE\020\t\022\r\n\tNTH_VALUE\020\n*\310\003\n\016Scala" +
+      "rFunction\022\010\n\004SQRT\020\000\022\007\n\003SIN\020\001\022\007\n\003COS\020\002\022\007\n" +
+      "\003TAN\020\003\022\010\n\004ASIN\020\004\022\010\n\004ACOS\020\005\022\010\n\004ATAN\020\006\022\007\n\003" +
+      "EXP\020\007\022\007\n\003LOG\020\010\022\010\n\004LOG2\020\t\022\t\n\005LOG10\020\n\022\t\n\005F" +
+      "LOOR\020\013\022\010\n\004CEIL\020\014\022\t\n\005ROUND\020\r\022\t\n\005TRUNC\020\016\022\007" +
+      "\n\003ABS\020\017\022\n\n\006SIGNUM\020\020\022\017\n\013OCTETLENGTH\020\021\022\n\n\006" +
+      "CONCAT\020\022\022\t\n\005LOWER\020\023\022\t\n\005UPPER\020\024\022\010\n\004TRIM\020\025" +
+      "\022\t\n\005LTRIM\020\026\022\t\n\005RTRIM\020\027\022\017\n\013TOTIMESTAMP\020\030\022" +
+      "\t\n\005ARRAY\020\031\022\n\n\006NULLIF\020\032\022\014\n\010DATEPART\020\033\022\r\n\t" +
+      "DATETRUNC\020\034\022\007\n\003MD5\020\035\022\n\n\006SHA224\020\036\022\n\n\006SHA2" +
+      "56\020\037\022\n\n\006SHA384\020 \022\n\n\006SHA512\020!\022\006\n\002LN\020\"\022\025\n\021" +
+      "TOTIMESTAMPMILLIS\020#\022\n\n\006DIGEST\020$\022\020\n\013START" +
+      "S_WITH\020\351\007*2\n\rPartitionMode\022\020\n\014COLLECT_LE" +
+      "FT\020\000\022\017\n\013PARTITIONED\020\001*H\n\010JoinType\022\t\n\005INN" +
+      "ER\020\000\022\010\n\004LEFT\020\001\022\t\n\005RIGHT\020\002\022\010\n\004FULL\020\003\022\010\n\004S" +
+      "EMI\020\004\022\010\n\004ANTI\020\005*>\n\rAggregateMode\022\013\n\007PART" +
+      "IAL\020\000\022\t\n\005FINAL\020\001\022\025\n\021FINAL_PARTITIONED\020\002*" +
+      "(\n\010DateUnit\022\007\n\003Day\020\000\022\023\n\017DateMillisecond\020" +
+      "\001*L\n\010TimeUnit\022\n\n\006Second\020\000\022\023\n\017TimeMillise" +
+      "cond\020\001\022\017\n\013Microsecond\020\002\022\016\n\nNanosecond\020\003*" +
+      "<\n\014IntervalUnit\022\r\n\tYearMonth\020\000\022\013\n\007DayTim" +
+      "e\020\001\022\020\n\014MonthDayNano\020\002*\"\n\tUnionMode\022\n\n\006sp" +
+      "arse\020\000\022\t\n\005dense\020\001*\356\001\n\023PrimitiveScalarTyp" +
+      "e\022\010\n\004BOOL\020\000\022\t\n\005UINT8\020\001\022\010\n\004INT8\020\002\022\n\n\006UINT" +
+      "16\020\003\022\t\n\005INT16\020\004\022\n\n\006UINT32\020\005\022\t\n\005INT32\020\006\022\n" +
+      "\n\006UINT64\020\007\022\t\n\005INT64\020\010\022\013\n\007FLOAT32\020\t\022\013\n\007FL" +
+      "OAT64\020\n\022\010\n\004UTF8\020\013\022\016\n\nLARGE_UTF8\020\014\022\n\n\006DAT" +
+      "E32\020\r\022\024\n\020TIME_MICROSECOND\020\016\022\023\n\017TIME_NANO" +
+      "SECOND\020\017\022\010\n\004NULL\020\020B\"\n\022org.blaze.protobuf" +
+      "B\nBlazeProtoP\001b\006proto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -912,7 +912,7 @@ public final class BlazeProto {
     internal_static_plan_protobuf_ShuffleWriterExecNode_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_plan_protobuf_ShuffleWriterExecNode_descriptor,
-        new java.lang.String[] { "Input", "OutputPartitioning", "ShuffleId", });
+        new java.lang.String[] { "Input", "OutputPartitioning", "ShuffleId", "MapId", });
     internal_static_plan_protobuf_ShuffleReaderExecNode_descriptor =
       getDescriptor().getMessageTypes().get(36);
     internal_static_plan_protobuf_ShuffleReaderExecNode_fieldAccessorTable = new
