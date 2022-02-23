@@ -20,15 +20,14 @@
     <maven.compiler.target>1.8</maven.compiler.target>
 
     <!-- scala version -->
-    <scala.version>2.12.15</scala.version>
+    <scala.version>2.12.10</scala.version>
     <scala.binary.version>2.12</scala.binary.version>
-    <scala.plugin.version>4.3.0</scala.plugin.version>
+    <scala.plugin.version>4.4.0</scala.plugin.version>
     <scalatest-maven-plugin.version>2.0.2</scalatest-maven-plugin.version>
     <scalatest.version>3.2.9</scalatest.version>
 
     <!-- spark version -->
-    <!-- <spark.tags.version>3.0.0U1.0.30-sts-hudi-zl-sts-parallel-qh-hudi-BETA-SNAPSHOT</spark.tags.version> -->
-    <spark.tags.version>3.0.1</spark.tags.version>
+    <spark.tags.version>3.0.3</spark.tags.version>
 
     <!-- arrow version -->
     <arrow.version>6.0.1</arrow.version>
@@ -60,12 +59,6 @@
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-sql_${scala.binary.version}</artifactId>
       <version>${spark.tags.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.apache.arrow</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-      </exclusions>
       <scope>provided</scope>
     </dependency>
 
