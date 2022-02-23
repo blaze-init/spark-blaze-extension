@@ -30,9 +30,9 @@ class ArrowShuffleManager301(conf: SparkConf) extends ShuffleManager with Loggin
   private[this] val taskIdMapsForShuffle = new ConcurrentHashMap[Int, OpenHashSet[Long]]()
 
   /**
-   * Obtains a [[ShuffleHandle]] to pass to tasks.
+   * (override) Obtains a [[ShuffleHandle]] to pass to tasks.
    */
-  override def registerShuffle[K, V, C](
+  def registerShuffle[K, V, C](
     shuffleId: Int,
     dependency: ShuffleDependency[K, V, C]): ShuffleHandle = {
     if (SortShuffleWriter.shouldBypassMergeSort(conf, dependency)) {
@@ -41,15 +41,58 @@ class ArrowShuffleManager301(conf: SparkConf) extends ShuffleManager with Loggin
       // them at the end. This avoids doing serialization and deserialization twice to merge
       // together the spilled files, which would happen with the normal code path. The downside is
       // having multiple files open at a time and thus more memory allocated to buffers.
-      new BypassMergeSortShuffleHandle[K, V](
-        shuffleId, dependency.asInstanceOf[ShuffleDependency[K, V, V]])
+      classOf[BypassMergeSortShuffleHandle[K, V]]
+        .getConstructor(Integer.TYPE, classOf[ShuffleDependency[_, _, _]])
+        .newInstance(Int.box(shuffleId), dependency.asInstanceOf[ShuffleDependency[_, _, _]])
+        .asInstanceOf[ShuffleHandle]
+
     } else if (SortShuffleManager.canUseSerializedShuffle(dependency)) {
       // Otherwise, try to buffer map outputs in a serialized form, since this is more efficient:
-      new SerializedShuffleHandle[K, V](
-        shuffleId, dependency.asInstanceOf[ShuffleDependency[K, V, V]])
+      classOf[SerializedShuffleHandle[K, V]]
+        .getConstructor(Integer.TYPE, classOf[ShuffleDependency[_, _, _]])
+        .newInstance(Int.box(shuffleId), dependency.asInstanceOf[ShuffleDependency[_, _, _]])
+        .asInstanceOf[ShuffleHandle]
+
     } else {
       // Otherwise, buffer map outputs in a deserialized form:
-      new BaseShuffleHandle(shuffleId, dependency)
+      classOf[BaseShuffleHandle[K, V, C]]
+        .getConstructor(Integer.TYPE, classOf[ShuffleDependency[_, _, _]])
+        .newInstance(Int.box(shuffleId), dependency.asInstanceOf[ShuffleDependency[_, _, _]])
+        .asInstanceOf[ShuffleHandle]
+    }
+  }
+
+  /**
+   * Obtains a [[ShuffleHandle]] to pass to tasks.
+   */
+  def registerShuffle[K, V, C](
+    shuffleId: Int,
+    numMaps: Int,
+    dependency: ShuffleDependency[K, V, C]): ShuffleHandle = {
+    if (SortShuffleWriter.shouldBypassMergeSort(conf, dependency)) {
+      // If there are fewer than spark.shuffle.sort.bypassMergeThreshold partitions and we don't
+      // need map-side aggregation, then write numPartitions files directly and just concatenate
+      // them at the end. This avoids doing serialization and deserialization twice to merge
+      // together the spilled files, which would happen with the normal code path. The downside is
+      // having multiple files open at a time and thus more memory allocated to buffers.
+      classOf[BypassMergeSortShuffleHandle[K, V]]
+        .getConstructor(Integer.TYPE, Integer.TYPE, classOf[ShuffleDependency[_, _, _]])
+        .newInstance(Int.box(shuffleId), Int.box(numMaps), dependency.asInstanceOf[ShuffleDependency[_, _, _]])
+        .asInstanceOf[ShuffleHandle]
+
+    } else if (SortShuffleManager.canUseSerializedShuffle(dependency)) {
+      // Otherwise, try to buffer map outputs in a serialized form, since this is more efficient:
+      classOf[SerializedShuffleHandle[K, V]]
+        .getConstructor(Integer.TYPE, Integer.TYPE, classOf[ShuffleDependency[_, _, _]])
+        .newInstance(Int.box(shuffleId), Int.box(numMaps), dependency.asInstanceOf[ShuffleDependency[_, _, _]])
+        .asInstanceOf[ShuffleHandle]
+
+    } else {
+      // Otherwise, buffer map outputs in a deserialized form:
+      classOf[BaseShuffleHandle[K, V, C]]
+        .getConstructor(Integer.TYPE, Integer.TYPE, classOf[ShuffleDependency[_, _, _]])
+        .newInstance(Int.box(shuffleId), Int.box(numMaps), dependency.asInstanceOf[ShuffleDependency[_, _, _]])
+        .asInstanceOf[ShuffleHandle]
     }
   }
 
