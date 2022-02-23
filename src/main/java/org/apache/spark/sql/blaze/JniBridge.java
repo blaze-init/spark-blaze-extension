@@ -1,9 +1,11 @@
 package org.apache.spark.sql.blaze;
 
+import java.io.FilterInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -63,8 +65,7 @@ public class JniBridge {
 
         } catch (UnsupportedOperationException e) {
             try {
-                Field innerInField = null;
-                innerInField = in.getClass().getDeclaredField("in");
+                Field innerInField = FilterInputStream.class.getDeclaredField("in");
                 innerInField.setAccessible(true);
                 InputStream innerIn = (InputStream) innerInField.get(in);
 
@@ -74,7 +75,7 @@ public class JniBridge {
                 if (innerIn instanceof ReadableByteChannel) {
                     return ((ReadableByteChannel) innerIn).read(bb);
                 }
-                throw new UnsupportedOperationException("no shims to FSDataInputStream.read()");
+                return Channels.newChannel(innerIn).read(bb);
 
             } catch (NoSuchFieldException | IllegalAccessException ex) {
                 throw new RuntimeException(ex);
