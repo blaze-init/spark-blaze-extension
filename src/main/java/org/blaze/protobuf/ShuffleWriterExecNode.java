@@ -81,7 +81,7 @@ private static final long serialVersionUID = 0L;
           }
           case 32: {
 
-            mapId_ = input.readUInt32();
+            mapId_ = input.readUInt64();
             break;
           }
           default: {
@@ -180,13 +180,13 @@ private static final long serialVersionUID = 0L;
   }
 
   public static final int MAPID_FIELD_NUMBER = 4;
-  private int mapId_;
+  private long mapId_;
   /**
-   * <code>uint32 mapId = 4;</code>
+   * <code>uint64 mapId = 4;</code>
    * @return The mapId.
    */
   @java.lang.Override
-  public int getMapId() {
+  public long getMapId() {
     return mapId_;
   }
 
@@ -213,8 +213,8 @@ private static final long serialVersionUID = 0L;
     if (shuffleId_ != 0) {
       output.writeUInt32(3, shuffleId_);
     }
-    if (mapId_ != 0) {
-      output.writeUInt32(4, mapId_);
+    if (mapId_ != 0L) {
+      output.writeUInt64(4, mapId_);
     }
     unknownFields.writeTo(output);
   }
@@ -237,9 +237,9 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeUInt32Size(3, shuffleId_);
     }
-    if (mapId_ != 0) {
+    if (mapId_ != 0L) {
       size += com.google.protobuf.CodedOutputStream
-        .computeUInt32Size(4, mapId_);
+        .computeUInt64Size(4, mapId_);
     }
     size += unknownFields.getSerializedSize();
     memoizedSize = size;
@@ -292,7 +292,8 @@ private static final long serialVersionUID = 0L;
     hash = (37 * hash) + SHUFFLEID_FIELD_NUMBER;
     hash = (53 * hash) + getShuffleId();
     hash = (37 * hash) + MAPID_FIELD_NUMBER;
-    hash = (53 * hash) + getMapId();
+    hash = (53 * hash) + com.google.protobuf.Internal.hashLong(
+        getMapId());
     hash = (29 * hash) + unknownFields.hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -440,7 +441,7 @@ private static final long serialVersionUID = 0L;
       }
       shuffleId_ = 0;
 
-      mapId_ = 0;
+      mapId_ = 0L;
 
       return this;
     }
@@ -537,7 +538,7 @@ private static final long serialVersionUID = 0L;
       if (other.getShuffleId() != 0) {
         setShuffleId(other.getShuffleId());
       }
-      if (other.getMapId() != 0) {
+      if (other.getMapId() != 0L) {
         setMapId(other.getMapId());
       }
       this.mergeUnknownFields(other.unknownFields);
@@ -838,33 +839,33 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private int mapId_ ;
+    private long mapId_ ;
     /**
-     * <code>uint32 mapId = 4;</code>
+     * <code>uint64 mapId = 4;</code>
      * @return The mapId.
      */
     @java.lang.Override
-    public int getMapId() {
+    public long getMapId() {
       return mapId_;
     }
     /**
-     * <code>uint32 mapId = 4;</code>
+     * <code>uint64 mapId = 4;</code>
      * @param value The mapId to set.
      * @return This builder for chaining.
      */
-    public Builder setMapId(int value) {
+    public Builder setMapId(long value) {
       
       mapId_ = value;
       onChanged();
       return this;
     }
     /**
-     * <code>uint32 mapId = 4;</code>
+     * <code>uint64 mapId = 4;</code>
      * @return This builder for chaining.
      */
     public Builder clearMapId() {
       
-      mapId_ = 0;
+      mapId_ = 0L;
       onChanged();
       return this;
     }

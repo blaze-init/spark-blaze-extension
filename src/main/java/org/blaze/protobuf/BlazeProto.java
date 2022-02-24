@@ -527,7 +527,7 @@ public final class BlazeProto {
       "rotobuf.PhysicalPlanNode\022C\n\023output_parti" +
       "tioning\030\002 \001(\0132&.plan.protobuf.PhysicalHa" +
       "shRepartition\022\021\n\tshuffleId\030\003 \001(\r\022\r\n\005mapI" +
-      "d\030\004 \001(\r\">\n\025ShuffleReaderExecNode\022%\n\006sche" +
+      "d\030\004 \001(\004\">\n\025ShuffleReaderExecNode\022%\n\006sche" +
       "ma\030\002 \001(\0132\025.plan.protobuf.Schema\"T\n\023Globa" +
       "lLimitExecNode\022.\n\005input\030\001 \001(\0132\037.plan.pro" +
       "tobuf.PhysicalPlanNode\022\r\n\005limit\030\002 \001(\r\"S\n" +
