@@ -17,6 +17,8 @@
 
 package org.apache.spark.sql.blaze.execution
 
+//import blaze.org.apache.arrow.vector.VectorSchemaRoot
+//import blaze.org.apache.arrow.vector.ipc.ArrowFileWriter
 import org.apache.arrow.vector.VectorSchemaRoot
 import org.apache.arrow.vector.dictionary.DictionaryProvider.MapDictionaryProvider
 import org.apache.arrow.vector.ipc.ArrowFileWriter
@@ -24,15 +26,15 @@ import org.apache.arrow.vector.ipc.message.MessageSerializer
 import org.apache.spark.internal.Logging
 import org.apache.spark.shuffle.ShuffleWriteMetricsReporter
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.execution.arrow.ArrowWriter
+import org.apache.spark.sql.util2.ArrowWriter
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.util.ArrowUtils
+import org.apache.spark.sql.util2.ArrowUtils2
 import org.apache.spark.storage.{FileSegment, TimeTrackingOutputStream}
 import org.apache.spark.util.Utils
+
 import java.io.{BufferedOutputStream, File, FileOutputStream, OutputStream}
 import java.nio.ByteBuffer
 import java.nio.channels.{ClosedByInterruptException, FileChannel}
-
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.SparkEnv
 
@@ -59,9 +61,9 @@ private[spark] class DiskBlockArrowIPCWriter(
     with Logging {
 
   val timezoneId = SparkEnv.get.conf.get(SQLConf.SESSION_LOCAL_TIMEZONE)
-  val arrowSchema = ArrowUtils.toArrowSchema(schema, timezoneId)
+  val arrowSchema = ArrowUtils2.toArrowSchema(schema, timezoneId)
   val allocator =
-    ArrowUtils.rootAllocator.newChildAllocator("row2ArrowBatchWrite", 0, Long.MaxValue)
+    ArrowUtils2.rootAllocator.newChildAllocator("row2ArrowBatchWrite", 0, Long.MaxValue)
   val root = VectorSchemaRoot.create(arrowSchema, allocator)
   val arrowBuffer = ArrowWriter.create(root)
   private val leLength = new Array[Byte](8)

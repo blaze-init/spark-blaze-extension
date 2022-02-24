@@ -67,3 +67,7 @@ dependency-reduced-pom.xml
 */*/*/dependency-reduced-pom.xml
 */RELEASE
 sql/catalyst/src/main/java/org/apache/spark/sql/catalyst/parser/
+
+dev/testenv/_data
+dev/testenv/_logs
+dev/testenv/_software

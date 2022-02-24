@@ -2,10 +2,8 @@ package org.apache.spark.sql.blaze
 
 import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
-
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
-
 import org.apache.arrow.vector.ipc.ArrowStreamReader
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.SparkException
@@ -15,8 +13,8 @@ import org.apache.spark.sql.execution.adaptive.QueryStageExec
 import org.apache.spark.TaskContext
 import org.apache.spark.sql.execution.metric.SQLMetric
 import org.apache.spark.sql.execution.metric.SQLMetrics
-import org.apache.spark.sql.util.ArrowUtils
-import org.apache.spark.sql.vectorized.ArrowColumnVector
+import org.apache.spark.sql.util2.ArrowUtils2
+import org.apache.spark.sql.util2.ArrowColumnVector
 import org.apache.spark.sql.vectorized.ColumnarBatch
 import org.apache.spark.sql.vectorized.ColumnVector
 import org.apache.spark.SparkContext
@@ -81,7 +79,7 @@ object NativeSupports {
    )
 
    private def toIterator(inputStream: ByteArrayInputStream): Iterator[InternalRow] = {
-      val allocator = ArrowUtils.rootAllocator.newChildAllocator("readNativeRDDBatches", 0, Long.MaxValue)
+      val allocator = ArrowUtils2.rootAllocator.newChildAllocator("readNativeRDDBatches", 0, Long.MaxValue)
       val arrowReader = new ArrowStreamReader(inputStream, allocator)
       val root = arrowReader.getVectorSchemaRoot
 
