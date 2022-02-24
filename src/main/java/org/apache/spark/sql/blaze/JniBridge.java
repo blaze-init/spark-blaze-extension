@@ -36,6 +36,16 @@ public class JniBridge {
     }
 
     // JVM -> Native
+    public static ClassLoader getContextClassLoader() {
+        return Thread.currentThread().getContextClassLoader();
+    }
+
+    // JVM -> Native
+    public static void setContextClassLoader(ClassLoader cl) {
+        Thread.currentThread().setContextClassLoader(cl);
+    }
+
+    // JVM -> Native
     public static FileSystem getHDFSFileSystem() {
         return fs;
     }
