@@ -17,8 +17,6 @@
 
 package org.apache.spark.sql.blaze.execution
 
-//import blaze.org.apache.arrow.vector.VectorSchemaRoot
-//import blaze.org.apache.arrow.vector.ipc.ArrowFileWriter
 import org.apache.arrow.vector.VectorSchemaRoot
 import org.apache.arrow.vector.dictionary.DictionaryProvider.MapDictionaryProvider
 import org.apache.arrow.vector.ipc.ArrowFileWriter
