@@ -23,10 +23,10 @@ import org.apache.spark.network.buffer.ManagedBuffer
 import org.apache.spark.network.buffer.NettyManagedBuffer
 import org.apache.spark.network.buffer.NioManagedBuffer
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.execution.arrow.ArrowWriter
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.util.ArrowUtils
-import org.apache.spark.sql.vectorized.ArrowColumnVector
+import org.apache.spark.sql.util2.ArrowUtils2
+import org.apache.spark.sql.util2.ArrowWriter
+import org.apache.spark.sql.util2.ArrowColumnVector
 import org.apache.spark.sql.vectorized.ColumnVector
 import org.apache.spark.sql.vectorized.ColumnarBatch
 import org.apache.spark.util.Utils
@@ -93,7 +93,7 @@ object Converters extends Logging {
     context: TaskContext): Iterator[InternalRow] = {
 
     val allocator =
-      ArrowUtils.rootAllocator.newChildAllocator("readBatchesFromManagedBuffer", 0, Long.MaxValue)
+      ArrowUtils2.rootAllocator.newChildAllocator("readBatchesFromManagedBuffer", 0, Long.MaxValue)
     val arrowReader = new ArrowFileReader(channel, allocator)//, CommonsCompressionFactory.INSTANCE)
     val root = arrowReader.getVectorSchemaRoot()
     val first = arrowReader.loadNextBatch()
@@ -145,9 +145,9 @@ object Converters extends Logging {
     context: TaskContext,
     out: OutputStream): Unit = {
 
-    val arrowSchema = ArrowUtils.toArrowSchema(schema, timeZoneId)
+    val arrowSchema = ArrowUtils2.toArrowSchema(schema, timeZoneId)
     val allocator =
-      ArrowUtils.rootAllocator.newChildAllocator("toBatchIterator", 0, Long.MaxValue)
+      ArrowUtils2.rootAllocator.newChildAllocator("toBatchIterator", 0, Long.MaxValue)
 
     val root = VectorSchemaRoot.create(arrowSchema, allocator)
     val arrowWriter = ArrowWriter.create(root)
