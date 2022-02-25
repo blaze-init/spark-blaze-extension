@@ -1,38 +1,24 @@
 package org.apache.spark.sql.blaze;
 
-import java.io.FilterInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Field;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-import org.apache.commons.lang3.ClassUtils;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.ByteBufferReadable;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.util.ClassUtil;
 import org.apache.spark.SparkEnv;
 import org.apache.spark.deploy.SparkHadoopUtil;
 import org.apache.spark.shuffle.ShuffleManager;
 
 public class JniBridge {
     static final public ConcurrentHashMap<String, Object> resourcesMap = new ConcurrentHashMap<>();
-    static final Configuration conf;
-    static final FileSystem fs;
     static {
         System.loadLibrary("blaze_rs");
-        try {
-            conf = SparkHadoopUtil.get().newConfiguration(SparkEnv.get().conf());
-            conf.setBoolean("fs.hdfs.impl.disable.cache", true);
-            fs = FileSystem.get(conf);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     // JVM -> Native
@@ -46,8 +32,13 @@ public class JniBridge {
     }
 
     // JVM -> Native
-    public static FileSystem getHDFSFileSystem() {
-        return fs;
+    public static FileSystem getHDFSFileSystem(String uriString) {
+        try {
+            URI uri = new URI(uriString);
+            return FileSystem.get(uri, SparkHadoopUtil.get().newConfiguration(SparkEnv.get().conf()));
+        } catch (URISyntaxException | IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     // JVM -> Native
@@ -70,26 +61,22 @@ public class JniBridge {
     // JVM -> Native
     // shim method to FSDataInputStream.read()
     public static int readFSDataInputStream(FSDataInputStream in, ByteBuffer bb) throws IOException {
-        try {
-            return in.read(bb);
+        int bytesRead = 0;
 
-        } catch (UnsupportedOperationException e) {
+        while (bb.remaining() > 0) {
+            int bytesReadPartial;
             try {
-                Field innerInField = FilterInputStream.class.getDeclaredField("in");
-                innerInField.setAccessible(true);
-                InputStream innerIn = (InputStream) innerInField.get(in);
-
-                if (innerIn instanceof ByteBufferReadable) {
-                    return ((ByteBufferReadable) innerIn).read(bb);
-                }
-                if (innerIn instanceof ReadableByteChannel) {
-                    return ((ReadableByteChannel) innerIn).read(bb);
-                }
-                return Channels.newChannel(innerIn).read(bb);
-
-            } catch (NoSuchFieldException | IllegalAccessException ex) {
-                throw new RuntimeException(ex);
+                bytesReadPartial = in.read(bb);
+            } catch (UnsupportedOperationException e) {
+                ReadableByteChannel channel = Channels.newChannel(in);
+                bytesReadPartial = channel.read(bb);
             }
+
+            if (bytesReadPartial < 0) {
+                return bytesRead;
+            }
+            bytesRead += bytesReadPartial;
         }
+        return bytesRead;
     }
 }
