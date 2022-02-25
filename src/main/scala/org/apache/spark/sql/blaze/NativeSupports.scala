@@ -42,7 +42,7 @@ object NativeSupports {
 
       val partitionId = PartitionId.newBuilder()
         .setPartitionId(context.partitionId())
-        .setStageId(0)
+        .setStageId(context.stageId())
         .setJobId(NativeRDD.getNativeJobId(context))
         .build()
 
