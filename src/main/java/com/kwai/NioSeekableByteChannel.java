@@ -21,7 +21,6 @@ public class NioSeekableByteChannel implements SeekableByteChannel {
         int capacity = dst.capacity();
         ByteBuffer part = buffer.duplicate();
         part.position((int) (position + offset));
-        part.limit(position + capacity);
         dst.put(part);
         return capacity;
     }
