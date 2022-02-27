@@ -5,40 +5,44 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SeekableByteChannel;
 
 public class NioSeekableByteChannel implements SeekableByteChannel {
-    private final long offset;
-    private final long length;
     private ByteBuffer buffer;
-    private int position = 0;
+    private long offset;
 
     public NioSeekableByteChannel(ByteBuffer buffer, long offset, long length) {
-        this.buffer = buffer;
+        this.buffer = buffer.duplicate();
         this.offset = offset;
-        this.length = length;
+
+        this.buffer.position((int) offset);
+        this.buffer.limit((int) (offset + length));
     }
 
     @Override
     public int read(ByteBuffer dst) throws IOException {
-        int capacity = dst.capacity();
-        ByteBuffer part = buffer.duplicate();
-        part.position((int) (position + offset));
-        dst.put(part);
-        return capacity;
-    }
+        int readSize = Math.min(dst.capacity(), this.buffer.limit() - this.buffer.position());
+        ByteBuffer part = this.buffer.duplicate();
+        part.limit(part.position() + readSize);
 
-    @Override
-    public long position() throws IOException {
-        return this.position;
+        dst = dst.duplicate();
+        dst.limit(readSize);
+        dst.put(part);
+        this.buffer.position(this.buffer.position() + readSize);
+        return readSize;
     }
 
     @Override
     public SeekableByteChannel position(long newPosition) throws IOException {
-        this.position = (int) newPosition;
+        this.buffer.position((int) (this.offset + newPosition));
         return this;
     }
 
     @Override
+    public long position() throws IOException {
+        return (long) this.buffer.position() - this.offset;
+    }
+
+    @Override
     public long size() throws IOException {
-        return this.length;
+        return (long) this.buffer.limit() - this.offset;
     }
 
     @Override
