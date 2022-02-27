@@ -42,4 +42,10 @@ public interface ShuffleWriterExecNodeOrBuilder extends
    * @return The shuffleId.
    */
   int getShuffleId();
+
+  /**
+   * <code>uint64 mapId = 4;</code>
+   * @return The mapId.
+   */
+  long getMapId();
 }

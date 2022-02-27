@@ -52,8 +52,8 @@ object Converters extends Logging {
       case f: FileSegmentManagedBuffer =>
         val file = f.getFile
         val lengthReader = new RandomAccessFile(file, "r")
-
         var curEnd = f.getOffset + f.getLength
+
         while (curEnd > f.getOffset) {
           val lenBuf = new Array[Byte](8)
           lengthReader.seek(curEnd - 8)
@@ -67,12 +67,12 @@ object Converters extends Logging {
 
       case _: NettyManagedBuffer | _: NioManagedBuffer =>
         val all = data.nioByteBuffer()
-
+        val lenBuf = ByteBuffer.allocate(8)
         var curEnd = all.limit()
+
         while (curEnd > 0) {
-          val lenBuf = new Array[Byte](8)
-          all.get(lenBuf, curEnd - 8, 8)
-          val len = ByteBuffer.wrap(lenBuf).order(ByteOrder.LITTLE_ENDIAN).getLong.toInt
+          lenBuf.putLong(all.getLong(curEnd - 8))
+          val len = lenBuf.order(ByteOrder.LITTLE_ENDIAN).getLong(0).toInt
           val curStart = curEnd - 8 - len
 
           val sc = new NioSeekableByteChannel(all, curStart, len)
