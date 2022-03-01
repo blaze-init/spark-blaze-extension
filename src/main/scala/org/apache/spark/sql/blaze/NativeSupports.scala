@@ -2,8 +2,10 @@ package org.apache.spark.sql.blaze
 
 import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
+
 import scala.annotation.tailrec
 import scala.collection.JavaConverters._
+
 import org.apache.arrow.vector.ipc.ArrowStreamReader
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.SparkException
@@ -18,6 +20,7 @@ import org.apache.spark.sql.util2.ArrowColumnVector
 import org.apache.spark.sql.vectorized.ColumnarBatch
 import org.apache.spark.sql.vectorized.ColumnVector
 import org.apache.spark.SparkContext
+import org.apache.spark.internal.Logging
 import org.blaze.protobuf.PartitionId
 import org.blaze.protobuf.PhysicalPlanNode
 import org.blaze.protobuf.TaskDefinition
@@ -26,7 +29,7 @@ trait NativeSupports {
    def doExecuteNative(): NativeRDD
 }
 
-object NativeSupports {
+object NativeSupports extends Logging {
    @tailrec def executeNative(plan: SparkPlan): NativeRDD = plan match {
       case plan: NativeSupports => plan.doExecuteNative()
       case plan: CustomShuffleReaderExec => executeNative(plan.child)
@@ -50,12 +53,14 @@ object NativeSupports {
         .setTaskId(partitionId)
         .setPlan(nativePlan)
         .build()
-        .toByteArray
-      val taskDefinitionByteBuffer = ByteBuffer.allocateDirect(taskDefinition.length)
-      taskDefinitionByteBuffer.put(taskDefinition)
+
+      val taskDefinitionBytes = taskDefinition.toByteArray
+      val taskDefinitionByteBuffer = ByteBuffer.allocateDirect(taskDefinitionBytes.length)
+      taskDefinitionByteBuffer.put(taskDefinitionBytes)
 
       // note: consider passing a ByteBufferOutputStream to blaze-rs to avoid copying
 
+      logInfo(s"Start executing native plan: ${taskDefinition.toString}")
       var outputBytes: Array[Byte] = null
       JniBridge.callNative(taskDefinitionByteBuffer, metrics, byteBuffer => {
          if (byteBuffer != null) {
