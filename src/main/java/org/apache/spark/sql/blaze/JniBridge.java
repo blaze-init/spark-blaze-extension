@@ -60,23 +60,18 @@ public class JniBridge {
 
     // JVM -> Native
     // shim method to FSDataInputStream.read()
-    public static int readFSDataInputStream(FSDataInputStream in, ByteBuffer bb) throws IOException {
-        int bytesRead = 0;
+    public static int readFSDataInputStream(FSDataInputStream in, ByteBuffer bb, long pos) throws IOException {
+        int bytesRead;
 
-        while (bb.remaining() > 0) {
-            int bytesReadPartial;
+        synchronized (in) {
+            in.seek(pos);
             try {
-                bytesReadPartial = in.read(bb);
+                bytesRead = in.read(bb);
             } catch (UnsupportedOperationException e) {
                 ReadableByteChannel channel = Channels.newChannel(in);
-                bytesReadPartial = channel.read(bb);
+                bytesRead = channel.read(bb);
             }
-
-            if (bytesReadPartial < 0) {
-                return bytesRead;
-            }
-            bytesRead += bytesReadPartial;
+            return bytesRead;
         }
-        return bytesRead;
     }
 }
