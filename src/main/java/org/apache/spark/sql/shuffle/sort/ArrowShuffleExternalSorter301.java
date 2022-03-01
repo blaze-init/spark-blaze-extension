@@ -195,7 +195,7 @@ final class ArrowShuffleExternalSorter301 extends MemoryConsumer {
 
         int currentPartition = -1;
         final FileSegment committedSegment;
-        UnsafeRow current = null;
+        UnsafeRow current = new UnsafeRow(this.schema.size());
 
         try (DiskBlockArrowIPCWriter writer =
                  new DiskBlockArrowIPCWriter(
