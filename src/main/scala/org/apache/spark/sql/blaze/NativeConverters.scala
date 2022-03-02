@@ -55,6 +55,7 @@ import org.apache.spark.sql.types.BooleanType
 import org.apache.spark.sql.types.ByteType
 import org.apache.spark.sql.types.DataType
 import org.apache.spark.sql.types.DateType
+import org.apache.spark.sql.types.DecimalType
 import org.apache.spark.sql.types.DoubleType
 import org.apache.spark.sql.types.FloatType
 import org.apache.spark.sql.types.IntegerType
@@ -94,6 +95,13 @@ object NativeConverters {
       case BinaryType => arrowTypeBuilder.setBINARY(EmptyMessage.getDefaultInstance)
       case DateType => arrowTypeBuilder.setDATE32(EmptyMessage.getDefaultInstance)
       case TimestampType => arrowTypeBuilder.setTIMESTAMP(Timestamp.getDefaultInstance) // NOTE: microsecond => millisecond
+
+      // decimal
+      case t: DecimalType => arrowTypeBuilder.setDECIMAL(org.blaze.protobuf.Decimal.newBuilder()
+        .setWhole(t.precision - t.scale)
+        .setFractional(t.scale)
+        .build()
+      )
 
       // TODO: support complex data types
       case _ => throw new NotImplementedError(s"Data type conversion not implemented ${sparkDataType}")
