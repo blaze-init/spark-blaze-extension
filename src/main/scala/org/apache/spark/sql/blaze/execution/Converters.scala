@@ -71,6 +71,7 @@ object Converters extends Logging {
         var curEnd = all.limit()
 
         while (curEnd > 0) {
+          lenBuf.position(0)
           lenBuf.putLong(all.getLong(curEnd - 8))
           val len = lenBuf.order(ByteOrder.LITTLE_ENDIAN).getLong(0).toInt
           val curStart = curEnd - 8 - len
