@@ -89,33 +89,34 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
     exec
   }
 
-  private def convertProjectExec(exec: ProjectExec): SparkPlan = {
-    logInfo(s"Converting ProjectExec: ${exec.simpleStringWithNodeId()}")
-    for (projectExpr <- exec.projectList) {
-      logInfo(s"  projectExpr: ${projectExpr}")
-    }
-
-    exec match {
-      case ProjectExec(projectList, child: NativeSupports) => NativeProjectExec(projectList, child)
-      case projectExec => projectExec
-    }
-  }
-  private def convertFilterExec(exec: FilterExec): SparkPlan = {
-    logInfo(s"Converting FilterExec: ${exec.simpleStringWithNodeId()}")
-    logInfo(s"  condition: ${exec.condition}")
-    exec match {
-      case FilterExec(condition, child: NativeSupports) => NativeFilterExec(condition, child)
-      case filterExec => filterExec
-    }
+  private def convertProjectExec(exec: ProjectExec): SparkPlan = exec match {
+    case ProjectExec(projectList, child: NativeSupports) =>
+      logInfo(s"Converting ProjectExec: ${exec.simpleStringWithNodeId()}")
+      exec.projectList.foreach(p => logInfo(s"  projectExpr: ${p}"))
+      NativeProjectExec(projectList, child)
+    case _ =>
+      logInfo(s"Ignoring ProjectExec: ${exec.simpleStringWithNodeId()}")
+      exec
   }
 
-  def convertSortExec(exec: SortExec): SparkPlan = {
-    logInfo(s"Converting SortExec: ${exec.simpleStringWithNodeId()}")
-    exec.sortOrder.foreach(s => logInfo(s"  sortOrder: ${s}"))
-    exec match {
-      case SortExec(sortOrder, global, child, _) => NativeSortExec(sortOrder, global, child)
-      case sortExec => sortExec
-    }
+  private def convertFilterExec(exec: FilterExec): SparkPlan = exec match {
+    case FilterExec(condition, child: NativeSupports) =>
+      logInfo(s"Converting FilterExec: ${exec.simpleStringWithNodeId()}")
+      logInfo(s"  condition: ${exec.condition}")
+      NativeFilterExec(condition, child)
+    case _ =>
+      logInfo(s"Ignoring FilterExec: ${exec.simpleStringWithNodeId()}")
+      exec
+  }
+
+  def convertSortExec(exec: SortExec): SparkPlan = exec match {
+    case SortExec(sortOrder, global, child: NativeSupports, _) =>
+      logInfo(s"Converting SortExec: ${exec.simpleStringWithNodeId()}")
+      exec.sortOrder.foreach(s => logInfo(s"  sortOrder: ${s}"))
+      NativeSortExec(sortOrder, global, child)
+    case _ =>
+      logInfo(s"Ignoring SortExec: ${exec.simpleStringWithNodeId()}")
+      exec
   }
 
   private def convertToUnsafeRow(exec: SparkPlan): SparkPlan = {
