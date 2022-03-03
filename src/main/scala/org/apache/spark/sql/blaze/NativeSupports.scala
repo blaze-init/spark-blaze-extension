@@ -21,6 +21,7 @@ import org.apache.spark.sql.vectorized.ColumnarBatch
 import org.apache.spark.sql.vectorized.ColumnVector
 import org.apache.spark.SparkContext
 import org.apache.spark.internal.Logging
+import org.apache.spark.sql.blaze.execution.ArrowReaderIterator
 import org.blaze.protobuf.PartitionId
 import org.blaze.protobuf.PhysicalPlanNode
 import org.blaze.protobuf.TaskDefinition
@@ -30,6 +31,13 @@ trait NativeSupports {
 }
 
 object NativeSupports extends Logging {
+   @tailrec def isNative(plan: SparkPlan): Boolean = plan match {
+      case _: NativeSupports => true
+      case plan: CustomShuffleReaderExec => isNative(plan.child)
+      case plan: QueryStageExec => isNative(plan.plan)
+      case _ => false
+   }
+
    @tailrec def executeNative(plan: SparkPlan): NativeRDD = plan match {
       case plan: NativeSupports => plan.doExecuteNative()
       case plan: CustomShuffleReaderExec => executeNative(plan.child)
@@ -72,7 +80,16 @@ object NativeSupports extends Logging {
       if (outputBytes == null) {
          return Nil.toIterator
       }
-      toIterator(new ByteArrayInputStream(outputBytes))
+      val arrowBytesInputStream = new ByteArrayInputStream(outputBytes)
+      val allocator = ArrowUtils2.rootAllocator.newChildAllocator("readNativeRDDBatches", 0, Long.MaxValue)
+      val arrowReader = new ArrowStreamReader(arrowBytesInputStream, allocator)
+
+      context.addTaskCompletionListener[Unit] { _ =>
+         arrowReader.close()
+         allocator.close()
+         arrowBytesInputStream.close()
+      }
+      new ArrowReaderIterator(arrowReader)
    }
 
    def getDefaultNativeMetrics(sparkContext: SparkContext): Map[String, SQLMetric] = Map(
@@ -82,45 +99,6 @@ object NativeSupports extends Logging {
       "blazeExecTime" -> SQLMetrics.createNanoTimingMetric(sparkContext, "blaze exec time"),
       "blazeShuffleWriteExecTime" -> SQLMetrics.createNanoTimingMetric(sparkContext, "blaze shuffle write exec time"),
    )
-
-   private def toIterator(inputStream: ByteArrayInputStream): Iterator[InternalRow] = {
-      val allocator = ArrowUtils2.rootAllocator.newChildAllocator("readNativeRDDBatches", 0, Long.MaxValue)
-      val arrowReader = new ArrowStreamReader(inputStream, allocator)
-      val root = arrowReader.getVectorSchemaRoot
-
-      new Iterator[InternalRow] {
-         private var rowIter: Iterator[InternalRow] = null
-
-         override def hasNext: Boolean = {
-            while (rowIter == null || !rowIter.hasNext) {
-               if (!loadNextBatch) {
-                  return false
-               }
-            }
-            true
-         }
-
-         override def next: InternalRow = rowIter.next()
-
-         private def loadNextBatch: Boolean = {
-            if (arrowReader.loadNextBatch()) {
-               val columns = root.getFieldVectors.asScala.map { vector =>
-                  new ArrowColumnVector(vector).asInstanceOf[ColumnVector]
-               }.toArray
-
-               val batch = new ColumnarBatch(columns)
-               batch.setNumRows(root.getRowCount)
-               rowIter = batch.rowIterator().asScala
-               true
-
-            } else {
-               root.close()
-               allocator.close()
-               false
-            }
-         }
-      }
-   }
 }
 
 case class MetricNode(
