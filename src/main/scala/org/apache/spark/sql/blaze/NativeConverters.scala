@@ -98,7 +98,7 @@ object NativeConverters {
 
       // decimal
       case t: DecimalType => arrowTypeBuilder.setDECIMAL(org.blaze.protobuf.Decimal.newBuilder()
-        .setWhole(t.precision - t.scale)
+        .setWhole(t.precision) // precision - scale?
         .setFractional(t.scale)
         .build()
       )

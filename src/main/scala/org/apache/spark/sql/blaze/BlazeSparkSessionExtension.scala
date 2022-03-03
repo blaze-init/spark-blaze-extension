@@ -53,7 +53,7 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
     }
 
     // wrap with ConvertUnsafeRowExec if top exec is native
-    if (sparkPlanTransformed.isInstanceOf[NativeSupports]) {
+    if (NativeSupports.isNative(sparkPlanTransformed)) {
       sparkPlanTransformed = convertToUnsafeRow(sparkPlanTransformed)
     }
 
@@ -66,7 +66,7 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
     logInfo(s"Converting ShuffleExchangeExec: ${exec.simpleStringWithNodeId}")
 
     val childWithWholeStageCodegen = child match {
-      case child: NativeSupports => WholeStageCodegenForBlazeNativeExec(child)
+      case child if NativeSupports.isNative(child) => WholeStageCodegenForBlazeNativeExec(child)
       case child => child
     }
     ArrowShuffleExchangeExec301(outputPartitioning, childWithWholeStageCodegen, noUserSpecifiedNumPartition)
@@ -90,7 +90,7 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
   }
 
   private def convertProjectExec(exec: ProjectExec): SparkPlan = exec match {
-    case ProjectExec(projectList, child: NativeSupports) =>
+    case ProjectExec(projectList, child) if NativeSupports.isNative(child) =>
       logInfo(s"Converting ProjectExec: ${exec.simpleStringWithNodeId()}")
       exec.projectList.foreach(p => logInfo(s"  projectExpr: ${p}"))
       NativeProjectExec(projectList, child)
@@ -100,7 +100,7 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
   }
 
   private def convertFilterExec(exec: FilterExec): SparkPlan = exec match {
-    case FilterExec(condition, child: NativeSupports) =>
+    case FilterExec(condition, child) if NativeSupports.isNative(child) =>
       logInfo(s"Converting FilterExec: ${exec.simpleStringWithNodeId()}")
       logInfo(s"  condition: ${exec.condition}")
       NativeFilterExec(condition, child)
@@ -110,7 +110,7 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
   }
 
   def convertSortExec(exec: SortExec): SparkPlan = exec match {
-    case SortExec(sortOrder, global, child: NativeSupports, _) =>
+    case SortExec(sortOrder, global, child, _) if NativeSupports.isNative(child) =>
       logInfo(s"Converting SortExec: ${exec.simpleStringWithNodeId()}")
       exec.sortOrder.foreach(s => logInfo(s"  sortOrder: ${s}"))
       NativeSortExec(sortOrder, global, child)
@@ -121,7 +121,8 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
 
   private def convertToUnsafeRow(exec: SparkPlan): SparkPlan = {
     exec match {
-      case exec: NativeSupports => ConvertToUnsafeRowExec(WholeStageCodegenForBlazeNativeExec(exec))
+      case exec if NativeSupports.isNative(exec) =>
+        ConvertToUnsafeRowExec(WholeStageCodegenForBlazeNativeExec(exec))
       case exec => exec
     }
   }
@@ -141,7 +142,7 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
 }
 
 case class WholeStageCodegenForBlazeNativeExec(
-  override val child: SparkPlan with NativeSupports
+  override val child: SparkPlan
 ) extends UnaryExecNode with NativeSupports {
 
   override def nodeName: String = "WholeStageCodegen for Blaze Native Execution"

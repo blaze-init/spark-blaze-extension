@@ -55,10 +55,10 @@ object Converters extends Logging {
         var curEnd = f.getOffset + f.getLength
 
         while (curEnd > f.getOffset) {
-          val lenBuf = new Array[Byte](8)
+          val lenBuf = ByteBuffer.allocate(8)
           lengthReader.seek(curEnd - 8)
-          lengthReader.read(lenBuf)
-          val len = ByteBuffer.wrap(lenBuf).order(ByteOrder.LITTLE_ENDIAN).getLong.toInt
+          lengthReader.read(lenBuf.array())
+          val len = lenBuf.order(ByteOrder.LITTLE_ENDIAN).getLong(0).toInt
           val curStart = curEnd - 8 - len
           val fsc = new FileSegmentSeekableByteChannel(file, curStart, len)
           result += fsc
@@ -67,15 +67,14 @@ object Converters extends Logging {
 
       case _: NettyManagedBuffer | _: NioManagedBuffer =>
         val all = data.nioByteBuffer()
-        val lenBuf = ByteBuffer.allocate(8)
         var curEnd = all.limit()
 
         while (curEnd > 0) {
-          lenBuf.position(0)
-          lenBuf.putLong(all.getLong(curEnd - 8))
+          val lenBuf = ByteBuffer.allocate(8)
+          all.position(curEnd - 8)
+          lenBuf.putLong(all.getLong)
           val len = lenBuf.order(ByteOrder.LITTLE_ENDIAN).getLong(0).toInt
           val curStart = curEnd - 8 - len
-
           val sc = new NioSeekableByteChannel(all, curStart, len)
           result += sc
           curEnd = curStart
@@ -89,49 +88,16 @@ object Converters extends Logging {
   /**
    * Read batches from one IPC entity. [IPC-header] [IPC-record-batches] [IPC-footer]
    */
-  def readBatches(
-    channel: SeekableByteChannel,
-    context: TaskContext): Iterator[InternalRow] = {
+  def readBatches(channel: SeekableByteChannel, context: TaskContext): Iterator[InternalRow] = {
+    val allocator = ArrowUtils2.rootAllocator.newChildAllocator("readBatchesFromManagedBuffer", 0, Long.MaxValue)
+    val arrowReader = new ArrowFileReader(channel, allocator)
 
-    val allocator =
-      ArrowUtils2.rootAllocator.newChildAllocator("readBatchesFromManagedBuffer", 0, Long.MaxValue)
-    val arrowReader = new ArrowFileReader(channel, allocator)//, CommonsCompressionFactory.INSTANCE)
-    val root = arrowReader.getVectorSchemaRoot()
-    val first = arrowReader.loadNextBatch()
-
-    new Iterator[InternalRow] {
-      private var rowIter = if (first) nextBatch() else Iterator.empty
-
-      context.addTaskCompletionListener[Unit] { _ =>
-        root.close()
-        allocator.close()
-        arrowReader.close()
-        channel.close()
-      }
-
-      override def hasNext: Boolean = rowIter.hasNext || {
-        if (arrowReader.loadNextBatch()) {
-          rowIter = nextBatch()
-          true
-        } else {
-          root.close()
-          allocator.close()
-          false
-        }
-      }
-
-      override def next(): InternalRow = rowIter.next()
-
-      private def nextBatch(): Iterator[InternalRow] = {
-        val columns = root.getFieldVectors.asScala.map { vector =>
-          new ArrowColumnVector(vector).asInstanceOf[ColumnVector]
-        }.toArray
-
-        val batch = new ColumnarBatch(columns)
-        batch.setNumRows(root.getRowCount)
-        batch.rowIterator().asScala
-      }
+    context.addTaskCompletionListener[Unit] { _ =>
+      arrowReader.close()
+      allocator.close()
+      channel.close()
     }
+    new ArrowReaderIterator(arrowReader)
   }
 
   /**
