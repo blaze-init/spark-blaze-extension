@@ -15,7 +15,7 @@ import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.execution.SparkPlan
-import org.apache.spark.sql.execution.exchange.ShuffleExchangeExec
+import org.apache.spark.sql.execution.exchange.{BroadcastExchangeExec, ShuffleExchangeExec}
 import org.apache.spark.sql.execution.FileSourceScanExec
 import org.apache.spark.sql.execution.SortExec
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
@@ -135,6 +135,9 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
         exec.copy(child = convertToUnsafeRow(exec.child))
       case exec: SortMergeJoinExec =>
         exec.copy(left = convertToUnsafeRow(exec.left), right = convertToUnsafeRow(exec.right))
+      case exec: BroadcastExchangeExec =>
+        logInfo("Meet broadcast join and convert child")
+        exec.copy(child = convertToUnsafeRow(exec.child))
       case otherPlan =>
         otherPlan
     }
