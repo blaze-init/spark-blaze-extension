@@ -22,6 +22,7 @@ import org.apache.spark.sql.vectorized.ColumnVector
 import org.apache.spark.SparkContext
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.blaze.execution.ArrowReaderIterator
+import org.apache.spark.SparkEnv
 import org.blaze.protobuf.PartitionId
 import org.blaze.protobuf.PhysicalPlanNode
 import org.blaze.protobuf.TaskDefinition
@@ -67,8 +68,11 @@ object NativeSupports extends Logging {
       taskDefinitionByteBuffer.put(taskDefinitionBytes)
 
       // note: consider passing a ByteBufferOutputStream to blaze-rs to avoid copying
-
-      logInfo(s"Start executing native plan: ${taskDefinition.toString}")
+      if (SparkEnv.get.conf.getBoolean("spark.kwai.blaze.dumpNativePlanBeforeExecuting", defaultValue = false)) {
+         logInfo(s"Start executing native plan: ${taskDefinition.toString}")
+      } else {
+         logInfo(s"Start executing native plan")
+      }
       var outputBytes: Array[Byte] = null
       JniBridge.callNative(taskDefinitionByteBuffer, metrics, byteBuffer => {
          if (byteBuffer != null) {
