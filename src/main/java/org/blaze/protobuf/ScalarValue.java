@@ -164,6 +164,20 @@ private static final long serialVersionUID = 0L;
             value_ = rawValue;
             break;
           }
+          case 162: {
+            org.blaze.protobuf.ScalarDecimalValue.Builder subBuilder = null;
+            if (valueCase_ == 20) {
+              subBuilder = ((org.blaze.protobuf.ScalarDecimalValue) value_).toBuilder();
+            }
+            value_ =
+                input.readMessage(org.blaze.protobuf.ScalarDecimalValue.parser(), extensionRegistry);
+            if (subBuilder != null) {
+              subBuilder.mergeFrom((org.blaze.protobuf.ScalarDecimalValue) value_);
+              value_ = subBuilder.buildPartial();
+            }
+            valueCase_ = 20;
+            break;
+          }
           default: {
             if (!parseUnknownField(
                 input, unknownFields, extensionRegistry, tag)) {
@@ -220,6 +234,7 @@ private static final long serialVersionUID = 0L;
     LIST_VALUE(17),
     NULL_LIST_VALUE(18),
     NULL_VALUE(19),
+    DECIMAL_VALUE(20),
     VALUE_NOT_SET(0);
     private final int value;
     private ValueCase(int value) {
@@ -256,6 +271,7 @@ private static final long serialVersionUID = 0L;
         case 17: return LIST_VALUE;
         case 18: return NULL_LIST_VALUE;
         case 19: return NULL_VALUE;
+        case 20: return DECIMAL_VALUE;
         case 0: return VALUE_NOT_SET;
         default: return null;
       }
@@ -771,6 +787,37 @@ private static final long serialVersionUID = 0L;
     return org.blaze.protobuf.PrimitiveScalarType.BOOL;
   }
 
+  public static final int DECIMAL_VALUE_FIELD_NUMBER = 20;
+  /**
+   * <code>.plan.protobuf.ScalarDecimalValue decimal_value = 20;</code>
+   * @return Whether the decimalValue field is set.
+   */
+  @java.lang.Override
+  public boolean hasDecimalValue() {
+    return valueCase_ == 20;
+  }
+  /**
+   * <code>.plan.protobuf.ScalarDecimalValue decimal_value = 20;</code>
+   * @return The decimalValue.
+   */
+  @java.lang.Override
+  public org.blaze.protobuf.ScalarDecimalValue getDecimalValue() {
+    if (valueCase_ == 20) {
+       return (org.blaze.protobuf.ScalarDecimalValue) value_;
+    }
+    return org.blaze.protobuf.ScalarDecimalValue.getDefaultInstance();
+  }
+  /**
+   * <code>.plan.protobuf.ScalarDecimalValue decimal_value = 20;</code>
+   */
+  @java.lang.Override
+  public org.blaze.protobuf.ScalarDecimalValueOrBuilder getDecimalValueOrBuilder() {
+    if (valueCase_ == 20) {
+       return (org.blaze.protobuf.ScalarDecimalValue) value_;
+    }
+    return org.blaze.protobuf.ScalarDecimalValue.getDefaultInstance();
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -855,6 +902,9 @@ private static final long serialVersionUID = 0L;
     }
     if (valueCase_ == 19) {
       output.writeEnum(19, ((java.lang.Integer) value_));
+    }
+    if (valueCase_ == 20) {
+      output.writeMessage(20, (org.blaze.protobuf.ScalarDecimalValue) value_);
     }
     unknownFields.writeTo(output);
   }
@@ -953,6 +1003,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeEnumSize(19, ((java.lang.Integer) value_));
     }
+    if (valueCase_ == 20) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(20, (org.blaze.protobuf.ScalarDecimalValue) value_);
+    }
     size += unknownFields.getSerializedSize();
     memoizedSize = size;
     return size;
@@ -1047,6 +1101,10 @@ private static final long serialVersionUID = 0L;
       case 19:
         if (getNullValueValue()
             != other.getNullValueValue()) return false;
+        break;
+      case 20:
+        if (!getDecimalValue()
+            .equals(other.getDecimalValue())) return false;
         break;
       case 0:
       default:
@@ -1145,6 +1203,10 @@ private static final long serialVersionUID = 0L;
       case 19:
         hash = (37 * hash) + NULL_VALUE_FIELD_NUMBER;
         hash = (53 * hash) + getNullValueValue();
+        break;
+      case 20:
+        hash = (37 * hash) + DECIMAL_VALUE_FIELD_NUMBER;
+        hash = (53 * hash) + getDecimalValue().hashCode();
         break;
       case 0:
       default:
@@ -1375,6 +1437,13 @@ private static final long serialVersionUID = 0L;
       if (valueCase_ == 19) {
         result.value_ = value_;
       }
+      if (valueCase_ == 20) {
+        if (decimalValueBuilder_ == null) {
+          result.value_ = value_;
+        } else {
+          result.value_ = decimalValueBuilder_.build();
+        }
+      }
       result.valueCase_ = valueCase_;
       onBuilt();
       return result;
@@ -1503,6 +1572,10 @@ private static final long serialVersionUID = 0L;
         }
         case NULL_VALUE: {
           setNullValueValue(other.getNullValueValue());
+          break;
+        }
+        case DECIMAL_VALUE: {
+          mergeDecimalValue(other.getDecimalValue());
           break;
         }
         case VALUE_NOT_SET: {
@@ -2688,6 +2761,147 @@ private static final long serialVersionUID = 0L;
         onChanged();
       }
       return this;
+    }
+
+    private com.google.protobuf.SingleFieldBuilderV3<
+        org.blaze.protobuf.ScalarDecimalValue, org.blaze.protobuf.ScalarDecimalValue.Builder, org.blaze.protobuf.ScalarDecimalValueOrBuilder> decimalValueBuilder_;
+    /**
+     * <code>.plan.protobuf.ScalarDecimalValue decimal_value = 20;</code>
+     * @return Whether the decimalValue field is set.
+     */
+    @java.lang.Override
+    public boolean hasDecimalValue() {
+      return valueCase_ == 20;
+    }
+    /**
+     * <code>.plan.protobuf.ScalarDecimalValue decimal_value = 20;</code>
+     * @return The decimalValue.
+     */
+    @java.lang.Override
+    public org.blaze.protobuf.ScalarDecimalValue getDecimalValue() {
+      if (decimalValueBuilder_ == null) {
+        if (valueCase_ == 20) {
+          return (org.blaze.protobuf.ScalarDecimalValue) value_;
+        }
+        return org.blaze.protobuf.ScalarDecimalValue.getDefaultInstance();
+      } else {
+        if (valueCase_ == 20) {
+          return decimalValueBuilder_.getMessage();
+        }
+        return org.blaze.protobuf.ScalarDecimalValue.getDefaultInstance();
+      }
+    }
+    /**
+     * <code>.plan.protobuf.ScalarDecimalValue decimal_value = 20;</code>
+     */
+    public Builder setDecimalValue(org.blaze.protobuf.ScalarDecimalValue value) {
+      if (decimalValueBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        value_ = value;
+        onChanged();
+      } else {
+        decimalValueBuilder_.setMessage(value);
+      }
+      valueCase_ = 20;
+      return this;
+    }
+    /**
+     * <code>.plan.protobuf.ScalarDecimalValue decimal_value = 20;</code>
+     */
+    public Builder setDecimalValue(
+        org.blaze.protobuf.ScalarDecimalValue.Builder builderForValue) {
+      if (decimalValueBuilder_ == null) {
+        value_ = builderForValue.build();
+        onChanged();
+      } else {
+        decimalValueBuilder_.setMessage(builderForValue.build());
+      }
+      valueCase_ = 20;
+      return this;
+    }
+    /**
+     * <code>.plan.protobuf.ScalarDecimalValue decimal_value = 20;</code>
+     */
+    public Builder mergeDecimalValue(org.blaze.protobuf.ScalarDecimalValue value) {
+      if (decimalValueBuilder_ == null) {
+        if (valueCase_ == 20 &&
+            value_ != org.blaze.protobuf.ScalarDecimalValue.getDefaultInstance()) {
+          value_ = org.blaze.protobuf.ScalarDecimalValue.newBuilder((org.blaze.protobuf.ScalarDecimalValue) value_)
+              .mergeFrom(value).buildPartial();
+        } else {
+          value_ = value;
+        }
+        onChanged();
+      } else {
+        if (valueCase_ == 20) {
+          decimalValueBuilder_.mergeFrom(value);
+        }
+        decimalValueBuilder_.setMessage(value);
+      }
+      valueCase_ = 20;
+      return this;
+    }
+    /**
+     * <code>.plan.protobuf.ScalarDecimalValue decimal_value = 20;</code>
+     */
+    public Builder clearDecimalValue() {
+      if (decimalValueBuilder_ == null) {
+        if (valueCase_ == 20) {
+          valueCase_ = 0;
+          value_ = null;
+          onChanged();
+        }
+      } else {
+        if (valueCase_ == 20) {
+          valueCase_ = 0;
+          value_ = null;
+        }
+        decimalValueBuilder_.clear();
+      }
+      return this;
+    }
+    /**
+     * <code>.plan.protobuf.ScalarDecimalValue decimal_value = 20;</code>
+     */
+    public org.blaze.protobuf.ScalarDecimalValue.Builder getDecimalValueBuilder() {
+      return getDecimalValueFieldBuilder().getBuilder();
+    }
+    /**
+     * <code>.plan.protobuf.ScalarDecimalValue decimal_value = 20;</code>
+     */
+    @java.lang.Override
+    public org.blaze.protobuf.ScalarDecimalValueOrBuilder getDecimalValueOrBuilder() {
+      if ((valueCase_ == 20) && (decimalValueBuilder_ != null)) {
+        return decimalValueBuilder_.getMessageOrBuilder();
+      } else {
+        if (valueCase_ == 20) {
+          return (org.blaze.protobuf.ScalarDecimalValue) value_;
+        }
+        return org.blaze.protobuf.ScalarDecimalValue.getDefaultInstance();
+      }
+    }
+    /**
+     * <code>.plan.protobuf.ScalarDecimalValue decimal_value = 20;</code>
+     */
+    private com.google.protobuf.SingleFieldBuilderV3<
+        org.blaze.protobuf.ScalarDecimalValue, org.blaze.protobuf.ScalarDecimalValue.Builder, org.blaze.protobuf.ScalarDecimalValueOrBuilder> 
+        getDecimalValueFieldBuilder() {
+      if (decimalValueBuilder_ == null) {
+        if (!(valueCase_ == 20)) {
+          value_ = org.blaze.protobuf.ScalarDecimalValue.getDefaultInstance();
+        }
+        decimalValueBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
+            org.blaze.protobuf.ScalarDecimalValue, org.blaze.protobuf.ScalarDecimalValue.Builder, org.blaze.protobuf.ScalarDecimalValueOrBuilder>(
+                (org.blaze.protobuf.ScalarDecimalValue) value_,
+                getParentForChildren(),
+                isClean());
+        value_ = null;
+      }
+      valueCase_ = 20;
+      onChanged();;
+      return decimalValueBuilder_;
     }
     @java.lang.Override
     public final Builder setUnknownFields(
