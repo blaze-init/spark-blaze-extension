@@ -335,6 +335,11 @@ public final class BlazeProto {
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
       internal_static_plan_protobuf_ScalarListValue_fieldAccessorTable;
   static final com.google.protobuf.Descriptors.Descriptor
+    internal_static_plan_protobuf_ScalarDecimalValue_descriptor;
+  static final 
+    com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
+      internal_static_plan_protobuf_ScalarDecimalValue_fieldAccessorTable;
+  static final com.google.protobuf.Descriptors.Descriptor
     internal_static_plan_protobuf_ScalarValue_descriptor;
   static final 
     com.google.protobuf.GeneratedMessageV3.FieldAccessorTable
@@ -593,105 +598,109 @@ public final class BlazeProto {
       ",\n\nunion_mode\030\002 \001(\0162\030.plan.protobuf.Unio" +
       "nMode\"j\n\017ScalarListValue\022+\n\010datatype\030\001 \001" +
       "(\0132\031.plan.protobuf.ScalarType\022*\n\006values\030" +
-      "\002 \003(\0132\032.plan.protobuf.ScalarValue\"\314\004\n\013Sc" +
-      "alarValue\022\024\n\nbool_value\030\001 \001(\010H\000\022\024\n\nutf8_" +
-      "value\030\002 \001(\tH\000\022\032\n\020large_utf8_value\030\003 \001(\tH" +
-      "\000\022\024\n\nint8_value\030\004 \001(\005H\000\022\025\n\013int16_value\030\005" +
-      " \001(\005H\000\022\025\n\013int32_value\030\006 \001(\005H\000\022\025\n\013int64_v" +
-      "alue\030\007 \001(\003H\000\022\025\n\013uint8_value\030\010 \001(\rH\000\022\026\n\014u" +
-      "int16_value\030\t \001(\rH\000\022\026\n\014uint32_value\030\n \001(" +
-      "\rH\000\022\026\n\014uint64_value\030\013 \001(\004H\000\022\027\n\rfloat32_v" +
-      "alue\030\014 \001(\002H\000\022\027\n\rfloat64_value\030\r \001(\001H\000\022\027\n" +
-      "\rdate_32_value\030\016 \001(\005H\000\022 \n\026time_microseco" +
-      "nd_value\030\017 \001(\003H\000\022\037\n\025time_nanosecond_valu" +
-      "e\030\020 \001(\003H\000\0224\n\nlist_value\030\021 \001(\0132\036.plan.pro" +
-      "tobuf.ScalarListValueH\000\0224\n\017null_list_val" +
-      "ue\030\022 \001(\0132\031.plan.protobuf.ScalarTypeH\000\0228\n" +
-      "\nnull_value\030\023 \001(\0162\".plan.protobuf.Primit" +
-      "iveScalarTypeH\000B\007\n\005value\"}\n\nScalarType\0224" +
-      "\n\006scalar\030\001 \001(\0162\".plan.protobuf.Primitive" +
-      "ScalarTypeH\000\022-\n\004list\030\002 \001(\0132\035.plan.protob" +
-      "uf.ScalarListTypeH\000B\n\n\010datatype\"_\n\016Scala" +
-      "rListType\022\023\n\013field_names\030\003 \003(\t\0228\n\014deepes" +
-      "t_type\030\002 \001(\0162\".plan.protobuf.PrimitiveSc" +
-      "alarType\"\321\013\n\tArrowType\022+\n\004NONE\030\001 \001(\0132\033.p" +
-      "lan.protobuf.EmptyMessageH\000\022+\n\004BOOL\030\002 \001(" +
-      "\0132\033.plan.protobuf.EmptyMessageH\000\022,\n\005UINT" +
-      "8\030\003 \001(\0132\033.plan.protobuf.EmptyMessageH\000\022+" +
-      "\n\004INT8\030\004 \001(\0132\033.plan.protobuf.EmptyMessag" +
-      "eH\000\022-\n\006UINT16\030\005 \001(\0132\033.plan.protobuf.Empt" +
-      "yMessageH\000\022,\n\005INT16\030\006 \001(\0132\033.plan.protobu" +
-      "f.EmptyMessageH\000\022-\n\006UINT32\030\007 \001(\0132\033.plan." +
-      "protobuf.EmptyMessageH\000\022,\n\005INT32\030\010 \001(\0132\033" +
-      ".plan.protobuf.EmptyMessageH\000\022-\n\006UINT64\030" +
-      "\t \001(\0132\033.plan.protobuf.EmptyMessageH\000\022,\n\005" +
-      "INT64\030\n \001(\0132\033.plan.protobuf.EmptyMessage" +
-      "H\000\022.\n\007FLOAT16\030\013 \001(\0132\033.plan.protobuf.Empt" +
-      "yMessageH\000\022.\n\007FLOAT32\030\014 \001(\0132\033.plan.proto" +
-      "buf.EmptyMessageH\000\022.\n\007FLOAT64\030\r \001(\0132\033.pl" +
-      "an.protobuf.EmptyMessageH\000\022+\n\004UTF8\030\016 \001(\013" +
-      "2\033.plan.protobuf.EmptyMessageH\000\0221\n\nLARGE" +
-      "_UTF8\030  \001(\0132\033.plan.protobuf.EmptyMessage" +
-      "H\000\022-\n\006BINARY\030\017 \001(\0132\033.plan.protobuf.Empty" +
-      "MessageH\000\022\033\n\021FIXED_SIZE_BINARY\030\020 \001(\005H\000\0223" +
-      "\n\014LARGE_BINARY\030\037 \001(\0132\033.plan.protobuf.Emp" +
-      "tyMessageH\000\022-\n\006DATE32\030\021 \001(\0132\033.plan.proto" +
-      "buf.EmptyMessageH\000\022-\n\006DATE64\030\022 \001(\0132\033.pla" +
-      "n.protobuf.EmptyMessageH\000\022+\n\010DURATION\030\023 " +
-      "\001(\0162\027.plan.protobuf.TimeUnitH\000\022-\n\tTIMEST" +
-      "AMP\030\024 \001(\0132\030.plan.protobuf.TimestampH\000\022)\n" +
-      "\006TIME32\030\025 \001(\0162\027.plan.protobuf.TimeUnitH\000" +
-      "\022)\n\006TIME64\030\026 \001(\0162\027.plan.protobuf.TimeUni" +
-      "tH\000\022/\n\010INTERVAL\030\027 \001(\0162\033.plan.protobuf.In" +
-      "tervalUnitH\000\022)\n\007DECIMAL\030\030 \001(\0132\026.plan.pro" +
-      "tobuf.DecimalH\000\022#\n\004LIST\030\031 \001(\0132\023.plan.pro" +
-      "tobuf.ListH\000\022)\n\nLARGE_LIST\030\032 \001(\0132\023.plan." +
-      "protobuf.ListH\000\0227\n\017FIXED_SIZE_LIST\030\033 \001(\013" +
-      "2\034.plan.protobuf.FixedSizeListH\000\022\'\n\006STRU" +
-      "CT\030\034 \001(\0132\025.plan.protobuf.StructH\000\022%\n\005UNI" +
-      "ON\030\035 \001(\0132\024.plan.protobuf.UnionH\000\022/\n\nDICT" +
-      "IONARY\030\036 \001(\0132\031.plan.protobuf.DictionaryH" +
-      "\000B\021\n\017arrow_type_enum\"\016\n\014EmptyMessage*#\n\016" +
-      "JoinConstraint\022\006\n\002ON\020\000\022\t\n\005USING\020\001*\327\001\n\021Ag" +
-      "gregateFunction\022\007\n\003MIN\020\000\022\007\n\003MAX\020\001\022\007\n\003SUM" +
-      "\020\002\022\007\n\003AVG\020\003\022\t\n\005COUNT\020\004\022\023\n\017APPROX_DISTINC" +
-      "T\020\005\022\r\n\tARRAY_AGG\020\006\022\014\n\010VARIANCE\020\007\022\020\n\014VARI" +
-      "ANCE_POP\020\010\022\016\n\nCOVARIANCE\020\t\022\022\n\016COVARIANCE" +
-      "_POP\020\n\022\n\n\006STDDEV\020\013\022\016\n\nSTDDEV_POP\020\014\022\017\n\013CO" +
-      "RRELATION\020\r*\260\001\n\025BuiltInWindowFunction\022\016\n" +
-      "\nROW_NUMBER\020\000\022\010\n\004RANK\020\001\022\016\n\nDENSE_RANK\020\002\022" +
-      "\020\n\014PERCENT_RANK\020\003\022\r\n\tCUME_DIST\020\004\022\t\n\005NTIL" +
-      "E\020\005\022\007\n\003LAG\020\006\022\010\n\004LEAD\020\007\022\017\n\013FIRST_VALUE\020\010\022" +
-      "\016\n\nLAST_VALUE\020\t\022\r\n\tNTH_VALUE\020\n*\310\003\n\016Scala" +
-      "rFunction\022\010\n\004SQRT\020\000\022\007\n\003SIN\020\001\022\007\n\003COS\020\002\022\007\n" +
-      "\003TAN\020\003\022\010\n\004ASIN\020\004\022\010\n\004ACOS\020\005\022\010\n\004ATAN\020\006\022\007\n\003" +
-      "EXP\020\007\022\007\n\003LOG\020\010\022\010\n\004LOG2\020\t\022\t\n\005LOG10\020\n\022\t\n\005F" +
-      "LOOR\020\013\022\010\n\004CEIL\020\014\022\t\n\005ROUND\020\r\022\t\n\005TRUNC\020\016\022\007" +
-      "\n\003ABS\020\017\022\n\n\006SIGNUM\020\020\022\017\n\013OCTETLENGTH\020\021\022\n\n\006" +
-      "CONCAT\020\022\022\t\n\005LOWER\020\023\022\t\n\005UPPER\020\024\022\010\n\004TRIM\020\025" +
-      "\022\t\n\005LTRIM\020\026\022\t\n\005RTRIM\020\027\022\017\n\013TOTIMESTAMP\020\030\022" +
-      "\t\n\005ARRAY\020\031\022\n\n\006NULLIF\020\032\022\014\n\010DATEPART\020\033\022\r\n\t" +
-      "DATETRUNC\020\034\022\007\n\003MD5\020\035\022\n\n\006SHA224\020\036\022\n\n\006SHA2" +
-      "56\020\037\022\n\n\006SHA384\020 \022\n\n\006SHA512\020!\022\006\n\002LN\020\"\022\025\n\021" +
-      "TOTIMESTAMPMILLIS\020#\022\n\n\006DIGEST\020$\022\020\n\013START" +
-      "S_WITH\020\351\007*2\n\rPartitionMode\022\020\n\014COLLECT_LE" +
-      "FT\020\000\022\017\n\013PARTITIONED\020\001*H\n\010JoinType\022\t\n\005INN" +
-      "ER\020\000\022\010\n\004LEFT\020\001\022\t\n\005RIGHT\020\002\022\010\n\004FULL\020\003\022\010\n\004S" +
-      "EMI\020\004\022\010\n\004ANTI\020\005*>\n\rAggregateMode\022\013\n\007PART" +
-      "IAL\020\000\022\t\n\005FINAL\020\001\022\025\n\021FINAL_PARTITIONED\020\002*" +
-      "(\n\010DateUnit\022\007\n\003Day\020\000\022\023\n\017DateMillisecond\020" +
-      "\001*L\n\010TimeUnit\022\n\n\006Second\020\000\022\023\n\017TimeMillise" +
-      "cond\020\001\022\017\n\013Microsecond\020\002\022\016\n\nNanosecond\020\003*" +
-      "<\n\014IntervalUnit\022\r\n\tYearMonth\020\000\022\013\n\007DayTim" +
-      "e\020\001\022\020\n\014MonthDayNano\020\002*\"\n\tUnionMode\022\n\n\006sp" +
-      "arse\020\000\022\t\n\005dense\020\001*\356\001\n\023PrimitiveScalarTyp" +
-      "e\022\010\n\004BOOL\020\000\022\t\n\005UINT8\020\001\022\010\n\004INT8\020\002\022\n\n\006UINT" +
-      "16\020\003\022\t\n\005INT16\020\004\022\n\n\006UINT32\020\005\022\t\n\005INT32\020\006\022\n" +
-      "\n\006UINT64\020\007\022\t\n\005INT64\020\010\022\013\n\007FLOAT32\020\t\022\013\n\007FL" +
-      "OAT64\020\n\022\010\n\004UTF8\020\013\022\016\n\nLARGE_UTF8\020\014\022\n\n\006DAT" +
-      "E32\020\r\022\024\n\020TIME_MICROSECOND\020\016\022\023\n\017TIME_NANO" +
-      "SECOND\020\017\022\010\n\004NULL\020\020B\"\n\022org.blaze.protobuf" +
-      "B\nBlazeProtoP\001b\006proto3"
+      "\002 \003(\0132\032.plan.protobuf.ScalarValue\"Q\n\022Sca" +
+      "larDecimalValue\022\'\n\007decimal\030\001 \001(\0132\026.plan." +
+      "protobuf.Decimal\022\022\n\nlong_value\030\002 \001(\003\"\210\005\n" +
+      "\013ScalarValue\022\024\n\nbool_value\030\001 \001(\010H\000\022\024\n\nut" +
+      "f8_value\030\002 \001(\tH\000\022\032\n\020large_utf8_value\030\003 \001" +
+      "(\tH\000\022\024\n\nint8_value\030\004 \001(\005H\000\022\025\n\013int16_valu" +
+      "e\030\005 \001(\005H\000\022\025\n\013int32_value\030\006 \001(\005H\000\022\025\n\013int6" +
+      "4_value\030\007 \001(\003H\000\022\025\n\013uint8_value\030\010 \001(\rH\000\022\026" +
+      "\n\014uint16_value\030\t \001(\rH\000\022\026\n\014uint32_value\030\n" +
+      " \001(\rH\000\022\026\n\014uint64_value\030\013 \001(\004H\000\022\027\n\rfloat3" +
+      "2_value\030\014 \001(\002H\000\022\027\n\rfloat64_value\030\r \001(\001H\000" +
+      "\022\027\n\rdate_32_value\030\016 \001(\005H\000\022 \n\026time_micros" +
+      "econd_value\030\017 \001(\003H\000\022\037\n\025time_nanosecond_v" +
+      "alue\030\020 \001(\003H\000\0224\n\nlist_value\030\021 \001(\0132\036.plan." +
+      "protobuf.ScalarListValueH\000\0224\n\017null_list_" +
+      "value\030\022 \001(\0132\031.plan.protobuf.ScalarTypeH\000" +
+      "\0228\n\nnull_value\030\023 \001(\0162\".plan.protobuf.Pri" +
+      "mitiveScalarTypeH\000\022:\n\rdecimal_value\030\024 \001(" +
+      "\0132!.plan.protobuf.ScalarDecimalValueH\000B\007" +
+      "\n\005value\"}\n\nScalarType\0224\n\006scalar\030\001 \001(\0162\"." +
+      "plan.protobuf.PrimitiveScalarTypeH\000\022-\n\004l" +
+      "ist\030\002 \001(\0132\035.plan.protobuf.ScalarListType" +
+      "H\000B\n\n\010datatype\"_\n\016ScalarListType\022\023\n\013fiel" +
+      "d_names\030\003 \003(\t\0228\n\014deepest_type\030\002 \001(\0162\".pl" +
+      "an.protobuf.PrimitiveScalarType\"\321\013\n\tArro" +
+      "wType\022+\n\004NONE\030\001 \001(\0132\033.plan.protobuf.Empt" +
+      "yMessageH\000\022+\n\004BOOL\030\002 \001(\0132\033.plan.protobuf" +
+      ".EmptyMessageH\000\022,\n\005UINT8\030\003 \001(\0132\033.plan.pr" +
+      "otobuf.EmptyMessageH\000\022+\n\004INT8\030\004 \001(\0132\033.pl" +
+      "an.protobuf.EmptyMessageH\000\022-\n\006UINT16\030\005 \001" +
+      "(\0132\033.plan.protobuf.EmptyMessageH\000\022,\n\005INT" +
+      "16\030\006 \001(\0132\033.plan.protobuf.EmptyMessageH\000\022" +
+      "-\n\006UINT32\030\007 \001(\0132\033.plan.protobuf.EmptyMes" +
+      "sageH\000\022,\n\005INT32\030\010 \001(\0132\033.plan.protobuf.Em" +
+      "ptyMessageH\000\022-\n\006UINT64\030\t \001(\0132\033.plan.prot" +
+      "obuf.EmptyMessageH\000\022,\n\005INT64\030\n \001(\0132\033.pla" +
+      "n.protobuf.EmptyMessageH\000\022.\n\007FLOAT16\030\013 \001" +
+      "(\0132\033.plan.protobuf.EmptyMessageH\000\022.\n\007FLO" +
+      "AT32\030\014 \001(\0132\033.plan.protobuf.EmptyMessageH" +
+      "\000\022.\n\007FLOAT64\030\r \001(\0132\033.plan.protobuf.Empty" +
+      "MessageH\000\022+\n\004UTF8\030\016 \001(\0132\033.plan.protobuf." +
+      "EmptyMessageH\000\0221\n\nLARGE_UTF8\030  \001(\0132\033.pla" +
+      "n.protobuf.EmptyMessageH\000\022-\n\006BINARY\030\017 \001(" +
+      "\0132\033.plan.protobuf.EmptyMessageH\000\022\033\n\021FIXE" +
+      "D_SIZE_BINARY\030\020 \001(\005H\000\0223\n\014LARGE_BINARY\030\037 " +
+      "\001(\0132\033.plan.protobuf.EmptyMessageH\000\022-\n\006DA" +
+      "TE32\030\021 \001(\0132\033.plan.protobuf.EmptyMessageH" +
+      "\000\022-\n\006DATE64\030\022 \001(\0132\033.plan.protobuf.EmptyM" +
+      "essageH\000\022+\n\010DURATION\030\023 \001(\0162\027.plan.protob" +
+      "uf.TimeUnitH\000\022-\n\tTIMESTAMP\030\024 \001(\0132\030.plan." +
+      "protobuf.TimestampH\000\022)\n\006TIME32\030\025 \001(\0162\027.p" +
+      "lan.protobuf.TimeUnitH\000\022)\n\006TIME64\030\026 \001(\0162" +
+      "\027.plan.protobuf.TimeUnitH\000\022/\n\010INTERVAL\030\027" +
+      " \001(\0162\033.plan.protobuf.IntervalUnitH\000\022)\n\007D" +
+      "ECIMAL\030\030 \001(\0132\026.plan.protobuf.DecimalH\000\022#" +
+      "\n\004LIST\030\031 \001(\0132\023.plan.protobuf.ListH\000\022)\n\nL" +
+      "ARGE_LIST\030\032 \001(\0132\023.plan.protobuf.ListH\000\0227" +
+      "\n\017FIXED_SIZE_LIST\030\033 \001(\0132\034.plan.protobuf." +
+      "FixedSizeListH\000\022\'\n\006STRUCT\030\034 \001(\0132\025.plan.p" +
+      "rotobuf.StructH\000\022%\n\005UNION\030\035 \001(\0132\024.plan.p" +
+      "rotobuf.UnionH\000\022/\n\nDICTIONARY\030\036 \001(\0132\031.pl" +
+      "an.protobuf.DictionaryH\000B\021\n\017arrow_type_e" +
+      "num\"\016\n\014EmptyMessage*#\n\016JoinConstraint\022\006\n" +
+      "\002ON\020\000\022\t\n\005USING\020\001*\327\001\n\021AggregateFunction\022\007" +
+      "\n\003MIN\020\000\022\007\n\003MAX\020\001\022\007\n\003SUM\020\002\022\007\n\003AVG\020\003\022\t\n\005CO" +
+      "UNT\020\004\022\023\n\017APPROX_DISTINCT\020\005\022\r\n\tARRAY_AGG\020" +
+      "\006\022\014\n\010VARIANCE\020\007\022\020\n\014VARIANCE_POP\020\010\022\016\n\nCOV" +
+      "ARIANCE\020\t\022\022\n\016COVARIANCE_POP\020\n\022\n\n\006STDDEV\020" +
+      "\013\022\016\n\nSTDDEV_POP\020\014\022\017\n\013CORRELATION\020\r*\260\001\n\025B" +
+      "uiltInWindowFunction\022\016\n\nROW_NUMBER\020\000\022\010\n\004" +
+      "RANK\020\001\022\016\n\nDENSE_RANK\020\002\022\020\n\014PERCENT_RANK\020\003" +
+      "\022\r\n\tCUME_DIST\020\004\022\t\n\005NTILE\020\005\022\007\n\003LAG\020\006\022\010\n\004L" +
+      "EAD\020\007\022\017\n\013FIRST_VALUE\020\010\022\016\n\nLAST_VALUE\020\t\022\r" +
+      "\n\tNTH_VALUE\020\n*\310\003\n\016ScalarFunction\022\010\n\004SQRT" +
+      "\020\000\022\007\n\003SIN\020\001\022\007\n\003COS\020\002\022\007\n\003TAN\020\003\022\010\n\004ASIN\020\004\022" +
+      "\010\n\004ACOS\020\005\022\010\n\004ATAN\020\006\022\007\n\003EXP\020\007\022\007\n\003LOG\020\010\022\010\n" +
+      "\004LOG2\020\t\022\t\n\005LOG10\020\n\022\t\n\005FLOOR\020\013\022\010\n\004CEIL\020\014\022" +
+      "\t\n\005ROUND\020\r\022\t\n\005TRUNC\020\016\022\007\n\003ABS\020\017\022\n\n\006SIGNUM" +
+      "\020\020\022\017\n\013OCTETLENGTH\020\021\022\n\n\006CONCAT\020\022\022\t\n\005LOWER" +
+      "\020\023\022\t\n\005UPPER\020\024\022\010\n\004TRIM\020\025\022\t\n\005LTRIM\020\026\022\t\n\005RT" +
+      "RIM\020\027\022\017\n\013TOTIMESTAMP\020\030\022\t\n\005ARRAY\020\031\022\n\n\006NUL" +
+      "LIF\020\032\022\014\n\010DATEPART\020\033\022\r\n\tDATETRUNC\020\034\022\007\n\003MD" +
+      "5\020\035\022\n\n\006SHA224\020\036\022\n\n\006SHA256\020\037\022\n\n\006SHA384\020 \022" +
+      "\n\n\006SHA512\020!\022\006\n\002LN\020\"\022\025\n\021TOTIMESTAMPMILLIS" +
+      "\020#\022\n\n\006DIGEST\020$\022\020\n\013STARTS_WITH\020\351\007*2\n\rPart" +
+      "itionMode\022\020\n\014COLLECT_LEFT\020\000\022\017\n\013PARTITION" +
+      "ED\020\001*H\n\010JoinType\022\t\n\005INNER\020\000\022\010\n\004LEFT\020\001\022\t\n" +
+      "\005RIGHT\020\002\022\010\n\004FULL\020\003\022\010\n\004SEMI\020\004\022\010\n\004ANTI\020\005*>" +
+      "\n\rAggregateMode\022\013\n\007PARTIAL\020\000\022\t\n\005FINAL\020\001\022" +
+      "\025\n\021FINAL_PARTITIONED\020\002*(\n\010DateUnit\022\007\n\003Da" +
+      "y\020\000\022\023\n\017DateMillisecond\020\001*L\n\010TimeUnit\022\n\n\006" +
+      "Second\020\000\022\023\n\017TimeMillisecond\020\001\022\017\n\013Microse" +
+      "cond\020\002\022\016\n\nNanosecond\020\003*<\n\014IntervalUnit\022\r" +
+      "\n\tYearMonth\020\000\022\013\n\007DayTime\020\001\022\020\n\014MonthDayNa" +
+      "no\020\002*\"\n\tUnionMode\022\n\n\006sparse\020\000\022\t\n\005dense\020\001" +
+      "*\356\001\n\023PrimitiveScalarType\022\010\n\004BOOL\020\000\022\t\n\005UI" +
+      "NT8\020\001\022\010\n\004INT8\020\002\022\n\n\006UINT16\020\003\022\t\n\005INT16\020\004\022\n" +
+      "\n\006UINT32\020\005\022\t\n\005INT32\020\006\022\n\n\006UINT64\020\007\022\t\n\005INT" +
+      "64\020\010\022\013\n\007FLOAT32\020\t\022\013\n\007FLOAT64\020\n\022\010\n\004UTF8\020\013" +
+      "\022\016\n\nLARGE_UTF8\020\014\022\n\n\006DATE32\020\r\022\024\n\020TIME_MIC" +
+      "ROSECOND\020\016\022\023\n\017TIME_NANOSECOND\020\017\022\010\n\004NULL\020" +
+      "\020B\"\n\022org.blaze.protobufB\nBlazeProtoP\001b\006p" +
+      "roto3"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -1081,32 +1090,38 @@ public final class BlazeProto {
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_plan_protobuf_ScalarListValue_descriptor,
         new java.lang.String[] { "Datatype", "Values", });
-    internal_static_plan_protobuf_ScalarValue_descriptor =
+    internal_static_plan_protobuf_ScalarDecimalValue_descriptor =
       getDescriptor().getMessageTypes().get(64);
+    internal_static_plan_protobuf_ScalarDecimalValue_fieldAccessorTable = new
+      com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
+        internal_static_plan_protobuf_ScalarDecimalValue_descriptor,
+        new java.lang.String[] { "Decimal", "LongValue", });
+    internal_static_plan_protobuf_ScalarValue_descriptor =
+      getDescriptor().getMessageTypes().get(65);
     internal_static_plan_protobuf_ScalarValue_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_plan_protobuf_ScalarValue_descriptor,
-        new java.lang.String[] { "BoolValue", "Utf8Value", "LargeUtf8Value", "Int8Value", "Int16Value", "Int32Value", "Int64Value", "Uint8Value", "Uint16Value", "Uint32Value", "Uint64Value", "Float32Value", "Float64Value", "Date32Value", "TimeMicrosecondValue", "TimeNanosecondValue", "ListValue", "NullListValue", "NullValue", "Value", });
+        new java.lang.String[] { "BoolValue", "Utf8Value", "LargeUtf8Value", "Int8Value", "Int16Value", "Int32Value", "Int64Value", "Uint8Value", "Uint16Value", "Uint32Value", "Uint64Value", "Float32Value", "Float64Value", "Date32Value", "TimeMicrosecondValue", "TimeNanosecondValue", "ListValue", "NullListValue", "NullValue", "DecimalValue", "Value", });
     internal_static_plan_protobuf_ScalarType_descriptor =
-      getDescriptor().getMessageTypes().get(65);
+      getDescriptor().getMessageTypes().get(66);
     internal_static_plan_protobuf_ScalarType_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_plan_protobuf_ScalarType_descriptor,
         new java.lang.String[] { "Scalar", "List", "Datatype", });
     internal_static_plan_protobuf_ScalarListType_descriptor =
-      getDescriptor().getMessageTypes().get(66);
+      getDescriptor().getMessageTypes().get(67);
     internal_static_plan_protobuf_ScalarListType_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_plan_protobuf_ScalarListType_descriptor,
         new java.lang.String[] { "FieldNames", "DeepestType", });
     internal_static_plan_protobuf_ArrowType_descriptor =
-      getDescriptor().getMessageTypes().get(67);
+      getDescriptor().getMessageTypes().get(68);
     internal_static_plan_protobuf_ArrowType_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_plan_protobuf_ArrowType_descriptor,
         new java.lang.String[] { "NONE", "BOOL", "UINT8", "INT8", "UINT16", "INT16", "UINT32", "INT32", "UINT64", "INT64", "FLOAT16", "FLOAT32", "FLOAT64", "UTF8", "LARGEUTF8", "BINARY", "FIXEDSIZEBINARY", "LARGEBINARY", "DATE32", "DATE64", "DURATION", "TIMESTAMP", "TIME32", "TIME64", "INTERVAL", "DECIMAL", "LIST", "LARGELIST", "FIXEDSIZELIST", "STRUCT", "UNION", "DICTIONARY", "ArrowTypeEnum", });
     internal_static_plan_protobuf_EmptyMessage_descriptor =
-      getDescriptor().getMessageTypes().get(68);
+      getDescriptor().getMessageTypes().get(69);
     internal_static_plan_protobuf_EmptyMessage_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_plan_protobuf_EmptyMessage_descriptor,

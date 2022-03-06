@@ -55,6 +55,7 @@ import org.apache.spark.sql.types.BooleanType
 import org.apache.spark.sql.types.ByteType
 import org.apache.spark.sql.types.DataType
 import org.apache.spark.sql.types.DateType
+import org.apache.spark.sql.types.Decimal
 import org.apache.spark.sql.types.DecimalType
 import org.apache.spark.sql.types.DoubleType
 import org.apache.spark.sql.types.FloatType
@@ -75,6 +76,7 @@ import org.blaze.protobuf.PhysicalExprNode
 import org.blaze.protobuf.PhysicalIsNotNull
 import org.blaze.protobuf.PhysicalNot
 import org.blaze.protobuf.PhysicalScalarFunctionNode
+import org.blaze.protobuf.ScalarDecimalValue
 import org.blaze.protobuf.ScalarFunction
 import org.blaze.protobuf.ScalarValue
 import org.blaze.protobuf.Schema
@@ -123,7 +125,14 @@ object NativeConverters {
       case BinaryType => throw new NotImplementedError("???")
       case DateType => scalarValueBuilder.setDate32Value(sparkValue.asInstanceOf[Int])
       case TimestampType => scalarValueBuilder.setTimeMicrosecondValue(sparkValue.asInstanceOf[Long])
-
+      case t: DecimalType => {
+        val decimalValue = sparkValue.asInstanceOf[Decimal]
+        val decimalType = convertDataType(t).getDECIMAL
+        scalarValueBuilder.setDecimalValue(ScalarDecimalValue.newBuilder()
+          .setDecimal(decimalType)
+          .setLongValue(decimalValue.toUnscaledLong)
+        )
+      }
       // TODO: support complex data types
       case _ => throw new NotImplementedError(s"Value conversion not implemented ${dataType}")
     }

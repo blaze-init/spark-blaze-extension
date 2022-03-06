@@ -249,5 +249,20 @@ public interface ScalarValueOrBuilder extends
    */
   org.blaze.protobuf.PrimitiveScalarType getNullValue();
 
+  /**
+   * <code>.plan.protobuf.ScalarDecimalValue decimal_value = 20;</code>
+   * @return Whether the decimalValue field is set.
+   */
+  boolean hasDecimalValue();
+  /**
+   * <code>.plan.protobuf.ScalarDecimalValue decimal_value = 20;</code>
+   * @return The decimalValue.
+   */
+  org.blaze.protobuf.ScalarDecimalValue getDecimalValue();
+  /**
+   * <code>.plan.protobuf.ScalarDecimalValue decimal_value = 20;</code>
+   */
+  org.blaze.protobuf.ScalarDecimalValueOrBuilder getDecimalValueOrBuilder();
+
   public org.blaze.protobuf.ScalarValue.ValueCase getValueCase();
 }
