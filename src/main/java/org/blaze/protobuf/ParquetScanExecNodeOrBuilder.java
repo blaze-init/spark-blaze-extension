@@ -21,4 +21,19 @@ public interface ParquetScanExecNodeOrBuilder extends
    * <code>.plan.protobuf.FileScanExecConf base_conf = 1;</code>
    */
   org.blaze.protobuf.FileScanExecConfOrBuilder getBaseConfOrBuilder();
+
+  /**
+   * <code>.plan.protobuf.LogicalExprNode pruning_predicate = 2;</code>
+   * @return Whether the pruningPredicate field is set.
+   */
+  boolean hasPruningPredicate();
+  /**
+   * <code>.plan.protobuf.LogicalExprNode pruning_predicate = 2;</code>
+   * @return The pruningPredicate.
+   */
+  org.blaze.protobuf.LogicalExprNode getPruningPredicate();
+  /**
+   * <code>.plan.protobuf.LogicalExprNode pruning_predicate = 2;</code>
+   */
+  org.blaze.protobuf.LogicalExprNodeOrBuilder getPruningPredicateOrBuilder();
 }

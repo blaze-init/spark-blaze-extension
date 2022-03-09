@@ -3,15 +3,16 @@ package org.apache.spark.sql.blaze.plan
 import org.apache.spark.sql.blaze.NativeConverters
 import org.apache.spark.sql.blaze.NativeRDD
 import org.apache.spark.sql.blaze.NativeSupports
-import org.apache.spark.sql.catalyst.expressions.Attribute
+import org.apache.spark.sql.catalyst.expressions.{And, Attribute}
 import org.apache.spark.sql.execution.FileSourceScanExec
 import org.apache.spark.sql.execution.LeafExecNode
-import org.apache.spark.sql.execution.datasources.FileScanRDD
+import org.apache.spark.sql.execution.datasources.{DataSourceStrategy, DataSourceUtils, FileScanRDD}
 import org.apache.spark.Partition
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.blaze.MetricNode
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.metric.SQLMetric
+import org.apache.spark.sql.sources.Filter
 import org.blaze.protobuf.FileGroup
 import org.blaze.protobuf.FileScanExecConf
 import org.blaze.protobuf.ParquetScanExecNode
@@ -42,6 +43,8 @@ case class NativeParquetScanExec(basedFileScan: FileSourceScanExec) extends Leaf
         .setStatistics(Statistics.getDefaultInstance)
         .setSchema(NativeConverters.convertSchema(basedFileScan.requiredSchema))
 
+      val filter = basedFileScan.dataFilters.reduceOption(And).map(f => NativeConverters.convertFilterExpr(f))
+
       partitions.foreach { filePartition =>
         val nativeFileGroupBuilder = FileGroup.newBuilder()
         filePartition.files.foreach { file =>
@@ -56,8 +59,8 @@ case class NativeParquetScanExec(basedFileScan: FileSourceScanExec) extends Leaf
 
       val nativeParquetScanExec = ParquetScanExecNode.newBuilder()
         .setBaseConf(nativeParquetScanConfBuilder.build())
-        .build()
-      PhysicalPlanNode.newBuilder().setParquetScan(nativeParquetScanExec).build()
+      filter.foreach(f => nativeParquetScanExec.setPruningPredicate(f))
+      PhysicalPlanNode.newBuilder().setParquetScan(nativeParquetScanExec.build()).build()
     })
   }
 

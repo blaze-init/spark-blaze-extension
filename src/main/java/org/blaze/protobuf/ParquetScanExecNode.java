@@ -61,6 +61,19 @@ private static final long serialVersionUID = 0L;
 
             break;
           }
+          case 18: {
+            org.blaze.protobuf.LogicalExprNode.Builder subBuilder = null;
+            if (pruningPredicate_ != null) {
+              subBuilder = pruningPredicate_.toBuilder();
+            }
+            pruningPredicate_ = input.readMessage(org.blaze.protobuf.LogicalExprNode.parser(), extensionRegistry);
+            if (subBuilder != null) {
+              subBuilder.mergeFrom(pruningPredicate_);
+              pruningPredicate_ = subBuilder.buildPartial();
+            }
+
+            break;
+          }
           default: {
             if (!parseUnknownField(
                 input, unknownFields, extensionRegistry, tag)) {
@@ -119,6 +132,32 @@ private static final long serialVersionUID = 0L;
     return getBaseConf();
   }
 
+  public static final int PRUNING_PREDICATE_FIELD_NUMBER = 2;
+  private org.blaze.protobuf.LogicalExprNode pruningPredicate_;
+  /**
+   * <code>.plan.protobuf.LogicalExprNode pruning_predicate = 2;</code>
+   * @return Whether the pruningPredicate field is set.
+   */
+  @java.lang.Override
+  public boolean hasPruningPredicate() {
+    return pruningPredicate_ != null;
+  }
+  /**
+   * <code>.plan.protobuf.LogicalExprNode pruning_predicate = 2;</code>
+   * @return The pruningPredicate.
+   */
+  @java.lang.Override
+  public org.blaze.protobuf.LogicalExprNode getPruningPredicate() {
+    return pruningPredicate_ == null ? org.blaze.protobuf.LogicalExprNode.getDefaultInstance() : pruningPredicate_;
+  }
+  /**
+   * <code>.plan.protobuf.LogicalExprNode pruning_predicate = 2;</code>
+   */
+  @java.lang.Override
+  public org.blaze.protobuf.LogicalExprNodeOrBuilder getPruningPredicateOrBuilder() {
+    return getPruningPredicate();
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -136,6 +175,9 @@ private static final long serialVersionUID = 0L;
     if (baseConf_ != null) {
       output.writeMessage(1, getBaseConf());
     }
+    if (pruningPredicate_ != null) {
+      output.writeMessage(2, getPruningPredicate());
+    }
     unknownFields.writeTo(output);
   }
 
@@ -148,6 +190,10 @@ private static final long serialVersionUID = 0L;
     if (baseConf_ != null) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(1, getBaseConf());
+    }
+    if (pruningPredicate_ != null) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(2, getPruningPredicate());
     }
     size += unknownFields.getSerializedSize();
     memoizedSize = size;
@@ -169,6 +215,11 @@ private static final long serialVersionUID = 0L;
       if (!getBaseConf()
           .equals(other.getBaseConf())) return false;
     }
+    if (hasPruningPredicate() != other.hasPruningPredicate()) return false;
+    if (hasPruningPredicate()) {
+      if (!getPruningPredicate()
+          .equals(other.getPruningPredicate())) return false;
+    }
     if (!unknownFields.equals(other.unknownFields)) return false;
     return true;
   }
@@ -183,6 +234,10 @@ private static final long serialVersionUID = 0L;
     if (hasBaseConf()) {
       hash = (37 * hash) + BASE_CONF_FIELD_NUMBER;
       hash = (53 * hash) + getBaseConf().hashCode();
+    }
+    if (hasPruningPredicate()) {
+      hash = (37 * hash) + PRUNING_PREDICATE_FIELD_NUMBER;
+      hash = (53 * hash) + getPruningPredicate().hashCode();
     }
     hash = (29 * hash) + unknownFields.hashCode();
     memoizedHashCode = hash;
@@ -323,6 +378,12 @@ private static final long serialVersionUID = 0L;
         baseConf_ = null;
         baseConfBuilder_ = null;
       }
+      if (pruningPredicateBuilder_ == null) {
+        pruningPredicate_ = null;
+      } else {
+        pruningPredicate_ = null;
+        pruningPredicateBuilder_ = null;
+      }
       return this;
     }
 
@@ -353,6 +414,11 @@ private static final long serialVersionUID = 0L;
         result.baseConf_ = baseConf_;
       } else {
         result.baseConf_ = baseConfBuilder_.build();
+      }
+      if (pruningPredicateBuilder_ == null) {
+        result.pruningPredicate_ = pruningPredicate_;
+      } else {
+        result.pruningPredicate_ = pruningPredicateBuilder_.build();
       }
       onBuilt();
       return result;
@@ -404,6 +470,9 @@ private static final long serialVersionUID = 0L;
       if (other == org.blaze.protobuf.ParquetScanExecNode.getDefaultInstance()) return this;
       if (other.hasBaseConf()) {
         mergeBaseConf(other.getBaseConf());
+      }
+      if (other.hasPruningPredicate()) {
+        mergePruningPredicate(other.getPruningPredicate());
       }
       this.mergeUnknownFields(other.unknownFields);
       onChanged();
@@ -551,6 +620,125 @@ private static final long serialVersionUID = 0L;
         baseConf_ = null;
       }
       return baseConfBuilder_;
+    }
+
+    private org.blaze.protobuf.LogicalExprNode pruningPredicate_;
+    private com.google.protobuf.SingleFieldBuilderV3<
+        org.blaze.protobuf.LogicalExprNode, org.blaze.protobuf.LogicalExprNode.Builder, org.blaze.protobuf.LogicalExprNodeOrBuilder> pruningPredicateBuilder_;
+    /**
+     * <code>.plan.protobuf.LogicalExprNode pruning_predicate = 2;</code>
+     * @return Whether the pruningPredicate field is set.
+     */
+    public boolean hasPruningPredicate() {
+      return pruningPredicateBuilder_ != null || pruningPredicate_ != null;
+    }
+    /**
+     * <code>.plan.protobuf.LogicalExprNode pruning_predicate = 2;</code>
+     * @return The pruningPredicate.
+     */
+    public org.blaze.protobuf.LogicalExprNode getPruningPredicate() {
+      if (pruningPredicateBuilder_ == null) {
+        return pruningPredicate_ == null ? org.blaze.protobuf.LogicalExprNode.getDefaultInstance() : pruningPredicate_;
+      } else {
+        return pruningPredicateBuilder_.getMessage();
+      }
+    }
+    /**
+     * <code>.plan.protobuf.LogicalExprNode pruning_predicate = 2;</code>
+     */
+    public Builder setPruningPredicate(org.blaze.protobuf.LogicalExprNode value) {
+      if (pruningPredicateBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        pruningPredicate_ = value;
+        onChanged();
+      } else {
+        pruningPredicateBuilder_.setMessage(value);
+      }
+
+      return this;
+    }
+    /**
+     * <code>.plan.protobuf.LogicalExprNode pruning_predicate = 2;</code>
+     */
+    public Builder setPruningPredicate(
+        org.blaze.protobuf.LogicalExprNode.Builder builderForValue) {
+      if (pruningPredicateBuilder_ == null) {
+        pruningPredicate_ = builderForValue.build();
+        onChanged();
+      } else {
+        pruningPredicateBuilder_.setMessage(builderForValue.build());
+      }
+
+      return this;
+    }
+    /**
+     * <code>.plan.protobuf.LogicalExprNode pruning_predicate = 2;</code>
+     */
+    public Builder mergePruningPredicate(org.blaze.protobuf.LogicalExprNode value) {
+      if (pruningPredicateBuilder_ == null) {
+        if (pruningPredicate_ != null) {
+          pruningPredicate_ =
+            org.blaze.protobuf.LogicalExprNode.newBuilder(pruningPredicate_).mergeFrom(value).buildPartial();
+        } else {
+          pruningPredicate_ = value;
+        }
+        onChanged();
+      } else {
+        pruningPredicateBuilder_.mergeFrom(value);
+      }
+
+      return this;
+    }
+    /**
+     * <code>.plan.protobuf.LogicalExprNode pruning_predicate = 2;</code>
+     */
+    public Builder clearPruningPredicate() {
+      if (pruningPredicateBuilder_ == null) {
+        pruningPredicate_ = null;
+        onChanged();
+      } else {
+        pruningPredicate_ = null;
+        pruningPredicateBuilder_ = null;
+      }
+
+      return this;
+    }
+    /**
+     * <code>.plan.protobuf.LogicalExprNode pruning_predicate = 2;</code>
+     */
+    public org.blaze.protobuf.LogicalExprNode.Builder getPruningPredicateBuilder() {
+      
+      onChanged();
+      return getPruningPredicateFieldBuilder().getBuilder();
+    }
+    /**
+     * <code>.plan.protobuf.LogicalExprNode pruning_predicate = 2;</code>
+     */
+    public org.blaze.protobuf.LogicalExprNodeOrBuilder getPruningPredicateOrBuilder() {
+      if (pruningPredicateBuilder_ != null) {
+        return pruningPredicateBuilder_.getMessageOrBuilder();
+      } else {
+        return pruningPredicate_ == null ?
+            org.blaze.protobuf.LogicalExprNode.getDefaultInstance() : pruningPredicate_;
+      }
+    }
+    /**
+     * <code>.plan.protobuf.LogicalExprNode pruning_predicate = 2;</code>
+     */
+    private com.google.protobuf.SingleFieldBuilderV3<
+        org.blaze.protobuf.LogicalExprNode, org.blaze.protobuf.LogicalExprNode.Builder, org.blaze.protobuf.LogicalExprNodeOrBuilder> 
+        getPruningPredicateFieldBuilder() {
+      if (pruningPredicateBuilder_ == null) {
+        pruningPredicateBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
+            org.blaze.protobuf.LogicalExprNode, org.blaze.protobuf.LogicalExprNode.Builder, org.blaze.protobuf.LogicalExprNodeOrBuilder>(
+                getPruningPredicate(),
+                getParentForChildren(),
+                isClean());
+        pruningPredicate_ = null;
+      }
+      return pruningPredicateBuilder_;
     }
     @java.lang.Override
     public final Builder setUnknownFields(

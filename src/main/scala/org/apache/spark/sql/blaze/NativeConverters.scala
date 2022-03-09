@@ -1,7 +1,6 @@
 package org.apache.spark.sql.blaze
 
 import scala.collection.JavaConverters._
-
 import org.apache.spark.sql.catalyst.expressions.Abs
 import org.apache.spark.sql.catalyst.expressions.Acos
 import org.apache.spark.sql.catalyst.expressions.Add
@@ -66,21 +65,7 @@ import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.types.TimestampType
-import org.blaze.protobuf.ArrowType
-import org.blaze.protobuf.EmptyMessage
-import org.blaze.protobuf.Field
-import org.blaze.protobuf.PhysicalBinaryExprNode
-import org.blaze.protobuf.PhysicalCastNode
-import org.blaze.protobuf.PhysicalColumn
-import org.blaze.protobuf.PhysicalExprNode
-import org.blaze.protobuf.PhysicalIsNotNull
-import org.blaze.protobuf.PhysicalNot
-import org.blaze.protobuf.PhysicalScalarFunctionNode
-import org.blaze.protobuf.ScalarDecimalValue
-import org.blaze.protobuf.ScalarFunction
-import org.blaze.protobuf.ScalarValue
-import org.blaze.protobuf.Schema
-import org.blaze.protobuf.Timestamp
+import org.blaze.protobuf.{ArrowType, BinaryExprNode, CastNode, Column, EmptyMessage, Field, LogicalExprNode, PhysicalBinaryExprNode, PhysicalCastNode, PhysicalColumn, PhysicalExprNode, PhysicalIsNotNull, PhysicalNot, PhysicalScalarFunctionNode, ScalarDecimalValue, ScalarFunction, ScalarFunctionNode, ScalarValue, Schema, Timestamp}
 
 object NativeConverters {
   def convertDataType(sparkDataType: DataType): ArrowType = {
@@ -203,6 +188,114 @@ object NativeConverters {
       }
       case Not(child) => buildExprNode {
         _.setNotExpr(PhysicalNot.newBuilder().setExpr(convertExpr(child)).build())
+      }
+
+      // binary ops
+      case EqualTo(lhs, rhs) => buildBinaryExprNode(lhs, rhs, "Eq")
+      case GreaterThan(lhs, rhs) => buildBinaryExprNode(lhs, rhs, "Gt")
+      case LessThan(lhs, rhs) => buildBinaryExprNode(lhs, rhs, "Lt")
+      case GreaterThanOrEqual(lhs, rhs) => buildBinaryExprNode(lhs, rhs, "GtEq")
+      case LessThanOrEqual(lhs, rhs) => buildBinaryExprNode(lhs, rhs, "LtEq")
+      case Add(lhs, rhs) => buildBinaryExprNode(lhs, rhs, "Plus")
+      case Subtract(lhs, rhs) => buildBinaryExprNode(lhs, rhs, "Minus")
+      case Multiply(lhs, rhs) => buildBinaryExprNode(lhs, rhs, "Multiply")
+      case Divide(lhs, rhs) => buildBinaryExprNode(lhs, rhs, "Divide")
+      case Remainder(lhs, rhs) => buildBinaryExprNode(lhs, rhs, "Modulo")
+      case Like(lhs, rhs, '\\') => buildBinaryExprNode(lhs, rhs, "Like")
+      case And(lhs, rhs) => buildBinaryExprNode(lhs, rhs, "And")
+      case Or(lhs, rhs) => buildBinaryExprNode(lhs, rhs, "Or")
+
+      // builtin scalar functions
+      case e: Sqrt => buildScalarFunction(ScalarFunction.SQRT, e.children, e.dataType)
+      case e: Sin => buildScalarFunction(ScalarFunction.SIN, e.children, e.dataType)
+      case e: Cos => buildScalarFunction(ScalarFunction.COS, e.children, e.dataType)
+      case e: Tan => buildScalarFunction(ScalarFunction.TAN, e.children, e.dataType)
+      case e: Asin => buildScalarFunction(ScalarFunction.ASIN, e.children, e.dataType)
+      case e: Acos => buildScalarFunction(ScalarFunction.ACOS, e.children, e.dataType)
+      case e: Atan => buildScalarFunction(ScalarFunction.ATAN, e.children, e.dataType)
+      case e: Exp => buildScalarFunction(ScalarFunction.EXP, e.children, e.dataType)
+      // case Nothing => buildScalarFunction(ScalarFunction.LOG, Nil)
+      case e: Log2 => buildScalarFunction(ScalarFunction.LOG2, e.children, e.dataType)
+      case e: Log10 => buildScalarFunction(ScalarFunction.LOG10, e.children, e.dataType)
+      case e: Floor => buildScalarFunction(ScalarFunction.FLOOR, e.children, e.dataType)
+      case e: Ceil => buildScalarFunction(ScalarFunction.CEIL, e.children, e.dataType)
+      case Round(_1, Literal(0, _)) => buildScalarFunction(ScalarFunction.ROUND, Seq(_1), _1.dataType)
+      // case Nothing => buildScalarFunction(ScalarFunction.TRUNC, Nil)
+      case e: Abs => buildScalarFunction(ScalarFunction.ABS, e.children, e.dataType)
+      case e: Signum => buildScalarFunction(ScalarFunction.SIGNUM, e.children, e.dataType)
+      case e: OctetLength => buildScalarFunction(ScalarFunction.OCTETLENGTH, e.children, e.dataType)
+      case e: Concat => buildScalarFunction(ScalarFunction.CONCAT, e.children, e.dataType)
+      case e: Lower => buildScalarFunction(ScalarFunction.LOWER, e.children, e.dataType)
+      case e: Upper => buildScalarFunction(ScalarFunction.UPPER, e.children, e.dataType)
+      case e: StringTrim => buildScalarFunction(ScalarFunction.TRIM, e.srcStr +: e.trimStr.toSeq, e.dataType)
+      case e: StringTrimLeft => buildScalarFunction(ScalarFunction.LTRIM, e.srcStr +: e.trimStr.toSeq, e.dataType)
+      case e: StringTrimRight => buildScalarFunction(ScalarFunction.RTRIM, e.srcStr +: e.trimStr.toSeq, e.dataType)
+      // case Nothing => buildScalarFunction(ScalarFunction.TOTIMESTAMP, Nil)
+      // case Nothing => buildScalarFunction(ScalarFunction.ARRAY, Nil)
+      case e: NullIf => buildScalarFunction(ScalarFunction.NULLIF, e.children, e.dataType)
+      case e: DatePart => buildScalarFunction(ScalarFunction.DATEPART, e.children, e.dataType)
+      case e: TruncDate => buildScalarFunction(ScalarFunction.DATEPART, e.children, e.dataType)
+      case Md5(_1) => buildScalarFunction(ScalarFunction.MD5, Seq(unpackBinaryTypeCast(_1)), StringType)
+      case Sha2(_1, Literal(224, _)) => buildScalarFunction(ScalarFunction.SHA224, Seq(unpackBinaryTypeCast(_1)), StringType)
+      case Sha2(_1, Literal(  0, _)) => buildScalarFunction(ScalarFunction.SHA256, Seq(unpackBinaryTypeCast(_1)), StringType)
+      case Sha2(_1, Literal(256, _)) => buildScalarFunction(ScalarFunction.SHA256, Seq(unpackBinaryTypeCast(_1)), StringType)
+      case Sha2(_1, Literal(384, _)) => buildScalarFunction(ScalarFunction.SHA384, Seq(unpackBinaryTypeCast(_1)), StringType)
+      case Sha2(_1, Literal(512, _)) => buildScalarFunction(ScalarFunction.SHA512, Seq(unpackBinaryTypeCast(_1)), StringType)
+      case e: Log => buildScalarFunction(ScalarFunction.LN, e.children, e.dataType)
+      // case Nothing => buildScalarFunction(ScalarFunction.TOTIMESTAMPMILLIS, Nil)
+      case StartsWith(_1, _2) => buildScalarFunction(ScalarFunction.STARTS_WITH, Seq(_1, _2), BooleanType)
+
+      case unsupportedExpression =>
+        throw new NotImplementedExpressionConversion(unsupportedExpression)
+    }
+  }
+
+  def convertFilterExpr(sparkExpr: Expression): LogicalExprNode = {
+    def buildExprNode(buildFn: (LogicalExprNode.Builder) => LogicalExprNode.Builder): LogicalExprNode =
+      buildFn(LogicalExprNode.newBuilder()).build()
+
+    def buildBinaryExprNode(left: Expression, right: Expression, op: String): LogicalExprNode = buildExprNode {
+      _.setBinaryExpr(BinaryExprNode.newBuilder()
+        .setL(convertFilterExpr(left))
+        .setR(convertFilterExpr(right))
+        .setOp(op)
+        .build())
+    }
+
+    def buildScalarFunction(fn: ScalarFunction, args: Seq[Expression], dataType: DataType): LogicalExprNode = buildExprNode {
+      _.setScalarFunction(ScalarFunctionNode.newBuilder()
+        .setFun(fn)
+        .addAllArgs(args.map(convertFilterExpr).asJava)
+        .build())
+    }
+
+    def unpackBinaryTypeCast(expr: Expression) = expr match {
+      case Cast(inner, BinaryType, _) => inner
+      case expr => expr
+    }
+
+    sparkExpr match {
+      case Literal(value, dataType) => buildExprNode {
+        _.setLiteral(convertValue(value, dataType))
+      }
+      case AttributeReference(name, _, _, _) => buildExprNode {
+        _.setColumn(Column.newBuilder().setName(name).build())
+      }
+
+      // cast
+      case Cast(child, dataType, _) => buildExprNode {
+        _.setCast(CastNode.newBuilder()
+          .setExpr(convertFilterExpr(child))
+          .setArrowType(convertDataType(dataType))
+          .build())
+      }
+
+      // unary ops
+      case IsNotNull(child) => buildExprNode {
+        _.setIsNotNullExpr(org.blaze.protobuf.IsNotNull.newBuilder().setExpr(convertFilterExpr(child)).build())
+      }
+      case Not(child) => buildExprNode {
+        _.setNotExpr(org.blaze.protobuf.Not.newBuilder().setExpr(convertFilterExpr(child)).build())
       }
 
       // binary ops
