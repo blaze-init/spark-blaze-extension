@@ -76,6 +76,19 @@ private static final long serialVersionUID = 0L;
                 input.readMessage(org.blaze.protobuf.ScalarValue.parser(), extensionRegistry));
             break;
           }
+          case 42: {
+            org.blaze.protobuf.FileRange.Builder subBuilder = null;
+            if (range_ != null) {
+              subBuilder = range_.toBuilder();
+            }
+            range_ = input.readMessage(org.blaze.protobuf.FileRange.parser(), extensionRegistry);
+            if (subBuilder != null) {
+              subBuilder.mergeFrom(range_);
+              range_ = subBuilder.buildPartial();
+            }
+
+            break;
+          }
           default: {
             if (!parseUnknownField(
                 input, unknownFields, extensionRegistry, tag)) {
@@ -211,6 +224,32 @@ private static final long serialVersionUID = 0L;
     return partitionValues_.get(index);
   }
 
+  public static final int RANGE_FIELD_NUMBER = 5;
+  private org.blaze.protobuf.FileRange range_;
+  /**
+   * <code>.plan.protobuf.FileRange range = 5;</code>
+   * @return Whether the range field is set.
+   */
+  @java.lang.Override
+  public boolean hasRange() {
+    return range_ != null;
+  }
+  /**
+   * <code>.plan.protobuf.FileRange range = 5;</code>
+   * @return The range.
+   */
+  @java.lang.Override
+  public org.blaze.protobuf.FileRange getRange() {
+    return range_ == null ? org.blaze.protobuf.FileRange.getDefaultInstance() : range_;
+  }
+  /**
+   * <code>.plan.protobuf.FileRange range = 5;</code>
+   */
+  @java.lang.Override
+  public org.blaze.protobuf.FileRangeOrBuilder getRangeOrBuilder() {
+    return getRange();
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -237,6 +276,9 @@ private static final long serialVersionUID = 0L;
     for (int i = 0; i < partitionValues_.size(); i++) {
       output.writeMessage(4, partitionValues_.get(i));
     }
+    if (range_ != null) {
+      output.writeMessage(5, getRange());
+    }
     unknownFields.writeTo(output);
   }
 
@@ -261,6 +303,10 @@ private static final long serialVersionUID = 0L;
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(4, partitionValues_.get(i));
     }
+    if (range_ != null) {
+      size += com.google.protobuf.CodedOutputStream
+        .computeMessageSize(5, getRange());
+    }
     size += unknownFields.getSerializedSize();
     memoizedSize = size;
     return size;
@@ -284,6 +330,11 @@ private static final long serialVersionUID = 0L;
         != other.getLastModifiedNs()) return false;
     if (!getPartitionValuesList()
         .equals(other.getPartitionValuesList())) return false;
+    if (hasRange() != other.hasRange()) return false;
+    if (hasRange()) {
+      if (!getRange()
+          .equals(other.getRange())) return false;
+    }
     if (!unknownFields.equals(other.unknownFields)) return false;
     return true;
   }
@@ -306,6 +357,10 @@ private static final long serialVersionUID = 0L;
     if (getPartitionValuesCount() > 0) {
       hash = (37 * hash) + PARTITION_VALUES_FIELD_NUMBER;
       hash = (53 * hash) + getPartitionValuesList().hashCode();
+    }
+    if (hasRange()) {
+      hash = (37 * hash) + RANGE_FIELD_NUMBER;
+      hash = (53 * hash) + getRange().hashCode();
     }
     hash = (29 * hash) + unknownFields.hashCode();
     memoizedHashCode = hash;
@@ -453,6 +508,12 @@ private static final long serialVersionUID = 0L;
       } else {
         partitionValuesBuilder_.clear();
       }
+      if (rangeBuilder_ == null) {
+        range_ = null;
+      } else {
+        range_ = null;
+        rangeBuilder_ = null;
+      }
       return this;
     }
 
@@ -491,6 +552,11 @@ private static final long serialVersionUID = 0L;
         result.partitionValues_ = partitionValues_;
       } else {
         result.partitionValues_ = partitionValuesBuilder_.build();
+      }
+      if (rangeBuilder_ == null) {
+        result.range_ = range_;
+      } else {
+        result.range_ = rangeBuilder_.build();
       }
       onBuilt();
       return result;
@@ -575,6 +641,9 @@ private static final long serialVersionUID = 0L;
             partitionValuesBuilder_.addAllMessages(other.partitionValues_);
           }
         }
+      }
+      if (other.hasRange()) {
+        mergeRange(other.getRange());
       }
       this.mergeUnknownFields(other.unknownFields);
       onChanged();
@@ -982,6 +1051,125 @@ private static final long serialVersionUID = 0L;
         partitionValues_ = null;
       }
       return partitionValuesBuilder_;
+    }
+
+    private org.blaze.protobuf.FileRange range_;
+    private com.google.protobuf.SingleFieldBuilderV3<
+        org.blaze.protobuf.FileRange, org.blaze.protobuf.FileRange.Builder, org.blaze.protobuf.FileRangeOrBuilder> rangeBuilder_;
+    /**
+     * <code>.plan.protobuf.FileRange range = 5;</code>
+     * @return Whether the range field is set.
+     */
+    public boolean hasRange() {
+      return rangeBuilder_ != null || range_ != null;
+    }
+    /**
+     * <code>.plan.protobuf.FileRange range = 5;</code>
+     * @return The range.
+     */
+    public org.blaze.protobuf.FileRange getRange() {
+      if (rangeBuilder_ == null) {
+        return range_ == null ? org.blaze.protobuf.FileRange.getDefaultInstance() : range_;
+      } else {
+        return rangeBuilder_.getMessage();
+      }
+    }
+    /**
+     * <code>.plan.protobuf.FileRange range = 5;</code>
+     */
+    public Builder setRange(org.blaze.protobuf.FileRange value) {
+      if (rangeBuilder_ == null) {
+        if (value == null) {
+          throw new NullPointerException();
+        }
+        range_ = value;
+        onChanged();
+      } else {
+        rangeBuilder_.setMessage(value);
+      }
+
+      return this;
+    }
+    /**
+     * <code>.plan.protobuf.FileRange range = 5;</code>
+     */
+    public Builder setRange(
+        org.blaze.protobuf.FileRange.Builder builderForValue) {
+      if (rangeBuilder_ == null) {
+        range_ = builderForValue.build();
+        onChanged();
+      } else {
+        rangeBuilder_.setMessage(builderForValue.build());
+      }
+
+      return this;
+    }
+    /**
+     * <code>.plan.protobuf.FileRange range = 5;</code>
+     */
+    public Builder mergeRange(org.blaze.protobuf.FileRange value) {
+      if (rangeBuilder_ == null) {
+        if (range_ != null) {
+          range_ =
+            org.blaze.protobuf.FileRange.newBuilder(range_).mergeFrom(value).buildPartial();
+        } else {
+          range_ = value;
+        }
+        onChanged();
+      } else {
+        rangeBuilder_.mergeFrom(value);
+      }
+
+      return this;
+    }
+    /**
+     * <code>.plan.protobuf.FileRange range = 5;</code>
+     */
+    public Builder clearRange() {
+      if (rangeBuilder_ == null) {
+        range_ = null;
+        onChanged();
+      } else {
+        range_ = null;
+        rangeBuilder_ = null;
+      }
+
+      return this;
+    }
+    /**
+     * <code>.plan.protobuf.FileRange range = 5;</code>
+     */
+    public org.blaze.protobuf.FileRange.Builder getRangeBuilder() {
+      
+      onChanged();
+      return getRangeFieldBuilder().getBuilder();
+    }
+    /**
+     * <code>.plan.protobuf.FileRange range = 5;</code>
+     */
+    public org.blaze.protobuf.FileRangeOrBuilder getRangeOrBuilder() {
+      if (rangeBuilder_ != null) {
+        return rangeBuilder_.getMessageOrBuilder();
+      } else {
+        return range_ == null ?
+            org.blaze.protobuf.FileRange.getDefaultInstance() : range_;
+      }
+    }
+    /**
+     * <code>.plan.protobuf.FileRange range = 5;</code>
+     */
+    private com.google.protobuf.SingleFieldBuilderV3<
+        org.blaze.protobuf.FileRange, org.blaze.protobuf.FileRange.Builder, org.blaze.protobuf.FileRangeOrBuilder> 
+        getRangeFieldBuilder() {
+      if (rangeBuilder_ == null) {
+        rangeBuilder_ = new com.google.protobuf.SingleFieldBuilderV3<
+            org.blaze.protobuf.FileRange, org.blaze.protobuf.FileRange.Builder, org.blaze.protobuf.FileRangeOrBuilder>(
+                getRange(),
+                getParentForChildren(),
+                isClean());
+        range_ = null;
+      }
+      return rangeBuilder_;
     }
     @java.lang.Override
     public final Builder setUnknownFields(

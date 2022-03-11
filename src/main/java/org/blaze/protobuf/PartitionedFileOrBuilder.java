@@ -54,4 +54,19 @@ public interface PartitionedFileOrBuilder extends
    */
   org.blaze.protobuf.ScalarValueOrBuilder getPartitionValuesOrBuilder(
       int index);
+
+  /**
+   * <code>.plan.protobuf.FileRange range = 5;</code>
+   * @return Whether the range field is set.
+   */
+  boolean hasRange();
+  /**
+   * <code>.plan.protobuf.FileRange range = 5;</code>
+   * @return The range.
+   */
+  org.blaze.protobuf.FileRange getRange();
+  /**
+   * <code>.plan.protobuf.FileRange range = 5;</code>
+   */
+  org.blaze.protobuf.FileRangeOrBuilder getRangeOrBuilder();
 }

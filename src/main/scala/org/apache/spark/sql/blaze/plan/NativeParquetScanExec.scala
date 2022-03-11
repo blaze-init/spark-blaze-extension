@@ -6,18 +6,18 @@ import org.apache.spark.sql.blaze.NativeSupports
 import org.apache.spark.sql.catalyst.expressions.{And, Attribute}
 import org.apache.spark.sql.execution.FileSourceScanExec
 import org.apache.spark.sql.execution.LeafExecNode
-import org.apache.spark.sql.execution.datasources.{DataSourceStrategy, DataSourceUtils, FileScanRDD}
+import org.apache.spark.sql.execution.datasources.FileScanRDD
 import org.apache.spark.Partition
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.blaze.MetricNode
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.metric.SQLMetric
-import org.apache.spark.sql.sources.Filter
 import org.blaze.protobuf.FileGroup
 import org.blaze.protobuf.FileScanExecConf
 import org.blaze.protobuf.ParquetScanExecNode
 import org.blaze.protobuf.PartitionedFile
 import org.blaze.protobuf.PhysicalPlanNode
+import org.blaze.protobuf.FileRange
 import org.blaze.protobuf.Statistics
 
 case class NativeParquetScanExec(basedFileScan: FileSourceScanExec) extends LeafExecNode with NativeSupports {
@@ -48,10 +48,12 @@ case class NativeParquetScanExec(basedFileScan: FileSourceScanExec) extends Leaf
       partitions.foreach { filePartition =>
         val nativeFileGroupBuilder = FileGroup.newBuilder()
         filePartition.files.foreach { file =>
+          val range = FileRange.newBuilder().setStart(file.start).setEnd(file.start + file.length).build();
           nativeFileGroupBuilder.addFiles(PartitionedFile.newBuilder()
             .setPath(file.filePath)
             .setSize(file.length)
             .setLastModifiedNs(0)
+            .setRange(range)
             .build())
         }
         nativeParquetScanConfBuilder.addFileGroups(nativeFileGroupBuilder.build())

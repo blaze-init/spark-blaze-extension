@@ -18,7 +18,7 @@ import org.apache.spark.shuffle.ShuffleManager;
 public class JniBridge {
     static final public ConcurrentHashMap<String, Object> resourcesMap = new ConcurrentHashMap<>();
     static {
-        System.loadLibrary("blaze_rs");
+        System.loadLibrary("blaze");
     }
 
     // JVM -> Native
