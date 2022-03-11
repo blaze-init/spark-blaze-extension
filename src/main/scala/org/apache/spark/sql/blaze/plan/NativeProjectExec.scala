@@ -25,7 +25,6 @@ case class NativeProjectExec(
   override lazy val metrics: Map[String, SQLMetric] = NativeSupports.getDefaultNativeMetrics(sparkContext)
 
   override def outputExpressions: Seq[NamedExpression] = projectList
-
   override def output: Seq[Attribute] = outputExpressions.map(_.toAttribute)
 
   override def doExecute(): RDD[InternalRow] = doExecuteNative()

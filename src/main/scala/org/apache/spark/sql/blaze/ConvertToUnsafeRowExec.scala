@@ -11,7 +11,6 @@ import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.UnaryExecNode
 import org.apache.spark.sql.execution.metric.SQLMetric
 import org.apache.spark.sql.execution.metric.SQLMetrics
-import org.apache.spark.sql.execution.metric.SQLMetrics
 
 case class ConvertToUnsafeRowExec(override val child: SparkPlan) extends UnaryExecNode {
   override def nodeName: String = "ConvertToUnsafeRow"
@@ -21,25 +20,22 @@ case class ConvertToUnsafeRowExec(override val child: SparkPlan) extends UnaryEx
 
   override lazy val metrics: Map[String, SQLMetric] = Map(
     "numConvertedRows" -> SQLMetrics.createMetric(sparkContext, "number of converted rows"),
-    "time" -> SQLMetrics.createNanoTimingMetric(sparkContext, "time"),
   )
 
   override protected def doExecute(): RDD[InternalRow] = {
-    val numConvertedRows: SQLMetric = longMetric("numConvertedRows")
-    val time: SQLMetric = this.longMetric("time")
+    val numConvertedRows = longMetric("numConvertedRows")
     val localOutput = this.output
 
-    NativeSupports.executeNative(child).mapPartitionsInternal { iterator =>
-      val startTime = System.nanoTime()
+    child.execute().mapPartitionsWithIndexInternal { (index, iterator) =>
       val toUnsafe = UnsafeProjection.create(localOutput, localOutput)
+      toUnsafe.initialize(index)
+
       val convertedIterator = iterator.map {
         case row: UnsafeRow => row
-        case row => {
+        case row =>
           numConvertedRows += 1
           toUnsafe(row)
-        }
       }
-      time.add(System.nanoTime() - startTime)
       convertedIterator
     }
   }

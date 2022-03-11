@@ -4,7 +4,6 @@ import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 
 import scala.annotation.tailrec
-import scala.collection.JavaConverters._
 
 import org.apache.arrow.vector.ipc.ArrowStreamReader
 import org.apache.spark.sql.execution.SparkPlan
@@ -16,9 +15,6 @@ import org.apache.spark.TaskContext
 import org.apache.spark.sql.execution.metric.SQLMetric
 import org.apache.spark.sql.execution.metric.SQLMetrics
 import org.apache.spark.sql.util2.ArrowUtils2
-import org.apache.spark.sql.util2.ArrowColumnVector
-import org.apache.spark.sql.vectorized.ColumnarBatch
-import org.apache.spark.sql.vectorized.ColumnVector
 import org.apache.spark.SparkContext
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.blaze.execution.ArrowReaderIterator

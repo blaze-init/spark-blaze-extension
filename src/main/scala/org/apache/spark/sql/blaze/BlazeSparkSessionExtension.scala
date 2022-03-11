@@ -5,7 +5,6 @@ import org.apache.spark.SparkEnv
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.blaze.execution.ArrowShuffleExchangeExec301
-import org.apache.spark.sql.blaze.execution.ArrowShuffleManager301
 import org.apache.spark.sql.blaze.plan.NativeFilterExec
 import org.apache.spark.sql.blaze.plan.NativeParquetScanExec
 import org.apache.spark.sql.blaze.plan.NativeProjectExec
@@ -15,7 +14,8 @@ import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.execution.SparkPlan
-import org.apache.spark.sql.execution.exchange.{BroadcastExchangeExec, ShuffleExchangeExec}
+import org.apache.spark.sql.execution.exchange.BroadcastExchangeExec
+import org.apache.spark.sql.execution.exchange.ShuffleExchangeExec
 import org.apache.spark.sql.execution.FileSourceScanExec
 import org.apache.spark.sql.execution.SortExec
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
@@ -112,6 +112,7 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
   def convertSortExec(exec: SortExec): SparkPlan = exec match {
     case SortExec(sortOrder, global, child, _) if NativeSupports.isNative(child) =>
       logInfo(s"Converting SortExec: ${exec.simpleStringWithNodeId()}")
+      logInfo(s"  global: ${global}")
       exec.sortOrder.foreach(s => logInfo(s"  sortOrder: ${s}"))
       NativeSortExec(sortOrder, global, child)
     case _ =>

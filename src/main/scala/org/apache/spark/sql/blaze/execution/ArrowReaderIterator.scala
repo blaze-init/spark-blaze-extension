@@ -9,21 +9,25 @@ import org.apache.spark.sql.vectorized.ColumnarBatch
 import org.apache.spark.sql.vectorized.ColumnVector
 
 class ArrowReaderIterator(arrowReader: ArrowReader) extends Iterator[InternalRow] {
+
   private val root = arrowReader.getVectorSchemaRoot
   private var rowIter = getCurrentBatchIter
 
   override def hasNext: Boolean = {
+    var hasNextRecord = rowIter.hasNext
     var hasNextBatch = true
 
-    while (!rowIter.hasNext && hasNextBatch) {
+    while (!hasNextRecord && hasNextBatch) {
       if (arrowReader.loadNextBatch()) {
-        hasNextBatch = true
         rowIter = getCurrentBatchIter
+        hasNextBatch = true
+        hasNextRecord = rowIter.hasNext
       } else {
         hasNextBatch = false
+        hasNextRecord = false
       }
     }
-    rowIter.hasNext
+    hasNextRecord
   }
 
   override def next: InternalRow = {
@@ -33,7 +37,6 @@ class ArrowReaderIterator(arrowReader: ArrowReader) extends Iterator[InternalRow
   private def getCurrentBatchIter: Iterator[InternalRow] = {
     val columns = root.getFieldVectors.asScala.map(new ArrowColumnVector(_).asInstanceOf[ColumnVector])
     val batch = new ColumnarBatch(columns.toArray)
-
     batch.setNumRows(root.getRowCount)
     batch.rowIterator().asScala
   }
