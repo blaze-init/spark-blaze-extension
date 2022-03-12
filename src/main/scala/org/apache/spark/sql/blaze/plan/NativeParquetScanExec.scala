@@ -19,6 +19,7 @@ import org.blaze.protobuf.PartitionedFile
 import org.blaze.protobuf.PhysicalPlanNode
 import org.blaze.protobuf.FileRange
 import org.blaze.protobuf.Statistics
+import scala.collection.JavaConverters._
 
 case class NativeParquetScanExec(basedFileScan: FileSourceScanExec) extends LeafExecNode with NativeSupports {
 
@@ -38,10 +39,15 @@ case class NativeParquetScanExec(basedFileScan: FileSourceScanExec) extends Leaf
       "blaze_exec_time" -> metrics("blazeExecTime"),
     ), Nil)
 
+    val fileSchema = basedFileScan.relation.schema
+    val outputSchema = basedFileScan.requiredSchema.fields
+    val projection = outputSchema.map(field => fileSchema.fieldIndex(field.name))
+
     new NativeRDD(sparkContext, nativeMetrics, partitions.asInstanceOf[Array[Partition]], Nil, {
       val nativeParquetScanConfBuilder = FileScanExecConf.newBuilder()
         .setStatistics(Statistics.getDefaultInstance)
-        .setSchema(NativeConverters.convertSchema(basedFileScan.requiredSchema))
+        .setSchema(NativeConverters.convertSchema(fileSchema))
+        .addAllProjection(projection.map(Integer.valueOf).toSeq.asJava)
 
       val filter = basedFileScan.dataFilters.reduceOption(And).map(f => NativeConverters.convertFilterExpr(f))
 
