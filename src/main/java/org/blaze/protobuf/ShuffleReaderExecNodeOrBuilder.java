@@ -21,4 +21,16 @@ public interface ShuffleReaderExecNodeOrBuilder extends
    * <code>.plan.protobuf.Schema schema = 2;</code>
    */
   org.blaze.protobuf.SchemaOrBuilder getSchemaOrBuilder();
+
+  /**
+   * <code>string nativeShuffleId = 3;</code>
+   * @return The nativeShuffleId.
+   */
+  java.lang.String getNativeShuffleId();
+  /**
+   * <code>string nativeShuffleId = 3;</code>
+   * @return The bytes for nativeShuffleId.
+   */
+  com.google.protobuf.ByteString
+      getNativeShuffleIdBytes();
 }

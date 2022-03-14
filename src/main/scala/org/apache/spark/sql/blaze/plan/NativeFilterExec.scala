@@ -37,12 +37,12 @@ case class NativeFilterExec(
       "blaze_exec_time" -> metrics("blazeExecTime"),
     ), Seq(inputRDD.metrics))
 
-    new NativeRDD(sparkContext, nativeMetrics, inputRDD.partitions, inputRDD.dependencies, {
+    new NativeRDD(sparkContext, nativeMetrics, inputRDD.partitions, inputRDD.dependencies, (partition, taskContext) => {
       val nativeFilterExec = FilterExecNode.newBuilder()
         .setExpr(NativeConverters.convertExpr(condition))
-        .setInput(inputRDD.nativePlan)
+        .setInput(inputRDD.nativePlan(partition, taskContext))
         .build()
       PhysicalPlanNode.newBuilder().setFilter(nativeFilterExec).build()
-    }, inputRDD.precompute)
+    })
   }
 }

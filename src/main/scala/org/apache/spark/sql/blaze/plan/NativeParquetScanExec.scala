@@ -44,7 +44,7 @@ case class NativeParquetScanExec(basedFileScan: FileSourceScanExec) extends Leaf
     val outputSchema = basedFileScan.requiredSchema.fields
     val projection = outputSchema.map(field => fileSchema.fieldIndex(field.name))
 
-    new NativeRDD(sparkContext, nativeMetrics, partitions.asInstanceOf[Array[Partition]], Nil, {
+    new NativeRDD(sparkContext, nativeMetrics, partitions.asInstanceOf[Array[Partition]], Nil, (_, _) => {
       val nativeParquetScanConfBuilder = FileScanExecConf.newBuilder()
         .setStatistics(Statistics.getDefaultInstance)
         .setSchema(NativeConverters.convertSchema(fileSchema))

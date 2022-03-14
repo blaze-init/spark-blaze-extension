@@ -53,8 +53,8 @@ case class NativeSortExec(
       "blaze_exec_time" -> metrics("blazeExecTime"),
     ), Seq(inputRDD.metrics))
 
-    new NativeRDD(sparkContext, nativeMetrics, inputRDD.partitions, inputRDD.dependencies, {
-      val nativeSortExecBuilder = SortExecNode.newBuilder().setInput(inputRDD.nativePlan)
+    new NativeRDD(sparkContext, nativeMetrics, inputRDD.partitions, inputRDD.dependencies, (partition, taskContext) => {
+      val nativeSortExecBuilder = SortExecNode.newBuilder().setInput(inputRDD.nativePlan(partition, taskContext))
 
       sortOrder.foreach { s =>
         nativeSortExecBuilder.addExpr(PhysicalExprNode.newBuilder()
@@ -69,6 +69,6 @@ case class NativeSortExec(
       PhysicalPlanNode.newBuilder()
         .setSort(nativeSortExecBuilder.build())
         .build()
-    }, inputRDD.precompute)
+    })
   }
 }

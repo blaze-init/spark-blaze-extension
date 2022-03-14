@@ -38,9 +38,9 @@ case class NativeProjectExec(
       "blaze_exec_time" -> metrics("blazeExecTime"),
     ), Seq(inputRDD.metrics))
 
-    new NativeRDD(sparkContext, nativeMetrics, inputRDD.partitions, inputRDD.dependencies, {
+    new NativeRDD(sparkContext, nativeMetrics, inputRDD.partitions, inputRDD.dependencies, (partition, taskContext) => {
       val nativeProjectExecBuilder = ProjectionExecNode.newBuilder()
-      nativeProjectExecBuilder.setInput(inputRDD.nativePlan)
+      nativeProjectExecBuilder.setInput(inputRDD.nativePlan(partition, taskContext))
 
       def addNamedExpression(namedExpression: NamedExpression): Unit = {
         namedExpression match {
@@ -62,6 +62,6 @@ case class NativeProjectExec(
         addNamedExpression(projectExpr)
       }
       PhysicalPlanNode.newBuilder().setProjection(nativeProjectExecBuilder.build()).build()
-    }, inputRDD.precompute)
+    })
   }
 }

@@ -51,7 +51,7 @@ object NativeSupports extends Logging {
       val partitionId = PartitionId.newBuilder()
         .setPartitionId(context.partitionId())
         .setStageId(context.stageId())
-        .setJobId(NativeRDD.getNativeJobId(context))
+        .setJobId(context.partitionId().toString)
         .build()
 
       val taskDefinition = TaskDefinition.newBuilder()
