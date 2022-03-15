@@ -47,6 +47,7 @@ import org.apache.spark.util.MutablePair
 import org.apache.spark.util.collection.unsafe.sort.PrefixComparators
 import org.apache.spark.util.collection.unsafe.sort.RecordComparator
 import org.blaze.protobuf.PhysicalHashRepartition
+import org.blaze.protobuf.PhysicalHashRepartition
 import org.blaze.protobuf.PhysicalPlanNode
 import org.blaze.protobuf.ShuffleReaderExecNode
 import org.blaze.protobuf.ShuffleWriterExecNode
@@ -141,6 +142,7 @@ case class ArrowShuffleExchangeExec301(
   }
 
   override def doExecuteNative(): NativeRDD = {
+    val shuffleId = shuffleDependency.shuffleId
     val rdd = doExecute()
     val nativeMetrics = MetricNode(Map(
       "output_rows" -> metrics(SQLShuffleReadMetricsReporter.RECORDS_READ),
@@ -149,23 +151,15 @@ case class ArrowShuffleExchangeExec301(
       "blaze_exec_time" -> metrics("blazeShuffleReadExecTime"),
     ), Nil)
 
-    // note:
-    //  Reuse ballista's ShuffleReaderExecNode for transporting, will be converted
-    //  to BlazeShuffleReader in blaze-rs.
-    val nativeShuffleReaderExec = PhysicalPlanNode.newBuilder()
-      .setShuffleReader(ShuffleReaderExecNode.newBuilder()
-        .setSchema(NativeConverters.convertSchema(schema))
-        .buildPartial())
-      .build()
-
-    new NativeRDD(
-      sparkContext,
-      nativeMetrics,
-      rdd.partitions,
-      rdd.dependencies,
-      nativeShuffleReaderExec,
-      precompute = rdd.compute, // store fetch iterator in jni resource before native compute
-    )
+    new NativeRDD(sparkContext, nativeMetrics, rdd.partitions, rdd.dependencies, (partition, taskContext) => {
+        rdd.compute(partition, taskContext) // store fetch iterator in jni resource before native compute
+        PhysicalPlanNode.newBuilder()
+          .setShuffleReader(ShuffleReaderExecNode.newBuilder()
+            .setSchema(NativeConverters.convertSchema(schema))
+            .setNativeShuffleId(NativeRDD.getNativeShuffleId(taskContext, shuffleId))
+            .build())
+          .build()
+      })
   }
 }
 
@@ -191,24 +185,27 @@ object ArrowShuffleExchangeExec301 {
     val nativeInputRDD = rdd.asInstanceOf[NativeRDD]
     val HashPartitioning(expressions, numPartitions) = outputPartitioning.asInstanceOf[HashPartitioning]
 
-    val nativePartitioning = PhysicalHashRepartition.newBuilder()
-      .setPartitionCount(numPartitions)
-      .addAllHashExpr(expressions.map(NativeConverters.convertExpr).asJava)
-      .build()
-    val nativeShuffleWriterExec = PhysicalPlanNode.newBuilder()
-      .setShuffleWriter(ShuffleWriterExecNode.newBuilder()
-        .setInput(nativeInputRDD.nativePlan)
-        .setOutputPartitioning(nativePartitioning)
-        .buildPartial()) // shuffleId is not set at the moment, will be set in ShuffleWriteProcessor
-      .build()
+
+    val nativeMetricNode = MetricNode(Map(
+      "blaze_exec_time" -> childMetrics("blazeShuffleWriteExecTime")
+    ), Seq(nativeInputRDD.metrics))
 
     val nativeShuffleRDD = new NativeRDD(
       nativeInputRDD.sparkContext,
-      MetricNode(Map("blaze_exec_time" -> childMetrics("blazeShuffleWriteExecTime")), Seq(nativeInputRDD.metrics)),
+      nativeMetricNode,
       nativeInputRDD.partitions,
       nativeInputRDD.dependencies,
-      nativeShuffleWriterExec,
-    )
+      (partition, taskContext) => {
+        PhysicalPlanNode.newBuilder()
+          .setShuffleWriter(ShuffleWriterExecNode.newBuilder()
+            .setInput(nativeInputRDD.nativePlan(partition, taskContext))
+            .setOutputPartitioning(PhysicalHashRepartition.newBuilder()
+              .setPartitionCount(numPartitions)
+              .addAllHashExpr(expressions.map(NativeConverters.convertExpr).asJava)
+              .build())
+            .buildPartial()) // shuffleId is not set at the moment, will be set in ShuffleWriteProcessor
+          .build()
+      })
 
     val dependency = new ShuffleDependencySchema[Int, InternalRow, InternalRow](
       nativeShuffleRDD.map((0, _)),
@@ -451,7 +448,7 @@ object ArrowShuffleExchangeExec301 {
 
         val nativeShuffleRDD = rdd.asInstanceOf[MapPartitionsRDD[_, _]].prev.asInstanceOf[NativeRDD]
         val nativeShuffleWriterExec = PhysicalPlanNode.newBuilder()
-          .setShuffleWriter(ShuffleWriterExecNode.newBuilder(nativeShuffleRDD.nativePlan.getShuffleWriter)
+          .setShuffleWriter(ShuffleWriterExecNode.newBuilder(nativeShuffleRDD.nativePlan(partition, context).getShuffleWriter)
             .setShuffleId(dep.shuffleId)
             .setMapId(mapId)
             .build())

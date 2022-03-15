@@ -51,8 +51,8 @@ class ArrowBlockStoreShuffleReader301[K, C](
       fetchContinuousBlocksInBatch).toCompletionIterator
 
     // Store buffers in JniBridge
-    val buffersJniResourceKey = "ShuffleReader.buffers:" + NativeRDD.getNativeJobId(context)
-    JniBridge.resourcesMap.put(buffersJniResourceKey, buffers)
+    val nativeShuffleId = NativeRDD.getNativeShuffleId(context, handle.shuffleId)
+    JniBridge.resourcesMap.put(nativeShuffleId, buffers)
 
     // Create a key/value iterator for each stream
     val recordIter = buffers.flatMap { case (blockId, managedBuffer) =>

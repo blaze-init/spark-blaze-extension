@@ -26,9 +26,6 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.util2.ArrowUtils2
 import org.apache.spark.sql.util2.ArrowWriter
-import org.apache.spark.sql.util2.ArrowColumnVector
-import org.apache.spark.sql.vectorized.ColumnVector
-import org.apache.spark.sql.vectorized.ColumnarBatch
 import org.apache.spark.util.Utils
 
 object Converters extends Logging {

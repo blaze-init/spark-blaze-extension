@@ -17,7 +17,6 @@ import org.apache.spark.sql.catalyst.plans.physical.UnspecifiedDistribution
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.UnaryExecNode
 import org.apache.spark.sql.execution.metric.SQLMetric
-import org.apache.spark.sql.execution.metric.SQLMetrics
 import org.blaze.protobuf.PhysicalExprNode
 import org.blaze.protobuf.PhysicalPlanNode
 import org.blaze.protobuf.PhysicalSortExprNode
@@ -54,8 +53,8 @@ case class NativeSortExec(
       "blaze_exec_time" -> metrics("blazeExecTime"),
     ), Seq(inputRDD.metrics))
 
-    new NativeRDD(sparkContext, nativeMetrics, inputRDD.partitions, inputRDD.dependencies, {
-      val nativeSortExecBuilder = SortExecNode.newBuilder().setInput(inputRDD.nativePlan)
+    new NativeRDD(sparkContext, nativeMetrics, inputRDD.partitions, inputRDD.dependencies, (partition, taskContext) => {
+      val nativeSortExecBuilder = SortExecNode.newBuilder().setInput(inputRDD.nativePlan(partition, taskContext))
 
       sortOrder.foreach { s =>
         nativeSortExecBuilder.addExpr(PhysicalExprNode.newBuilder()
@@ -70,6 +69,6 @@ case class NativeSortExec(
       PhysicalPlanNode.newBuilder()
         .setSort(nativeSortExecBuilder.build())
         .build()
-    }, inputRDD.precompute)
+    })
   }
 }

@@ -16,6 +16,7 @@ private static final long serialVersionUID = 0L;
     super(builder);
   }
   private ShuffleReaderExecNode() {
+    nativeShuffleId_ = "";
   }
 
   @java.lang.Override
@@ -59,6 +60,12 @@ private static final long serialVersionUID = 0L;
               schema_ = subBuilder.buildPartial();
             }
 
+            break;
+          }
+          case 26: {
+            java.lang.String s = input.readStringRequireUtf8();
+
+            nativeShuffleId_ = s;
             break;
           }
           default: {
@@ -119,6 +126,44 @@ private static final long serialVersionUID = 0L;
     return getSchema();
   }
 
+  public static final int NATIVESHUFFLEID_FIELD_NUMBER = 3;
+  private volatile java.lang.Object nativeShuffleId_;
+  /**
+   * <code>string nativeShuffleId = 3;</code>
+   * @return The nativeShuffleId.
+   */
+  @java.lang.Override
+  public java.lang.String getNativeShuffleId() {
+    java.lang.Object ref = nativeShuffleId_;
+    if (ref instanceof java.lang.String) {
+      return (java.lang.String) ref;
+    } else {
+      com.google.protobuf.ByteString bs = 
+          (com.google.protobuf.ByteString) ref;
+      java.lang.String s = bs.toStringUtf8();
+      nativeShuffleId_ = s;
+      return s;
+    }
+  }
+  /**
+   * <code>string nativeShuffleId = 3;</code>
+   * @return The bytes for nativeShuffleId.
+   */
+  @java.lang.Override
+  public com.google.protobuf.ByteString
+      getNativeShuffleIdBytes() {
+    java.lang.Object ref = nativeShuffleId_;
+    if (ref instanceof java.lang.String) {
+      com.google.protobuf.ByteString b = 
+          com.google.protobuf.ByteString.copyFromUtf8(
+              (java.lang.String) ref);
+      nativeShuffleId_ = b;
+      return b;
+    } else {
+      return (com.google.protobuf.ByteString) ref;
+    }
+  }
+
   private byte memoizedIsInitialized = -1;
   @java.lang.Override
   public final boolean isInitialized() {
@@ -136,6 +181,9 @@ private static final long serialVersionUID = 0L;
     if (schema_ != null) {
       output.writeMessage(2, getSchema());
     }
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(nativeShuffleId_)) {
+      com.google.protobuf.GeneratedMessageV3.writeString(output, 3, nativeShuffleId_);
+    }
     unknownFields.writeTo(output);
   }
 
@@ -148,6 +196,9 @@ private static final long serialVersionUID = 0L;
     if (schema_ != null) {
       size += com.google.protobuf.CodedOutputStream
         .computeMessageSize(2, getSchema());
+    }
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(nativeShuffleId_)) {
+      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(3, nativeShuffleId_);
     }
     size += unknownFields.getSerializedSize();
     memoizedSize = size;
@@ -169,6 +220,8 @@ private static final long serialVersionUID = 0L;
       if (!getSchema()
           .equals(other.getSchema())) return false;
     }
+    if (!getNativeShuffleId()
+        .equals(other.getNativeShuffleId())) return false;
     if (!unknownFields.equals(other.unknownFields)) return false;
     return true;
   }
@@ -184,6 +237,8 @@ private static final long serialVersionUID = 0L;
       hash = (37 * hash) + SCHEMA_FIELD_NUMBER;
       hash = (53 * hash) + getSchema().hashCode();
     }
+    hash = (37 * hash) + NATIVESHUFFLEID_FIELD_NUMBER;
+    hash = (53 * hash) + getNativeShuffleId().hashCode();
     hash = (29 * hash) + unknownFields.hashCode();
     memoizedHashCode = hash;
     return hash;
@@ -323,6 +378,8 @@ private static final long serialVersionUID = 0L;
         schema_ = null;
         schemaBuilder_ = null;
       }
+      nativeShuffleId_ = "";
+
       return this;
     }
 
@@ -354,6 +411,7 @@ private static final long serialVersionUID = 0L;
       } else {
         result.schema_ = schemaBuilder_.build();
       }
+      result.nativeShuffleId_ = nativeShuffleId_;
       onBuilt();
       return result;
     }
@@ -404,6 +462,10 @@ private static final long serialVersionUID = 0L;
       if (other == org.blaze.protobuf.ShuffleReaderExecNode.getDefaultInstance()) return this;
       if (other.hasSchema()) {
         mergeSchema(other.getSchema());
+      }
+      if (!other.getNativeShuffleId().isEmpty()) {
+        nativeShuffleId_ = other.nativeShuffleId_;
+        onChanged();
       }
       this.mergeUnknownFields(other.unknownFields);
       onChanged();
@@ -551,6 +613,82 @@ private static final long serialVersionUID = 0L;
         schema_ = null;
       }
       return schemaBuilder_;
+    }
+
+    private java.lang.Object nativeShuffleId_ = "";
+    /**
+     * <code>string nativeShuffleId = 3;</code>
+     * @return The nativeShuffleId.
+     */
+    public java.lang.String getNativeShuffleId() {
+      java.lang.Object ref = nativeShuffleId_;
+      if (!(ref instanceof java.lang.String)) {
+        com.google.protobuf.ByteString bs =
+            (com.google.protobuf.ByteString) ref;
+        java.lang.String s = bs.toStringUtf8();
+        nativeShuffleId_ = s;
+        return s;
+      } else {
+        return (java.lang.String) ref;
+      }
+    }
+    /**
+     * <code>string nativeShuffleId = 3;</code>
+     * @return The bytes for nativeShuffleId.
+     */
+    public com.google.protobuf.ByteString
+        getNativeShuffleIdBytes() {
+      java.lang.Object ref = nativeShuffleId_;
+      if (ref instanceof String) {
+        com.google.protobuf.ByteString b = 
+            com.google.protobuf.ByteString.copyFromUtf8(
+                (java.lang.String) ref);
+        nativeShuffleId_ = b;
+        return b;
+      } else {
+        return (com.google.protobuf.ByteString) ref;
+      }
+    }
+    /**
+     * <code>string nativeShuffleId = 3;</code>
+     * @param value The nativeShuffleId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setNativeShuffleId(
+        java.lang.String value) {
+      if (value == null) {
+    throw new NullPointerException();
+  }
+  
+      nativeShuffleId_ = value;
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>string nativeShuffleId = 3;</code>
+     * @return This builder for chaining.
+     */
+    public Builder clearNativeShuffleId() {
+      
+      nativeShuffleId_ = getDefaultInstance().getNativeShuffleId();
+      onChanged();
+      return this;
+    }
+    /**
+     * <code>string nativeShuffleId = 3;</code>
+     * @param value The bytes for nativeShuffleId to set.
+     * @return This builder for chaining.
+     */
+    public Builder setNativeShuffleIdBytes(
+        com.google.protobuf.ByteString value) {
+      if (value == null) {
+    throw new NullPointerException();
+  }
+  checkByteStringIsUtf8(value);
+      
+      nativeShuffleId_ = value;
+      onChanged();
+      return this;
     }
     @java.lang.Override
     public final Builder setUnknownFields(

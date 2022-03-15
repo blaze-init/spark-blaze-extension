@@ -6,6 +6,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.Dependency
 import org.apache.spark.Partition
 import org.apache.spark.SparkContext
+import org.apache.spark.SparkEnv
 import org.apache.spark.TaskContext
 import org.blaze.protobuf.PhysicalPlanNode
 
@@ -14,24 +15,19 @@ class NativeRDD(
   val metrics: MetricNode,
   private val rddPartitions: Array[Partition],
   private val rddDependencies: Seq[Dependency[_]],
-  val nativePlan: PhysicalPlanNode,
-  val precompute: (Partition, TaskContext) => Unit = (_, _) => {},
+  val nativePlan: (Partition, TaskContext) => PhysicalPlanNode,
 ) extends RDD[InternalRow](rddSparkContext, rddDependencies) with Logging {
 
   override protected def getPartitions: Array[Partition] = rddPartitions
   override protected def getDependencies: Seq[Dependency[_]] = rddDependencies
 
   override def compute(split: Partition, context: TaskContext): Iterator[InternalRow] = {
-    precompute(split, context)
-    NativeSupports.executeNativePlan(nativePlan, metrics, context)
+    val computingNativePlan = nativePlan(split, context)
+    NativeSupports.executeNativePlan(computingNativePlan, metrics, context)
   }
 }
 
 object NativeRDD {
-  def getNativeJobId(context: TaskContext): String = Seq(
-    context.stageId(),
-    context.stageAttemptNumber(),
-    context.partitionId(),
-    context.taskAttemptId(),
-  ).mkString(":")
+  def getNativeShuffleId(context: TaskContext, shuffleId: Int): String =
+    s"nativeShuffleId:${context.stageId}:${context.stageAttemptNumber}:${context.partitionId}:${context.taskAttemptId}:${shuffleId}"
 }

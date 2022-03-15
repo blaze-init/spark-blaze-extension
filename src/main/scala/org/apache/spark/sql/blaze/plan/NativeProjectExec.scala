@@ -25,7 +25,6 @@ case class NativeProjectExec(
   override lazy val metrics: Map[String, SQLMetric] = NativeSupports.getDefaultNativeMetrics(sparkContext)
 
   override def outputExpressions: Seq[NamedExpression] = projectList
-
   override def output: Seq[Attribute] = outputExpressions.map(_.toAttribute)
 
   override def doExecute(): RDD[InternalRow] = doExecuteNative()
@@ -39,9 +38,9 @@ case class NativeProjectExec(
       "blaze_exec_time" -> metrics("blazeExecTime"),
     ), Seq(inputRDD.metrics))
 
-    new NativeRDD(sparkContext, nativeMetrics, inputRDD.partitions, inputRDD.dependencies, {
+    new NativeRDD(sparkContext, nativeMetrics, inputRDD.partitions, inputRDD.dependencies, (partition, taskContext) => {
       val nativeProjectExecBuilder = ProjectionExecNode.newBuilder()
-      nativeProjectExecBuilder.setInput(inputRDD.nativePlan)
+      nativeProjectExecBuilder.setInput(inputRDD.nativePlan(partition, taskContext))
 
       def addNamedExpression(namedExpression: NamedExpression): Unit = {
         namedExpression match {
@@ -63,6 +62,6 @@ case class NativeProjectExec(
         addNamedExpression(projectExpr)
       }
       PhysicalPlanNode.newBuilder().setProjection(nativeProjectExecBuilder.build()).build()
-    }, inputRDD.precompute)
+    })
   }
 }

@@ -11,6 +11,7 @@ import org.apache.spark.Partition
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.blaze.MetricNode
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.plans.physical.Partitioning
 import org.apache.spark.sql.execution.metric.SQLMetric
 import org.blaze.protobuf.FileGroup
 import org.blaze.protobuf.FileScanExecConf
@@ -26,9 +27,9 @@ case class NativeParquetScanExec(basedFileScan: FileSourceScanExec) extends Leaf
   override lazy val metrics: Map[String, SQLMetric] = NativeSupports.getDefaultNativeMetrics(sparkContext)
 
   override def output: Seq[Attribute] = basedFileScan.output
+  override def outputPartitioning: Partitioning = basedFileScan.outputPartitioning
 
   override def doExecute(): RDD[InternalRow] = doExecuteNative()
-
   override def doExecuteNative(): NativeRDD = {
     val inputFileScanRDD = basedFileScan.inputRDD.asInstanceOf[FileScanRDD]
     val partitions = inputFileScanRDD.filePartitions.toArray
@@ -43,7 +44,7 @@ case class NativeParquetScanExec(basedFileScan: FileSourceScanExec) extends Leaf
     val outputSchema = basedFileScan.requiredSchema.fields
     val projection = outputSchema.map(field => fileSchema.fieldIndex(field.name))
 
-    new NativeRDD(sparkContext, nativeMetrics, partitions.asInstanceOf[Array[Partition]], Nil, {
+    new NativeRDD(sparkContext, nativeMetrics, partitions.asInstanceOf[Array[Partition]], Nil, (_, _) => {
       val nativeParquetScanConfBuilder = FileScanExecConf.newBuilder()
         .setStatistics(Statistics.getDefaultInstance)
         .setSchema(NativeConverters.convertSchema(fileSchema))
