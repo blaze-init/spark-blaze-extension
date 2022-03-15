@@ -50,7 +50,7 @@ case class NativeParquetScanExec(basedFileScan: FileSourceScanExec) extends Leaf
         .setSchema(NativeConverters.convertSchema(fileSchema))
         .addAllProjection(projection.map(Integer.valueOf).toSeq.asJava)
 
-      val filter = basedFileScan.dataFilters.reduceOption(And).map(f => NativeConverters.convertFilterExpr(f))
+      val filter = basedFileScan.dataFilters.reduceOption(And).map(f => NativeConverters.convertExprLogical(f))
 
       partitions.foreach { filePartition =>
         val nativeFileGroupBuilder = FileGroup.newBuilder()

@@ -1,6 +1,7 @@
 package org.apache.spark.sql.blaze
 
 import scala.collection.JavaConverters._
+
 import org.apache.spark.sql.catalyst.expressions.Abs
 import org.apache.spark.sql.catalyst.expressions.Acos
 import org.apache.spark.sql.catalyst.expressions.Add
@@ -20,6 +21,7 @@ import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.catalyst.expressions.Floor
 import org.apache.spark.sql.catalyst.expressions.GreaterThan
 import org.apache.spark.sql.catalyst.expressions.GreaterThanOrEqual
+import org.apache.spark.sql.catalyst.expressions.In
 import org.apache.spark.sql.catalyst.expressions.IsNotNull
 import org.apache.spark.sql.catalyst.expressions.LessThan
 import org.apache.spark.sql.catalyst.expressions.LessThanOrEqual
@@ -45,6 +47,7 @@ import org.apache.spark.sql.catalyst.expressions.StartsWith
 import org.apache.spark.sql.catalyst.expressions.StringTrim
 import org.apache.spark.sql.catalyst.expressions.StringTrimLeft
 import org.apache.spark.sql.catalyst.expressions.StringTrimRight
+import org.apache.spark.sql.catalyst.expressions.Substring
 import org.apache.spark.sql.catalyst.expressions.Subtract
 import org.apache.spark.sql.catalyst.expressions.Tan
 import org.apache.spark.sql.catalyst.expressions.TruncDate
@@ -65,7 +68,28 @@ import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.types.TimestampType
-import org.blaze.protobuf.{ArrowType, BinaryExprNode, CastNode, Column, EmptyMessage, Field, LogicalExprNode, PhysicalBinaryExprNode, PhysicalCastNode, PhysicalColumn, PhysicalExprNode, PhysicalIsNotNull, PhysicalNot, PhysicalScalarFunctionNode, ScalarDecimalValue, ScalarFunction, ScalarFunctionNode, ScalarValue, Schema, Timestamp}
+import org.blaze.protobuf.ArrowType
+import org.blaze.protobuf.BinaryExprNode
+import org.blaze.protobuf.CastNode
+import org.blaze.protobuf.Column
+import org.blaze.protobuf.EmptyMessage
+import org.blaze.protobuf.Field
+import org.blaze.protobuf.LogicalExprNode
+import org.blaze.protobuf.PhysicalBinaryExprNode
+import org.blaze.protobuf.PhysicalCastNode
+import org.blaze.protobuf.PhysicalColumn
+import org.blaze.protobuf.PhysicalExprNode
+import org.blaze.protobuf.PhysicalIsNotNull
+import org.blaze.protobuf.PhysicalNot
+import org.blaze.protobuf.PhysicalScalarFunctionNode
+import org.blaze.protobuf.ScalarDecimalValue
+import org.blaze.protobuf.ScalarFunction
+import org.blaze.protobuf.ScalarFunctionNode
+import org.blaze.protobuf.ScalarValue
+import org.blaze.protobuf.Schema
+import org.blaze.protobuf.Timestamp
+import org.blaze.protobuf.InListNode
+import org.blaze.protobuf.PhysicalInListNode
 
 object NativeConverters {
   def convertDataType(sparkDataType: DataType): ArrowType = {
@@ -171,23 +195,29 @@ object NativeConverters {
         _.setLiteral(convertValue(value, dataType))
       }
       case AttributeReference(name, _, _, _) => buildExprNode {
-        _.setColumn(PhysicalColumn.newBuilder().setName(name).build())
+        _.setColumn(PhysicalColumn.newBuilder().setName(name))
       }
 
       // cast
       case Cast(child, dataType, _) => buildExprNode {
         _.setCast(PhysicalCastNode.newBuilder()
           .setExpr(convertExpr(child))
-          .setArrowType(convertDataType(dataType))
-          .build())
+          .setArrowType(convertDataType(dataType)))
+      }
+
+      // in
+      case In(value, list) => buildExprNode {
+        _.setInList(PhysicalInListNode.newBuilder()
+          .setExpr(convertExpr(value))
+          .addAllList(list.map(convertExpr).asJava))
       }
 
       // unary ops
       case IsNotNull(child) => buildExprNode {
-        _.setIsNotNullExpr(PhysicalIsNotNull.newBuilder().setExpr(convertExpr(child)).build())
+        _.setIsNotNullExpr(PhysicalIsNotNull.newBuilder().setExpr(convertExpr(child)))
       }
       case Not(child) => buildExprNode {
-        _.setNotExpr(PhysicalNot.newBuilder().setExpr(convertExpr(child)).build())
+        _.setNotExpr(PhysicalNot.newBuilder().setExpr(convertExpr(child)))
       }
 
       // binary ops
@@ -230,6 +260,7 @@ object NativeConverters {
       case e: StringTrim => buildScalarFunction(ScalarFunction.TRIM, e.srcStr +: e.trimStr.toSeq, e.dataType)
       case e: StringTrimLeft => buildScalarFunction(ScalarFunction.LTRIM, e.srcStr +: e.trimStr.toSeq, e.dataType)
       case e: StringTrimRight => buildScalarFunction(ScalarFunction.RTRIM, e.srcStr +: e.trimStr.toSeq, e.dataType)
+      
       // case Nothing => buildScalarFunction(ScalarFunction.TOTIMESTAMP, Nil)
       // case Nothing => buildScalarFunction(ScalarFunction.ARRAY, Nil)
       case e: NullIf => buildScalarFunction(ScalarFunction.NULLIF, e.children, e.dataType)
@@ -250,23 +281,21 @@ object NativeConverters {
     }
   }
 
-  def convertFilterExpr(sparkExpr: Expression): LogicalExprNode = {
+  def convertExprLogical(sparkExpr: Expression): LogicalExprNode = {
     def buildExprNode(buildFn: (LogicalExprNode.Builder) => LogicalExprNode.Builder): LogicalExprNode =
       buildFn(LogicalExprNode.newBuilder()).build()
 
     def buildBinaryExprNode(left: Expression, right: Expression, op: String): LogicalExprNode = buildExprNode {
       _.setBinaryExpr(BinaryExprNode.newBuilder()
-        .setL(convertFilterExpr(left))
-        .setR(convertFilterExpr(right))
-        .setOp(op)
-        .build())
+        .setL(convertExprLogical(left))
+        .setR(convertExprLogical(right))
+        .setOp(op))
     }
 
     def buildScalarFunction(fn: ScalarFunction, args: Seq[Expression], dataType: DataType): LogicalExprNode = buildExprNode {
       _.setScalarFunction(ScalarFunctionNode.newBuilder()
         .setFun(fn)
-        .addAllArgs(args.map(convertFilterExpr).asJava)
-        .build())
+        .addAllArgs(args.map(convertExprLogical).asJava))
     }
 
     def unpackBinaryTypeCast(expr: Expression) = expr match {
@@ -279,23 +308,29 @@ object NativeConverters {
         _.setLiteral(convertValue(value, dataType))
       }
       case AttributeReference(name, _, _, _) => buildExprNode {
-        _.setColumn(Column.newBuilder().setName(name).build())
+        _.setColumn(Column.newBuilder().setName(name))
       }
 
       // cast
       case Cast(child, dataType, _) => buildExprNode {
         _.setCast(CastNode.newBuilder()
-          .setExpr(convertFilterExpr(child))
-          .setArrowType(convertDataType(dataType))
-          .build())
+          .setExpr(convertExprLogical(child))
+          .setArrowType(convertDataType(dataType)))
+      }
+
+      // in
+      case In(value, list) => buildExprNode {
+        _.setInList(InListNode.newBuilder()
+          .setExpr(convertExprLogical(value))
+          .addAllList(list.map(convertExprLogical).asJava))
       }
 
       // unary ops
       case IsNotNull(child) => buildExprNode {
-        _.setIsNotNullExpr(org.blaze.protobuf.IsNotNull.newBuilder().setExpr(convertFilterExpr(child)).build())
+        _.setIsNotNullExpr(org.blaze.protobuf.IsNotNull.newBuilder().setExpr(convertExprLogical(child)))
       }
       case Not(child) => buildExprNode {
-        _.setNotExpr(org.blaze.protobuf.Not.newBuilder().setExpr(convertFilterExpr(child)).build())
+        _.setNotExpr(org.blaze.protobuf.Not.newBuilder().setExpr(convertExprLogical(child)))
       }
 
       // binary ops
