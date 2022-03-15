@@ -160,6 +160,10 @@ public enum ScalarFunction
    * <code>STARTS_WITH = 1001;</code>
    */
   STARTS_WITH(1001),
+  /**
+   * <code>SUBSTR = 1002;</code>
+   */
+  SUBSTR(1002),
   UNRECOGNIZED(-1),
   ;
 
@@ -315,6 +319,10 @@ public enum ScalarFunction
    * <code>STARTS_WITH = 1001;</code>
    */
   public static final int STARTS_WITH_VALUE = 1001;
+  /**
+   * <code>SUBSTR = 1002;</code>
+   */
+  public static final int SUBSTR_VALUE = 1002;
 
 
   public final int getNumber() {
@@ -379,6 +387,7 @@ public enum ScalarFunction
       case 35: return TOTIMESTAMPMILLIS;
       case 36: return DIGEST;
       case 1001: return STARTS_WITH;
+      case 1002: return SUBSTR;
       default: return null;
     }
   }
