@@ -31,8 +31,6 @@ class BlazeSparkSessionExtension extends (SparkSessionExtensions => Unit) with L
   override def apply(extensions: SparkSessionExtensions): Unit = {
     SparkEnv.get.conf.set(SQLConf.ADAPTIVE_EXECUTION_ENABLED.key, "true")
     SparkEnv.get.conf.set(SQLConf.ADAPTIVE_EXECUTION_FORCE_APPLY.key, "true")
-    SparkEnv.get.conf.set(org.apache.spark.internal.config.SHUFFLE_MANAGER.key, "org.apache.spark.sql.blaze.execution.ArrowShuffleManager301")
-    SparkEnv.get.conf.set(org.apache.spark.internal.config.SHUFFLE_SERVICE_ENABLED.key, "false")
     logInfo("org.apache.spark.BlazeSparkSessionExtension enabled")
 
     extensions.injectQueryStagePrepRule(_ => BlazeQueryStagePrepOverrides())
