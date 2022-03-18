@@ -53,7 +53,7 @@ public class JniBridge {
 
     // Native -> JVM
     public static native void callNative(
-            ByteBuffer taskDefinition,
+            byte[] taskDefinition,
             MetricNode metrics,
             Consumer<ByteBuffer> resultHandler
     );

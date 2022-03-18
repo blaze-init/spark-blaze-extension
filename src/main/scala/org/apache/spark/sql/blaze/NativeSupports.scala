@@ -59,10 +59,6 @@ object NativeSupports extends Logging {
         .setPlan(nativePlan)
         .build()
 
-      val taskDefinitionBytes = taskDefinition.toByteArray
-      val taskDefinitionByteBuffer = ByteBuffer.allocateDirect(taskDefinitionBytes.length)
-      taskDefinitionByteBuffer.put(taskDefinitionBytes)
-
       // note: consider passing a ByteBufferOutputStream to blaze-rs to avoid copying
       if (SparkEnv.get.conf.getBoolean("spark.kwai.blaze.dumpNativePlanBeforeExecuting", defaultValue = false)) {
          logInfo(s"Start executing native plan: ${taskDefinition.toString}")
@@ -70,7 +66,7 @@ object NativeSupports extends Logging {
          logInfo(s"Start executing native plan")
       }
       var outputBytes: Array[Byte] = null
-      JniBridge.callNative(taskDefinitionByteBuffer, metrics, byteBuffer => {
+      JniBridge.callNative(taskDefinition.toByteArray, metrics, byteBuffer => {
          if (byteBuffer != null) {
             outputBytes = new Array[Byte](byteBuffer.limit())
             byteBuffer.get(outputBytes)
