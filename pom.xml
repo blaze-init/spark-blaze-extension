@@ -26,6 +26,9 @@
     <scalatest-maven-plugin.version>2.0.2</scalatest-maven-plugin.version>
     <scalatest.version>3.2.9</scalatest.version>
 
+    <protoc3.version>3.19.4</protoc3.version>
+    <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
+
     <!-- spark version -->
     <spark.tags.version>3.0.3</spark.tags.version>
 
@@ -97,7 +100,7 @@
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java</artifactId>
-      <version>3.19.2</version>
+      <version>3.19.4</version>
     </dependency>
   </dependencies>
 
@@ -210,6 +213,57 @@
             <goals>
               <goal>test</goal>
             </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <!-- Detect os version for protoc plugin -->
+      <plugin>
+        <groupId>kr.motd.maven</groupId>
+        <artifactId>os-maven-plugin</artifactId>
+        <version>1.6.2</version>
+        <executions>
+          <execution>
+            <phase>initialize</phase>
+            <goals>
+              <goal>detect</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.xolstice.maven.plugins</groupId>
+        <artifactId>protobuf-maven-plugin</artifactId>
+        <version>${protobuf-maven-plugin.version}</version>
+        <configuration>
+          <protocArtifact>com.google.protobuf:protoc:${protoc3.version}:exe:${os.detected.classifier}</protocArtifact>
+          <checkStaleness>true</checkStaleness>
+          <outputDirectory>src/generated-sources</outputDirectory>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>3.3.0</version>
+        <executions>
+          <execution>
+            <id>add-source</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>add-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>src/generated-sources</source>
+              </sources>
+            </configuration>
           </execution>
         </executions>
       </plugin>

@@ -71,3 +71,4 @@ sql/catalyst/src/main/java/org/apache/spark/sql/catalyst/parser/
 dev/testenv/_data
 dev/testenv/_logs
 dev/testenv/_software
+src/generated-sources
