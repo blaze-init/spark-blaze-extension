@@ -55,7 +55,8 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
       sparkPlanTransformed = convertToUnsafeRow(sparkPlanTransformed)
     }
 
-    logInfo(s"Transformed spark plan:\n${sparkPlanTransformed.treeString(verbose = true, addSuffix = true, printOperatorId = true)}")
+    logInfo(s"Transformed spark plan:\n${sparkPlanTransformed
+      .treeString(verbose = true, addSuffix = true, printOperatorId = true)}")
     sparkPlanTransformed
   }
 
@@ -67,11 +68,21 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
       case child if NativeSupports.isNative(child) => WholeStageCodegenForBlazeNativeExec(child)
       case child => child
     }
-    ArrowShuffleExchangeExec301(outputPartitioning, childWithWholeStageCodegen, noUserSpecifiedNumPartition)
+    ArrowShuffleExchangeExec301(
+      outputPartitioning,
+      childWithWholeStageCodegen,
+      noUserSpecifiedNumPartition)
   }
 
   private def convertFileSourceScanExec(exec: FileSourceScanExec): SparkPlan = {
-    val FileSourceScanExec(relation, output, requiredSchema, partitionFilters, optionalBucketSet, dataFilters, tableIdentifier) = exec
+    val FileSourceScanExec(
+      relation,
+      output,
+      requiredSchema,
+      partitionFilters,
+      optionalBucketSet,
+      dataFilters,
+      tableIdentifier) = exec
     logInfo(s"Converting FileSourceScanExec: ${exec.simpleStringWithNodeId}")
     logInfo(s"  relation: ${relation}")
     logInfo(s"  relation.location: ${relation.location}")
@@ -143,9 +154,9 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
   }
 }
 
-case class WholeStageCodegenForBlazeNativeExec(
-  override val child: SparkPlan
-) extends UnaryExecNode with NativeSupports {
+case class WholeStageCodegenForBlazeNativeExec(override val child: SparkPlan)
+    extends UnaryExecNode
+    with NativeSupports {
 
   override def nodeName: String = "WholeStageCodegen for Blaze Native Execution"
   override def logicalLink: Option[LogicalPlan] = child.logicalLink

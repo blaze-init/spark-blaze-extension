@@ -47,15 +47,15 @@ import org.apache.spark.SparkEnv
  * reopened again.
  */
 private[spark] class DiskBlockArrowIPCWriter(
-  val file: File,
-  bufferSize: Int,
-  syncWrites: Boolean,
-  // These write metrics concurrently shared with other active DiskBlockObjectWriters who
-  // are themselves performing writes. All updates must be relative.
-  writeMetrics: ShuffleWriteMetricsReporter,
-  schema: StructType,
-  maxRecordsPerBatch: Int)
-  extends OutputStream
+    val file: File,
+    bufferSize: Int,
+    syncWrites: Boolean,
+    // These write metrics concurrently shared with other active DiskBlockObjectWriters who
+    // are themselves performing writes. All updates must be relative.
+    writeMetrics: ShuffleWriteMetricsReporter,
+    schema: StructType,
+    maxRecordsPerBatch: Int)
+    extends OutputStream
     with Logging {
 
   val timezoneId = SparkEnv.get.conf.get(SQLConf.SESSION_LOCAL_TIMEZONE)
@@ -65,6 +65,7 @@ private[spark] class DiskBlockArrowIPCWriter(
   val root = VectorSchemaRoot.create(arrowSchema, allocator)
   val arrowBuffer = ArrowWriter.create(root)
   private val leLength = new Array[Byte](8)
+
   /** The file channel, used for repositioning / truncating the file. */
   private var channel: FileChannel = null
   private var mcs: ManualCloseOutputStream = null
@@ -208,8 +209,9 @@ private[spark] class DiskBlockArrowIPCWriter(
         // don't log the exception stack trace to avoid confusing users.
         // See: SPARK-28340
         case ce: ClosedByInterruptException =>
-          logError("Exception occurred while reverting partial writes to file "
-            + file + ", " + ce.getMessage)
+          logError(
+            "Exception occurred while reverting partial writes to file "
+              + file + ", " + ce.getMessage)
         case e: Exception =>
           logError("Uncaught exception while reverting partial writes to file " + file, e)
       } finally {
@@ -262,7 +264,8 @@ private[spark] class DiskBlockArrowIPCWriter(
     channel = fos.getChannel()
     ts = new TimeTrackingOutputStream(writeMetrics, fos)
     class ManualCloseBufferedOutputStream
-      extends BufferedOutputStream(ts, bufferSize) with ManualCloseOutputStream
+        extends BufferedOutputStream(ts, bufferSize)
+        with ManualCloseOutputStream
     mcs = new ManualCloseBufferedOutputStream
   }
 

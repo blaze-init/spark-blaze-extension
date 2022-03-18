@@ -36,7 +36,8 @@ object Converters extends Logging {
     segmentSeekableByteChannels.toIterator.flatMap(readBatches(_, context))
   }
 
-  def readManagedBufferToSegmentByteChannelsAsJava(data: ManagedBuffer): java.util.List[SeekableByteChannel] = {
+  def readManagedBufferToSegmentByteChannelsAsJava(
+      data: ManagedBuffer): java.util.List[SeekableByteChannel] = {
     readManagedBufferToSegmentByteChannels(data).asJava
   }
 
@@ -83,7 +84,10 @@ object Converters extends Logging {
    * Read batches from one IPC entity. [IPC-header] [IPC-record-batches] [IPC-footer]
    */
   def readBatches(channel: SeekableByteChannel, context: TaskContext): Iterator[InternalRow] = {
-    val allocator = ArrowUtils2.rootAllocator.newChildAllocator("readBatchesFromManagedBuffer", 0, Long.MaxValue)
+    val allocator = ArrowUtils2.rootAllocator.newChildAllocator(
+      "readBatchesFromManagedBuffer",
+      0,
+      Long.MaxValue)
     val arrowReader = new ArrowFileReader(channel, allocator)
 
     context.addTaskCompletionListener[Unit] { _ =>
@@ -99,12 +103,12 @@ object Converters extends Logging {
    * in a batch by setting maxRecordsPerBatch or use 0 to fully consume rowIter.
    */
   private[sql] def toBatchIterator(
-    rowIter: Iterator[InternalRow],
-    schema: StructType,
-    maxRecordsPerBatch: Int,
-    timeZoneId: String,
-    context: TaskContext,
-    out: OutputStream): Unit = {
+      rowIter: Iterator[InternalRow],
+      schema: StructType,
+      maxRecordsPerBatch: Int,
+      timeZoneId: String,
+      context: TaskContext,
+      out: OutputStream): Unit = {
 
     val arrowSchema = ArrowUtils2.toArrowSchema(schema, timeZoneId)
     val allocator =

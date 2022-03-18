@@ -17,12 +17,13 @@ import org.apache.spark.sql.execution.metric.SQLMetric
 import org.blaze.protobuf.PhysicalPlanNode
 import org.blaze.protobuf.ProjectionExecNode
 
-case class NativeProjectExec(
-  projectList: Seq[NamedExpression],
-  override val child: SparkPlan,
-) extends UnaryExecNode with NativeSupports with AliasAwareOutputPartitioning {
+case class NativeProjectExec(projectList: Seq[NamedExpression], override val child: SparkPlan)
+    extends UnaryExecNode
+    with NativeSupports
+    with AliasAwareOutputPartitioning {
 
-  override lazy val metrics: Map[String, SQLMetric] = NativeSupports.getDefaultNativeMetrics(sparkContext)
+  override lazy val metrics: Map[String, SQLMetric] =
+    NativeSupports.getDefaultNativeMetrics(sparkContext)
 
   override def outputExpressions: Seq[NamedExpression] = projectList
   override def output: Seq[Attribute] = outputExpressions.map(_.toAttribute)
@@ -31,37 +32,43 @@ case class NativeProjectExec(
 
   override def doExecuteNative(): NativeRDD = {
     val inputRDD = NativeSupports.executeNative(child)
-    val nativeMetrics = MetricNode(Map(
-      "output_rows" -> metrics("numOutputRows"),
-      "blaze_output_ipc_rows" -> metrics("blazeExecIPCWrittenRows"),
-      "blaze_output_ipc_bytes" -> metrics("blazeExecIPCWrittenBytes"),
-      "blaze_exec_time" -> metrics("blazeExecTime"),
-    ), Seq(inputRDD.metrics))
+    val nativeMetrics = MetricNode(
+      Map(
+        "output_rows" -> metrics("numOutputRows"),
+        "blaze_output_ipc_rows" -> metrics("blazeExecIPCWrittenRows"),
+        "blaze_output_ipc_bytes" -> metrics("blazeExecIPCWrittenBytes"),
+        "blaze_exec_time" -> metrics("blazeExecTime")),
+      Seq(inputRDD.metrics))
 
-    new NativeRDD(sparkContext, nativeMetrics, inputRDD.partitions, inputRDD.dependencies, (partition, taskContext) => {
-      val nativeProjectExecBuilder = ProjectionExecNode.newBuilder()
-      nativeProjectExecBuilder.setInput(inputRDD.nativePlan(partition, taskContext))
+    new NativeRDD(
+      sparkContext,
+      nativeMetrics,
+      inputRDD.partitions,
+      inputRDD.dependencies,
+      (partition, taskContext) => {
+        val nativeProjectExecBuilder = ProjectionExecNode.newBuilder()
+        nativeProjectExecBuilder.setInput(inputRDD.nativePlan(partition, taskContext))
 
-      def addNamedExpression(namedExpression: NamedExpression): Unit = {
-        namedExpression match {
-          case star: ResolvedStar =>
-            for (expr <- star.expressions) {
-              addNamedExpression(expr)
-            }
+        def addNamedExpression(namedExpression: NamedExpression): Unit = {
+          namedExpression match {
+            case star: ResolvedStar =>
+              for (expr <- star.expressions) {
+                addNamedExpression(expr)
+              }
 
-          case alias: Alias =>
-            nativeProjectExecBuilder.addExprName(alias.name)
-            nativeProjectExecBuilder.addExpr(NativeConverters.convertExpr(alias.child))
+            case alias: Alias =>
+              nativeProjectExecBuilder.addExprName(alias.name)
+              nativeProjectExecBuilder.addExpr(NativeConverters.convertExpr(alias.child))
 
-          case otherNamedExpression =>
-            nativeProjectExecBuilder.addExprName(otherNamedExpression.name)
-            nativeProjectExecBuilder.addExpr(NativeConverters.convertExpr(otherNamedExpression))
+            case otherNamedExpression =>
+              nativeProjectExecBuilder.addExprName(otherNamedExpression.name)
+              nativeProjectExecBuilder.addExpr(NativeConverters.convertExpr(otherNamedExpression))
+          }
         }
-      }
-      for (projectExpr <- projectList) {
-        addNamedExpression(projectExpr)
-      }
-      PhysicalPlanNode.newBuilder().setProjection(nativeProjectExecBuilder.build()).build()
-    })
+        for (projectExpr <- projectList) {
+          addNamedExpression(projectExpr)
+        }
+        PhysicalPlanNode.newBuilder().setProjection(nativeProjectExecBuilder.build()).build()
+      })
   }
 }

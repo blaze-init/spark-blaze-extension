@@ -23,12 +23,14 @@ import org.blaze.protobuf.PhysicalSortExprNode
 import org.blaze.protobuf.SortExecNode
 
 case class NativeSortExec(
-  sortOrder: Seq[SortOrder],
-  global: Boolean,
-  override val child: SparkPlan,
-) extends UnaryExecNode with NativeSupports {
+    sortOrder: Seq[SortOrder],
+    global: Boolean,
+    override val child: SparkPlan)
+    extends UnaryExecNode
+    with NativeSupports {
 
-  override lazy val metrics: Map[String, SQLMetric] = NativeSupports.getDefaultNativeMetrics(sparkContext)
+  override lazy val metrics: Map[String, SQLMetric] =
+    NativeSupports.getDefaultNativeMetrics(sparkContext)
 
   override def output: Seq[Attribute] = child.output
 
@@ -36,39 +38,51 @@ case class NativeSortExec(
 
   override def outputPartitioning: Partitioning = child.outputPartitioning
 
-  override def requiredChildDistribution: Seq[Distribution] = if (global) {
-    OrderedDistribution(sortOrder) :: Nil
-  } else {
-    UnspecifiedDistribution :: Nil
-  }
+  override def requiredChildDistribution: Seq[Distribution] =
+    if (global) {
+      OrderedDistribution(sortOrder) :: Nil
+    } else {
+      UnspecifiedDistribution :: Nil
+    }
 
   override def doExecute(): RDD[InternalRow] = doExecuteNative()
 
   override def doExecuteNative(): NativeRDD = {
     val inputRDD = NativeSupports.executeNative(child)
-    val nativeMetrics = MetricNode(Map(
-      "output_rows" -> metrics("numOutputRows"),
-      "blaze_output_ipc_rows" -> metrics("blazeExecIPCWrittenRows"),
-      "blaze_output_ipc_bytes" -> metrics("blazeExecIPCWrittenBytes"),
-      "blaze_exec_time" -> metrics("blazeExecTime"),
-    ), Seq(inputRDD.metrics))
+    val nativeMetrics = MetricNode(
+      Map(
+        "output_rows" -> metrics("numOutputRows"),
+        "blaze_output_ipc_rows" -> metrics("blazeExecIPCWrittenRows"),
+        "blaze_output_ipc_bytes" -> metrics("blazeExecIPCWrittenBytes"),
+        "blaze_exec_time" -> metrics("blazeExecTime")),
+      Seq(inputRDD.metrics))
 
-    new NativeRDD(sparkContext, nativeMetrics, inputRDD.partitions, inputRDD.dependencies, (partition, taskContext) => {
-      val nativeSortExecBuilder = SortExecNode.newBuilder().setInput(inputRDD.nativePlan(partition, taskContext))
+    new NativeRDD(
+      sparkContext,
+      nativeMetrics,
+      inputRDD.partitions,
+      inputRDD.dependencies,
+      (partition, taskContext) => {
+        val nativeSortExecBuilder =
+          SortExecNode.newBuilder().setInput(inputRDD.nativePlan(partition, taskContext))
 
-      sortOrder.foreach { s =>
-        nativeSortExecBuilder.addExpr(PhysicalExprNode.newBuilder()
-          .setSort(PhysicalSortExprNode.newBuilder()
-            .setExpr(NativeConverters.convertExpr(s.child))
-            .setAsc(s.direction == Ascending)
-            .setNullsFirst(s.nullOrdering == NullsFirst)
-            .build()
-          ).build()
-        )
-      }
-      PhysicalPlanNode.newBuilder()
-        .setSort(nativeSortExecBuilder.build())
-        .build()
-    })
+        sortOrder.foreach { s =>
+          nativeSortExecBuilder.addExpr(
+            PhysicalExprNode
+              .newBuilder()
+              .setSort(
+                PhysicalSortExprNode
+                  .newBuilder()
+                  .setExpr(NativeConverters.convertExpr(s.child))
+                  .setAsc(s.direction == Ascending)
+                  .setNullsFirst(s.nullOrdering == NullsFirst)
+                  .build())
+              .build())
+        }
+        PhysicalPlanNode
+          .newBuilder()
+          .setSort(nativeSortExecBuilder.build())
+          .build()
+      })
   }
 }

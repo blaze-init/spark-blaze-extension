@@ -16,12 +16,12 @@ import org.apache.spark.sql.execution.metric.SQLMetric
 import org.blaze.protobuf.FilterExecNode
 import org.blaze.protobuf.PhysicalPlanNode
 
-case class NativeFilterExec(
-  condition: Expression,
-  override val child: SparkPlan,
-) extends UnaryExecNode with NativeSupports {
+case class NativeFilterExec(condition: Expression, override val child: SparkPlan)
+    extends UnaryExecNode
+    with NativeSupports {
 
-  override lazy val metrics: Map[String, SQLMetric] = NativeSupports.getDefaultNativeMetrics(sparkContext)
+  override lazy val metrics: Map[String, SQLMetric] =
+    NativeSupports.getDefaultNativeMetrics(sparkContext)
 
   override def output: Seq[Attribute] = child.output
   override def outputPartitioning: Partitioning = child.outputPartitioning
@@ -30,19 +30,26 @@ case class NativeFilterExec(
   override def doExecute(): RDD[InternalRow] = doExecuteNative()
   override def doExecuteNative(): NativeRDD = {
     val inputRDD = NativeSupports.executeNative(child)
-    val nativeMetrics = MetricNode(Map(
-      "output_rows" -> metrics("numOutputRows"),
-      "blaze_output_ipc_rows" -> metrics("blazeExecIPCWrittenRows"),
-      "blaze_output_ipc_bytes" -> metrics("blazeExecIPCWrittenBytes"),
-      "blaze_exec_time" -> metrics("blazeExecTime"),
-    ), Seq(inputRDD.metrics))
+    val nativeMetrics = MetricNode(
+      Map(
+        "output_rows" -> metrics("numOutputRows"),
+        "blaze_output_ipc_rows" -> metrics("blazeExecIPCWrittenRows"),
+        "blaze_output_ipc_bytes" -> metrics("blazeExecIPCWrittenBytes"),
+        "blaze_exec_time" -> metrics("blazeExecTime")),
+      Seq(inputRDD.metrics))
 
-    new NativeRDD(sparkContext, nativeMetrics, inputRDD.partitions, inputRDD.dependencies, (partition, taskContext) => {
-      val nativeFilterExec = FilterExecNode.newBuilder()
-        .setExpr(NativeConverters.convertExpr(condition))
-        .setInput(inputRDD.nativePlan(partition, taskContext))
-        .build()
-      PhysicalPlanNode.newBuilder().setFilter(nativeFilterExec).build()
-    })
+    new NativeRDD(
+      sparkContext,
+      nativeMetrics,
+      inputRDD.partitions,
+      inputRDD.dependencies,
+      (partition, taskContext) => {
+        val nativeFilterExec = FilterExecNode
+          .newBuilder()
+          .setExpr(NativeConverters.convertExpr(condition))
+          .setInput(inputRDD.nativePlan(partition, taskContext))
+          .build()
+        PhysicalPlanNode.newBuilder().setFilter(nativeFilterExec).build()
+      })
   }
 }
