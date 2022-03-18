@@ -19,8 +19,7 @@ case class ConvertToUnsafeRowExec(override val child: SparkPlan) extends UnaryEx
   override def outputPartitioning: Partitioning = child.outputPartitioning
 
   override lazy val metrics: Map[String, SQLMetric] = Map(
-    "numConvertedRows" -> SQLMetrics.createMetric(sparkContext, "number of converted rows"),
-  )
+    "numConvertedRows" -> SQLMetrics.createMetric(sparkContext, "number of converted rows"))
 
   override protected def doExecute(): RDD[InternalRow] = {
     val numConvertedRows = longMetric("numConvertedRows")

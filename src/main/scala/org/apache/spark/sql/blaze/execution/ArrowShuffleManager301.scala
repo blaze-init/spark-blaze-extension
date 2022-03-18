@@ -3,7 +3,12 @@ package org.apache.spark.sql.blaze.execution
 import org.apache.spark.internal.Logging
 import org.apache.spark.shuffle._
 import org.apache.spark.shuffle.api.ShuffleExecutorComponents
-import org.apache.spark.shuffle.sort.{BypassMergeSortShuffleHandle, SerializedShuffleHandle, SortShuffleManager, SortShuffleWriter}
+import org.apache.spark.shuffle.sort.{
+  BypassMergeSortShuffleHandle,
+  SerializedShuffleHandle,
+  SortShuffleManager,
+  SortShuffleWriter
+}
 import org.apache.spark.sql.shuffle.sort.ArrowShuffleWriter301
 import org.apache.spark.util.collection.OpenHashSet
 import org.apache.spark.{ShuffleDependency, SparkConf, SparkEnv, TaskContext}
@@ -24,6 +29,7 @@ class ArrowShuffleManager301(conf: SparkConf) extends ShuffleManager with Loggin
 
   private lazy val shuffleExecutorComponents = loadShuffleExecutorComponents(conf)
   override val shuffleBlockResolver = new IndexShuffleBlockResolver(conf)
+
   /**
    * A mapping from shuffle ids to the task ids of mappers producing output for those shuffles.
    */
@@ -33,8 +39,8 @@ class ArrowShuffleManager301(conf: SparkConf) extends ShuffleManager with Loggin
    * (override) Obtains a [[ShuffleHandle]] to pass to tasks.
    */
   def registerShuffle[K, V, C](
-    shuffleId: Int,
-    dependency: ShuffleDependency[K, V, C]): ShuffleHandle = {
+      shuffleId: Int,
+      dependency: ShuffleDependency[K, V, C]): ShuffleHandle = {
     if (SortShuffleWriter.shouldBypassMergeSort(conf, dependency)) {
       // If there are fewer than spark.shuffle.sort.bypassMergeThreshold partitions and we don't
       // need map-side aggregation, then write numPartitions files directly and just concatenate
@@ -66,9 +72,9 @@ class ArrowShuffleManager301(conf: SparkConf) extends ShuffleManager with Loggin
    * Obtains a [[ShuffleHandle]] to pass to tasks.
    */
   def registerShuffle[K, V, C](
-    shuffleId: Int,
-    numMaps: Int,
-    dependency: ShuffleDependency[K, V, C]): ShuffleHandle = {
+      shuffleId: Int,
+      numMaps: Int,
+      dependency: ShuffleDependency[K, V, C]): ShuffleHandle = {
     if (SortShuffleWriter.shouldBypassMergeSort(conf, dependency)) {
       // If there are fewer than spark.shuffle.sort.bypassMergeThreshold partitions and we don't
       // need map-side aggregation, then write numPartitions files directly and just concatenate
@@ -77,21 +83,30 @@ class ArrowShuffleManager301(conf: SparkConf) extends ShuffleManager with Loggin
       // having multiple files open at a time and thus more memory allocated to buffers.
       classOf[BypassMergeSortShuffleHandle[K, V]]
         .getConstructor(Integer.TYPE, Integer.TYPE, classOf[ShuffleDependency[_, _, _]])
-        .newInstance(Int.box(shuffleId), Int.box(numMaps), dependency.asInstanceOf[ShuffleDependency[_, _, _]])
+        .newInstance(
+          Int.box(shuffleId),
+          Int.box(numMaps),
+          dependency.asInstanceOf[ShuffleDependency[_, _, _]])
         .asInstanceOf[ShuffleHandle]
 
     } else if (SortShuffleManager.canUseSerializedShuffle(dependency)) {
       // Otherwise, try to buffer map outputs in a serialized form, since this is more efficient:
       classOf[SerializedShuffleHandle[K, V]]
         .getConstructor(Integer.TYPE, Integer.TYPE, classOf[ShuffleDependency[_, _, _]])
-        .newInstance(Int.box(shuffleId), Int.box(numMaps), dependency.asInstanceOf[ShuffleDependency[_, _, _]])
+        .newInstance(
+          Int.box(shuffleId),
+          Int.box(numMaps),
+          dependency.asInstanceOf[ShuffleDependency[_, _, _]])
         .asInstanceOf[ShuffleHandle]
 
     } else {
       // Otherwise, buffer map outputs in a deserialized form:
       classOf[BaseShuffleHandle[K, V, C]]
         .getConstructor(Integer.TYPE, Integer.TYPE, classOf[ShuffleDependency[_, _, _]])
-        .newInstance(Int.box(shuffleId), Int.box(numMaps), dependency.asInstanceOf[ShuffleDependency[_, _, _]])
+        .newInstance(
+          Int.box(shuffleId),
+          Int.box(numMaps),
+          dependency.asInstanceOf[ShuffleDependency[_, _, _]])
         .asInstanceOf[ShuffleHandle]
     }
   }
@@ -101,47 +116,57 @@ class ArrowShuffleManager301(conf: SparkConf) extends ShuffleManager with Loggin
    * Called on executors by reduce tasks.
    */
   override def getReader[K, C](
-    handle: ShuffleHandle,
-    startPartition: Int,
-    endPartition: Int,
-    context: TaskContext,
-    metrics: ShuffleReadMetricsReporter): ShuffleReader[K, C] = {
-    val blocksByAddress = SparkEnv.get.mapOutputTracker.getMapSizesByExecutorId(
-      handle.shuffleId, startPartition, endPartition)
+      handle: ShuffleHandle,
+      startPartition: Int,
+      endPartition: Int,
+      context: TaskContext,
+      metrics: ShuffleReadMetricsReporter): ShuffleReader[K, C] = {
+    val blocksByAddress = SparkEnv.get.mapOutputTracker
+      .getMapSizesByExecutorId(handle.shuffleId, startPartition, endPartition)
     new ArrowBlockStoreShuffleReader301(
-      handle.asInstanceOf[BaseShuffleHandle[K, _, C]], blocksByAddress, context, metrics,
+      handle.asInstanceOf[BaseShuffleHandle[K, _, C]],
+      blocksByAddress,
+      context,
+      metrics,
       shouldBatchFetch = canUseBatchFetch(startPartition, endPartition, context))
   }
 
   override def getReaderForRange[K, C](
-    handle: ShuffleHandle,
-    startMapIndex: Int,
-    endMapIndex: Int,
-    startPartition: Int,
-    endPartition: Int,
-    context: TaskContext,
-    metrics: ShuffleReadMetricsReporter): ShuffleReader[K, C] = {
+      handle: ShuffleHandle,
+      startMapIndex: Int,
+      endMapIndex: Int,
+      startPartition: Int,
+      endPartition: Int,
+      context: TaskContext,
+      metrics: ShuffleReadMetricsReporter): ShuffleReader[K, C] = {
     val blocksByAddress = SparkEnv.get.mapOutputTracker.getMapSizesByRange(
-      handle.shuffleId, startMapIndex, endMapIndex, startPartition, endPartition)
+      handle.shuffleId,
+      startMapIndex,
+      endMapIndex,
+      startPartition,
+      endPartition)
     new ArrowBlockStoreShuffleReader301(
-      handle.asInstanceOf[BaseShuffleHandle[K, _, C]], blocksByAddress, context, metrics,
+      handle.asInstanceOf[BaseShuffleHandle[K, _, C]],
+      blocksByAddress,
+      context,
+      metrics,
       shouldBatchFetch = canUseBatchFetch(startPartition, endPartition, context))
   }
 
   /** Get a writer for a given partition. Called on executors by map tasks. */
   override def getWriter[K, V](
-    handle: ShuffleHandle,
-    mapId: Long,
-    context: TaskContext,
-    metrics: ShuffleWriteMetricsReporter): ShuffleWriter[K, V] = {
-    val mapTaskIds = taskIdMapsForShuffle.computeIfAbsent(
-      handle.shuffleId, _ => new OpenHashSet[Long](16))
+      handle: ShuffleHandle,
+      mapId: Long,
+      context: TaskContext,
+      metrics: ShuffleWriteMetricsReporter): ShuffleWriter[K, V] = {
+    val mapTaskIds =
+      taskIdMapsForShuffle.computeIfAbsent(handle.shuffleId, _ => new OpenHashSet[Long](16))
     mapTaskIds.synchronized {
       mapTaskIds.add(context.taskAttemptId())
     }
     val env = SparkEnv.get
     handle match {
-      case unsafeShuffleHandle: SerializedShuffleHandle[K@unchecked, V@unchecked] =>
+      case unsafeShuffleHandle: SerializedShuffleHandle[K @unchecked, V @unchecked] =>
         require(unsafeShuffleHandle.dependency.isInstanceOf[ShuffleDependencySchema[K, V, _]])
         new ArrowShuffleWriter301(
           env.blockManager,
@@ -152,7 +177,7 @@ class ArrowShuffleManager301(conf: SparkConf) extends ShuffleManager with Loggin
           env.conf,
           metrics,
           shuffleExecutorComponents)
-      case bypassMergeSortHandle: BypassMergeSortShuffleHandle[K@unchecked, V@unchecked] =>
+      case bypassMergeSortHandle: BypassMergeSortShuffleHandle[K @unchecked, V @unchecked] =>
         require(bypassMergeSortHandle.dependency.isInstanceOf[ShuffleDependencySchema[K, V, _]])
         new ArrowBypassMergeSortShuffleWriter301(
           env.blockManager,
@@ -161,7 +186,7 @@ class ArrowShuffleManager301(conf: SparkConf) extends ShuffleManager with Loggin
           env.conf,
           metrics,
           shuffleExecutorComponents)
-      case other: BaseShuffleHandle[K@unchecked, V@unchecked, _] =>
+      case other: BaseShuffleHandle[K @unchecked, V @unchecked, _] =>
         throw new UnsupportedOperationException(s"$other type not allowed for arrow-shuffle")
     }
   }
@@ -185,8 +210,7 @@ class ArrowShuffleManager301(conf: SparkConf) extends ShuffleManager with Loggin
 private[spark] object ArrowShuffleManager301 extends Logging {
   private def loadShuffleExecutorComponents(conf: SparkConf): ShuffleExecutorComponents = {
     val executorComponents = ShuffleDataIOUtils.loadShuffleDataIO(conf).executor()
-    val extraConfigs = conf.getAllWithPrefix(ShuffleDataIOUtils.SHUFFLE_SPARK_CONF_PREFIX)
-      .toMap
+    val extraConfigs = conf.getAllWithPrefix(ShuffleDataIOUtils.SHUFFLE_SPARK_CONF_PREFIX).toMap
     executorComponents.initializeExecutor(
       conf.getAppId,
       SparkEnv.get.executorId,

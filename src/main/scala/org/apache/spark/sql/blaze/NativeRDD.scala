@@ -11,12 +11,13 @@ import org.apache.spark.TaskContext
 import org.blaze.protobuf.PhysicalPlanNode
 
 class NativeRDD(
-  @transient private val rddSparkContext: SparkContext,
-  val metrics: MetricNode,
-  private val rddPartitions: Array[Partition],
-  private val rddDependencies: Seq[Dependency[_]],
-  val nativePlan: (Partition, TaskContext) => PhysicalPlanNode,
-) extends RDD[InternalRow](rddSparkContext, rddDependencies) with Logging {
+    @transient private val rddSparkContext: SparkContext,
+    val metrics: MetricNode,
+    private val rddPartitions: Array[Partition],
+    private val rddDependencies: Seq[Dependency[_]],
+    val nativePlan: (Partition, TaskContext) => PhysicalPlanNode)
+    extends RDD[InternalRow](rddSparkContext, rddDependencies)
+    with Logging {
 
   override protected def getPartitions: Array[Partition] = rddPartitions
   override protected def getDependencies: Seq[Dependency[_]] = rddDependencies

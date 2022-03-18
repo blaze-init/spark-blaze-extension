@@ -29,6 +29,9 @@
     <protoc3.version>3.19.4</protoc3.version>
     <protobuf-maven-plugin.version>0.6.1</protobuf-maven-plugin.version>
 
+    <scalafmt.parameters></scalafmt.parameters>
+    <scalafmt.skip>false</scalafmt.skip>
+
     <!-- spark version -->
     <spark.tags.version>3.0.3</spark.tags.version>
 
@@ -264,6 +267,51 @@
                 <source>src/generated-sources</source>
               </sources>
             </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.theoryinpractise</groupId>
+        <artifactId>googleformatter-maven-plugin</artifactId>
+        <version>1.7.3</version>
+        <executions>
+          <execution>
+            <id>reformat-sources</id>
+            <configuration>
+              <includeStale>false</includeStale>
+              <style>GOOGLE</style>
+              <formatMain>true</formatMain>
+              <formatTest>true</formatTest>
+              <filterModified>false</filterModified>
+              <skip>false</skip>
+              <fixImports>false</fixImports>
+              <maxLineLength>98</maxLineLength>
+            </configuration>
+            <goals>
+              <goal>format</goal>
+            </goals>
+            <phase>process-sources</phase>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.antipathy</groupId>
+        <artifactId>mvn-scalafmt_${scala.binary.version}</artifactId>
+        <version>1.0.3</version>
+        <configuration>
+          <parameters>${scalafmt.parameters}</parameters>
+          <skip>${scalafmt.skip}</skip>
+          <skipSources>${scalafmt.skip}</skipSources>
+          <skipTestSources>${scalafmt.skip}</skipTestSources>
+          <configLocation>dev/.scalafmt.conf</configLocation>
+          <onlyChangedFiles>true</onlyChangedFiles>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>process-sources</phase>
+            <goals>
+              <goal>format</goal>
+            </goals>
           </execution>
         </executions>
       </plugin>

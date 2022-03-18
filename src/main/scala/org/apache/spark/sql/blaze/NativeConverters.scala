@@ -104,17 +104,21 @@ object NativeConverters {
       case StringType => arrowTypeBuilder.setUTF8(EmptyMessage.getDefaultInstance)
       case BinaryType => arrowTypeBuilder.setBINARY(EmptyMessage.getDefaultInstance)
       case DateType => arrowTypeBuilder.setDATE32(EmptyMessage.getDefaultInstance)
-      case TimestampType => arrowTypeBuilder.setTIMESTAMP(Timestamp.getDefaultInstance) // NOTE: microsecond => millisecond
+      case TimestampType =>
+        arrowTypeBuilder.setTIMESTAMP(Timestamp.getDefaultInstance) // NOTE: microsecond => millisecond
 
       // decimal
-      case t: DecimalType => arrowTypeBuilder.setDECIMAL(org.blaze.protobuf.Decimal.newBuilder()
-        .setWhole(t.precision) // precision - scale?
-        .setFractional(t.scale)
-        .build()
-      )
+      case t: DecimalType =>
+        arrowTypeBuilder.setDECIMAL(
+          org.blaze.protobuf.Decimal
+            .newBuilder()
+            .setWhole(t.precision) // precision - scale?
+            .setFractional(t.scale)
+            .build())
 
       // TODO: support complex data types
-      case _ => throw new NotImplementedError(s"Data type conversion not implemented ${sparkDataType}")
+      case _ =>
+        throw new NotImplementedError(s"Data type conversion not implemented ${sparkDataType}")
     }
     arrowTypeBuilder.build()
   }
@@ -132,14 +136,16 @@ object NativeConverters {
       case StringType => scalarValueBuilder.setUtf8Value(sparkValue.toString)
       case BinaryType => throw new NotImplementedError("???")
       case DateType => scalarValueBuilder.setDate32Value(sparkValue.asInstanceOf[Int])
-      case TimestampType => scalarValueBuilder.setTimeMicrosecondValue(sparkValue.asInstanceOf[Long])
+      case TimestampType =>
+        scalarValueBuilder.setTimeMicrosecondValue(sparkValue.asInstanceOf[Long])
       case t: DecimalType => {
         val decimalValue = sparkValue.asInstanceOf[Decimal]
         val decimalType = convertDataType(t).getDECIMAL
-        scalarValueBuilder.setDecimalValue(ScalarDecimalValue.newBuilder()
-          .setDecimal(decimalType)
-          .setLongValue(decimalValue.toUnscaledLong)
-        )
+        scalarValueBuilder.setDecimalValue(
+          ScalarDecimalValue
+            .newBuilder()
+            .setDecimal(decimalType)
+            .setLongValue(decimalValue.toUnscaledLong))
       }
       // TODO: support complex data types
       case _ => throw new NotImplementedError(s"Value conversion not implemented ${dataType}")
@@ -150,7 +156,8 @@ object NativeConverters {
   }
 
   def convertField(sparkField: StructField): Field = {
-    Field.newBuilder()
+    Field
+      .newBuilder()
       .setName(sparkField.name)
       .setNullable(sparkField.nullable)
       .setArrowType(convertDataType(sparkField.dataType))
@@ -164,24 +171,33 @@ object NativeConverters {
   }
 
   def convertExpr(sparkExpr: Expression): PhysicalExprNode = {
-    def buildExprNode(buildFn: (PhysicalExprNode.Builder) => PhysicalExprNode.Builder): PhysicalExprNode =
+    def buildExprNode(
+        buildFn: (PhysicalExprNode.Builder) => PhysicalExprNode.Builder): PhysicalExprNode =
       buildFn(PhysicalExprNode.newBuilder()).build()
 
-    def buildBinaryExprNode(left: Expression, right: Expression, op: String): PhysicalExprNode = buildExprNode {
-      _.setBinaryExpr(PhysicalBinaryExprNode.newBuilder()
-        .setL(convertExpr(left))
-        .setR(convertExpr(right))
-        .setOp(op)
-        .build())
-    }
+    def buildBinaryExprNode(left: Expression, right: Expression, op: String): PhysicalExprNode =
+      buildExprNode {
+        _.setBinaryExpr(
+          PhysicalBinaryExprNode
+            .newBuilder()
+            .setL(convertExpr(left))
+            .setR(convertExpr(right))
+            .setOp(op)
+            .build())
+      }
 
-    def buildScalarFunction(fn: ScalarFunction, args: Seq[Expression], dataType: DataType): PhysicalExprNode = buildExprNode {
-      _.setScalarFunction(PhysicalScalarFunctionNode.newBuilder()
-        .setName(fn.name())
-        .setFun(fn)
-        .addAllArgs(args.map(convertExpr).asJava)
-        .setReturnType(convertDataType(dataType))
-        .build())
+    def buildScalarFunction(
+        fn: ScalarFunction,
+        args: Seq[Expression],
+        dataType: DataType): PhysicalExprNode = buildExprNode {
+      _.setScalarFunction(
+        PhysicalScalarFunctionNode
+          .newBuilder()
+          .setName(fn.name())
+          .setFun(fn)
+          .addAllArgs(args.map(convertExpr).asJava)
+          .setReturnType(convertDataType(dataType))
+          .build())
     }
 
     def unpackBinaryTypeCast(expr: Expression) = expr match {
@@ -190,35 +206,45 @@ object NativeConverters {
     }
 
     sparkExpr match {
-      case Literal(value, dataType) => buildExprNode {
-        _.setLiteral(convertValue(value, dataType))
-      }
-      case AttributeReference(name, _, _, _) => buildExprNode {
-        _.setColumn(PhysicalColumn.newBuilder().setName(name).build())
-      }
+      case Literal(value, dataType) =>
+        buildExprNode {
+          _.setLiteral(convertValue(value, dataType))
+        }
+      case AttributeReference(name, _, _, _) =>
+        buildExprNode {
+          _.setColumn(PhysicalColumn.newBuilder().setName(name).build())
+        }
 
       // cast
-      case Cast(child, dataType, _) => buildExprNode {
-        _.setCast(PhysicalCastNode.newBuilder()
-          .setExpr(convertExpr(child))
-          .setArrowType(convertDataType(dataType))
-          .build())
-      }
+      case Cast(child, dataType, _) =>
+        buildExprNode {
+          _.setCast(
+            PhysicalCastNode
+              .newBuilder()
+              .setExpr(convertExpr(child))
+              .setArrowType(convertDataType(dataType))
+              .build())
+        }
 
       // in
-      case In(value, list) => buildExprNode {
-        _.setInList(PhysicalInListNode.newBuilder()
-          .setExpr(convertExpr(value))
-          .addAllList(list.map(convertExpr).asJava))
-      }
+      case In(value, list) =>
+        buildExprNode {
+          _.setInList(
+            PhysicalInListNode
+              .newBuilder()
+              .setExpr(convertExpr(value))
+              .addAllList(list.map(convertExpr).asJava))
+        }
 
       // unary ops
-      case IsNotNull(child) => buildExprNode {
-        _.setIsNotNullExpr(PhysicalIsNotNull.newBuilder().setExpr(convertExpr(child)).build())
-      }
-      case Not(child) => buildExprNode {
-        _.setNotExpr(PhysicalNot.newBuilder().setExpr(convertExpr(child)).build())
-      }
+      case IsNotNull(child) =>
+        buildExprNode {
+          _.setIsNotNullExpr(PhysicalIsNotNull.newBuilder().setExpr(convertExpr(child)).build())
+        }
+      case Not(child) =>
+        buildExprNode {
+          _.setNotExpr(PhysicalNot.newBuilder().setExpr(convertExpr(child)).build())
+        }
 
       // binary ops
       case EqualTo(lhs, rhs) => buildBinaryExprNode(lhs, rhs, "Eq")
@@ -249,31 +275,43 @@ object NativeConverters {
       case e: Log10 => buildScalarFunction(ScalarFunction.LOG10, e.children, e.dataType)
       case e: Floor => buildScalarFunction(ScalarFunction.FLOOR, e.children, e.dataType)
       case e: Ceil => buildScalarFunction(ScalarFunction.CEIL, e.children, e.dataType)
-      case Round(_1, Literal(0, _)) => buildScalarFunction(ScalarFunction.ROUND, Seq(_1), _1.dataType)
+      case Round(_1, Literal(0, _)) =>
+        buildScalarFunction(ScalarFunction.ROUND, Seq(_1), _1.dataType)
       // case Nothing => buildScalarFunction(ScalarFunction.TRUNC, Nil)
       case e: Abs => buildScalarFunction(ScalarFunction.ABS, e.children, e.dataType)
       case e: Signum => buildScalarFunction(ScalarFunction.SIGNUM, e.children, e.dataType)
-      case e: OctetLength => buildScalarFunction(ScalarFunction.OCTETLENGTH, e.children, e.dataType)
+      case e: OctetLength =>
+        buildScalarFunction(ScalarFunction.OCTETLENGTH, e.children, e.dataType)
       case e: Concat => buildScalarFunction(ScalarFunction.CONCAT, e.children, e.dataType)
       case e: Lower => buildScalarFunction(ScalarFunction.LOWER, e.children, e.dataType)
       case e: Upper => buildScalarFunction(ScalarFunction.UPPER, e.children, e.dataType)
-      case e: StringTrim => buildScalarFunction(ScalarFunction.TRIM, e.srcStr +: e.trimStr.toSeq, e.dataType)
-      case e: StringTrimLeft => buildScalarFunction(ScalarFunction.LTRIM, e.srcStr +: e.trimStr.toSeq, e.dataType)
-      case e: StringTrimRight => buildScalarFunction(ScalarFunction.RTRIM, e.srcStr +: e.trimStr.toSeq, e.dataType)
+      case e: StringTrim =>
+        buildScalarFunction(ScalarFunction.TRIM, e.srcStr +: e.trimStr.toSeq, e.dataType)
+      case e: StringTrimLeft =>
+        buildScalarFunction(ScalarFunction.LTRIM, e.srcStr +: e.trimStr.toSeq, e.dataType)
+      case e: StringTrimRight =>
+        buildScalarFunction(ScalarFunction.RTRIM, e.srcStr +: e.trimStr.toSeq, e.dataType)
       // case Nothing => buildScalarFunction(ScalarFunction.TOTIMESTAMP, Nil)
       // case Nothing => buildScalarFunction(ScalarFunction.ARRAY, Nil)
       case e: NullIf => buildScalarFunction(ScalarFunction.NULLIF, e.children, e.dataType)
       case e: DatePart => buildScalarFunction(ScalarFunction.DATEPART, e.children, e.dataType)
       case e: TruncDate => buildScalarFunction(ScalarFunction.DATEPART, e.children, e.dataType)
-      case Md5(_1) => buildScalarFunction(ScalarFunction.MD5, Seq(unpackBinaryTypeCast(_1)), StringType)
-      case Sha2(_1, Literal(224, _)) => buildScalarFunction(ScalarFunction.SHA224, Seq(unpackBinaryTypeCast(_1)), StringType)
-      case Sha2(_1, Literal(  0, _)) => buildScalarFunction(ScalarFunction.SHA256, Seq(unpackBinaryTypeCast(_1)), StringType)
-      case Sha2(_1, Literal(256, _)) => buildScalarFunction(ScalarFunction.SHA256, Seq(unpackBinaryTypeCast(_1)), StringType)
-      case Sha2(_1, Literal(384, _)) => buildScalarFunction(ScalarFunction.SHA384, Seq(unpackBinaryTypeCast(_1)), StringType)
-      case Sha2(_1, Literal(512, _)) => buildScalarFunction(ScalarFunction.SHA512, Seq(unpackBinaryTypeCast(_1)), StringType)
+      case Md5(_1) =>
+        buildScalarFunction(ScalarFunction.MD5, Seq(unpackBinaryTypeCast(_1)), StringType)
+      case Sha2(_1, Literal(224, _)) =>
+        buildScalarFunction(ScalarFunction.SHA224, Seq(unpackBinaryTypeCast(_1)), StringType)
+      case Sha2(_1, Literal(0, _)) =>
+        buildScalarFunction(ScalarFunction.SHA256, Seq(unpackBinaryTypeCast(_1)), StringType)
+      case Sha2(_1, Literal(256, _)) =>
+        buildScalarFunction(ScalarFunction.SHA256, Seq(unpackBinaryTypeCast(_1)), StringType)
+      case Sha2(_1, Literal(384, _)) =>
+        buildScalarFunction(ScalarFunction.SHA384, Seq(unpackBinaryTypeCast(_1)), StringType)
+      case Sha2(_1, Literal(512, _)) =>
+        buildScalarFunction(ScalarFunction.SHA512, Seq(unpackBinaryTypeCast(_1)), StringType)
       case e: Log => buildScalarFunction(ScalarFunction.LN, e.children, e.dataType)
       // case Nothing => buildScalarFunction(ScalarFunction.TOTIMESTAMPMILLIS, Nil)
-      case StartsWith(_1, _2) => buildScalarFunction(ScalarFunction.STARTS_WITH, Seq(_1, _2), BooleanType)
+      case StartsWith(_1, _2) =>
+        buildScalarFunction(ScalarFunction.STARTS_WITH, Seq(_1, _2), BooleanType)
 
       case unsupportedExpression =>
         throw new NotImplementedExpressionConversion(unsupportedExpression)
@@ -281,20 +319,29 @@ object NativeConverters {
   }
 
   def convertExprLogical(sparkExpr: Expression): LogicalExprNode = {
-    def buildExprNode(buildFn: (LogicalExprNode.Builder) => LogicalExprNode.Builder): LogicalExprNode =
+    def buildExprNode(
+        buildFn: (LogicalExprNode.Builder) => LogicalExprNode.Builder): LogicalExprNode =
       buildFn(LogicalExprNode.newBuilder()).build()
 
-    def buildBinaryExprNode(left: Expression, right: Expression, op: String): LogicalExprNode = buildExprNode {
-      _.setBinaryExpr(BinaryExprNode.newBuilder()
-        .setL(convertExprLogical(left))
-        .setR(convertExprLogical(right))
-        .setOp(op))
-    }
+    def buildBinaryExprNode(left: Expression, right: Expression, op: String): LogicalExprNode =
+      buildExprNode {
+        _.setBinaryExpr(
+          BinaryExprNode
+            .newBuilder()
+            .setL(convertExprLogical(left))
+            .setR(convertExprLogical(right))
+            .setOp(op))
+      }
 
-    def buildScalarFunction(fn: ScalarFunction, args: Seq[Expression], dataType: DataType): LogicalExprNode = buildExprNode {
-      _.setScalarFunction(ScalarFunctionNode.newBuilder()
-        .setFun(fn)
-        .addAllArgs(args.map(convertExprLogical).asJava))
+    def buildScalarFunction(
+        fn: ScalarFunction,
+        args: Seq[Expression],
+        dataType: DataType): LogicalExprNode = buildExprNode {
+      _.setScalarFunction(
+        ScalarFunctionNode
+          .newBuilder()
+          .setFun(fn)
+          .addAllArgs(args.map(convertExprLogical).asJava))
     }
 
     def unpackBinaryTypeCast(expr: Expression) = expr match {
@@ -303,34 +350,45 @@ object NativeConverters {
     }
 
     sparkExpr match {
-      case Literal(value, dataType) => buildExprNode {
-        _.setLiteral(convertValue(value, dataType))
-      }
-      case AttributeReference(name, _, _, _) => buildExprNode {
-        _.setColumn(Column.newBuilder().setName(name))
-      }
+      case Literal(value, dataType) =>
+        buildExprNode {
+          _.setLiteral(convertValue(value, dataType))
+        }
+      case AttributeReference(name, _, _, _) =>
+        buildExprNode {
+          _.setColumn(Column.newBuilder().setName(name))
+        }
 
       // cast
-      case Cast(child, dataType, _) => buildExprNode {
-        _.setCast(CastNode.newBuilder()
-          .setExpr(convertExprLogical(child))
-          .setArrowType(convertDataType(dataType)))
-      }
+      case Cast(child, dataType, _) =>
+        buildExprNode {
+          _.setCast(
+            CastNode
+              .newBuilder()
+              .setExpr(convertExprLogical(child))
+              .setArrowType(convertDataType(dataType)))
+        }
 
       // in
-      case In(value, list) => buildExprNode {
-        _.setInList(InListNode.newBuilder()
-          .setExpr(convertExprLogical(value))
-          .addAllList(list.map(convertExprLogical).asJava))
-      }
+      case In(value, list) =>
+        buildExprNode {
+          _.setInList(
+            InListNode
+              .newBuilder()
+              .setExpr(convertExprLogical(value))
+              .addAllList(list.map(convertExprLogical).asJava))
+        }
 
       // unary ops
-      case IsNotNull(child) => buildExprNode {
-        _.setIsNotNullExpr(org.blaze.protobuf.IsNotNull.newBuilder().setExpr(convertExprLogical(child)))
-      }
-      case Not(child) => buildExprNode {
-        _.setNotExpr(org.blaze.protobuf.Not.newBuilder().setExpr(convertExprLogical(child)))
-      }
+      case IsNotNull(child) =>
+        buildExprNode {
+          _.setIsNotNullExpr(
+            org.blaze.protobuf.IsNotNull.newBuilder().setExpr(convertExprLogical(child)))
+        }
+      case Not(child) =>
+        buildExprNode {
+          _.setNotExpr(org.blaze.protobuf.Not.newBuilder().setExpr(convertExprLogical(child)))
+        }
 
       // binary ops
       case EqualTo(lhs, rhs) => buildBinaryExprNode(lhs, rhs, "Eq")
@@ -361,31 +419,43 @@ object NativeConverters {
       case e: Log10 => buildScalarFunction(ScalarFunction.LOG10, e.children, e.dataType)
       case e: Floor => buildScalarFunction(ScalarFunction.FLOOR, e.children, e.dataType)
       case e: Ceil => buildScalarFunction(ScalarFunction.CEIL, e.children, e.dataType)
-      case Round(_1, Literal(0, _)) => buildScalarFunction(ScalarFunction.ROUND, Seq(_1), _1.dataType)
+      case Round(_1, Literal(0, _)) =>
+        buildScalarFunction(ScalarFunction.ROUND, Seq(_1), _1.dataType)
       // case Nothing => buildScalarFunction(ScalarFunction.TRUNC, Nil)
       case e: Abs => buildScalarFunction(ScalarFunction.ABS, e.children, e.dataType)
       case e: Signum => buildScalarFunction(ScalarFunction.SIGNUM, e.children, e.dataType)
-      case e: OctetLength => buildScalarFunction(ScalarFunction.OCTETLENGTH, e.children, e.dataType)
+      case e: OctetLength =>
+        buildScalarFunction(ScalarFunction.OCTETLENGTH, e.children, e.dataType)
       case e: Concat => buildScalarFunction(ScalarFunction.CONCAT, e.children, e.dataType)
       case e: Lower => buildScalarFunction(ScalarFunction.LOWER, e.children, e.dataType)
       case e: Upper => buildScalarFunction(ScalarFunction.UPPER, e.children, e.dataType)
-      case e: StringTrim => buildScalarFunction(ScalarFunction.TRIM, e.srcStr +: e.trimStr.toSeq, e.dataType)
-      case e: StringTrimLeft => buildScalarFunction(ScalarFunction.LTRIM, e.srcStr +: e.trimStr.toSeq, e.dataType)
-      case e: StringTrimRight => buildScalarFunction(ScalarFunction.RTRIM, e.srcStr +: e.trimStr.toSeq, e.dataType)
+      case e: StringTrim =>
+        buildScalarFunction(ScalarFunction.TRIM, e.srcStr +: e.trimStr.toSeq, e.dataType)
+      case e: StringTrimLeft =>
+        buildScalarFunction(ScalarFunction.LTRIM, e.srcStr +: e.trimStr.toSeq, e.dataType)
+      case e: StringTrimRight =>
+        buildScalarFunction(ScalarFunction.RTRIM, e.srcStr +: e.trimStr.toSeq, e.dataType)
       // case Nothing => buildScalarFunction(ScalarFunction.TOTIMESTAMP, Nil)
       // case Nothing => buildScalarFunction(ScalarFunction.ARRAY, Nil)
       case e: NullIf => buildScalarFunction(ScalarFunction.NULLIF, e.children, e.dataType)
       case e: DatePart => buildScalarFunction(ScalarFunction.DATEPART, e.children, e.dataType)
       case e: TruncDate => buildScalarFunction(ScalarFunction.DATEPART, e.children, e.dataType)
-      case Md5(_1) => buildScalarFunction(ScalarFunction.MD5, Seq(unpackBinaryTypeCast(_1)), StringType)
-      case Sha2(_1, Literal(224, _)) => buildScalarFunction(ScalarFunction.SHA224, Seq(unpackBinaryTypeCast(_1)), StringType)
-      case Sha2(_1, Literal(  0, _)) => buildScalarFunction(ScalarFunction.SHA256, Seq(unpackBinaryTypeCast(_1)), StringType)
-      case Sha2(_1, Literal(256, _)) => buildScalarFunction(ScalarFunction.SHA256, Seq(unpackBinaryTypeCast(_1)), StringType)
-      case Sha2(_1, Literal(384, _)) => buildScalarFunction(ScalarFunction.SHA384, Seq(unpackBinaryTypeCast(_1)), StringType)
-      case Sha2(_1, Literal(512, _)) => buildScalarFunction(ScalarFunction.SHA512, Seq(unpackBinaryTypeCast(_1)), StringType)
+      case Md5(_1) =>
+        buildScalarFunction(ScalarFunction.MD5, Seq(unpackBinaryTypeCast(_1)), StringType)
+      case Sha2(_1, Literal(224, _)) =>
+        buildScalarFunction(ScalarFunction.SHA224, Seq(unpackBinaryTypeCast(_1)), StringType)
+      case Sha2(_1, Literal(0, _)) =>
+        buildScalarFunction(ScalarFunction.SHA256, Seq(unpackBinaryTypeCast(_1)), StringType)
+      case Sha2(_1, Literal(256, _)) =>
+        buildScalarFunction(ScalarFunction.SHA256, Seq(unpackBinaryTypeCast(_1)), StringType)
+      case Sha2(_1, Literal(384, _)) =>
+        buildScalarFunction(ScalarFunction.SHA384, Seq(unpackBinaryTypeCast(_1)), StringType)
+      case Sha2(_1, Literal(512, _)) =>
+        buildScalarFunction(ScalarFunction.SHA512, Seq(unpackBinaryTypeCast(_1)), StringType)
       case e: Log => buildScalarFunction(ScalarFunction.LN, e.children, e.dataType)
       // case Nothing => buildScalarFunction(ScalarFunction.TOTIMESTAMPMILLIS, Nil)
-      case StartsWith(_1, _2) => buildScalarFunction(ScalarFunction.STARTS_WITH, Seq(_1, _2), BooleanType)
+      case StartsWith(_1, _2) =>
+        buildScalarFunction(ScalarFunction.STARTS_WITH, Seq(_1, _2), BooleanType)
 
       case unsupportedExpression =>
         throw new NotImplementedExpressionConversion(unsupportedExpression)
@@ -393,6 +463,7 @@ object NativeConverters {
   }
 
   class NotImplementedExpressionConversion(expression: Expression) extends Error {
-    override def getMessage: String = s"not implemented expression conversion: ${expression.treeString}"
+    override def getMessage: String =
+      s"not implemented expression conversion: ${expression.treeString}"
   }
 }
