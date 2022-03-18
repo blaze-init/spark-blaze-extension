@@ -282,7 +282,7 @@
               <style>GOOGLE</style>
               <formatMain>true</formatMain>
               <formatTest>true</formatTest>
-              <filterModified>true</filterModified>
+              <filterModified>false</filterModified>
               <skip>false</skip>
               <fixImports>false</fixImports>
               <maxLineLength>98</maxLineLength>
