@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 
 import scala.annotation.tailrec
+import scala.collection.mutable.ArrayBuffer
 
 import org.apache.arrow.vector.ipc.ArrowStreamReader
 import org.apache.spark.sql.execution.SparkPlan
@@ -59,37 +60,32 @@ object NativeSupports extends Logging {
         .setPlan(nativePlan)
         .build()
 
-      val taskDefinitionBytes = taskDefinition.toByteArray
-      val taskDefinitionByteBuffer = ByteBuffer.allocateDirect(taskDefinitionBytes.length)
-      taskDefinitionByteBuffer.put(taskDefinitionBytes)
-
       // note: consider passing a ByteBufferOutputStream to blaze-rs to avoid copying
       if (SparkEnv.get.conf.getBoolean("spark.kwai.blaze.dumpNativePlanBeforeExecuting", defaultValue = false)) {
          logInfo(s"Start executing native plan: ${taskDefinition.toString}")
       } else {
          logInfo(s"Start executing native plan")
       }
-      var outputBytes: Array[Byte] = null
-      JniBridge.callNative(taskDefinitionByteBuffer, metrics, byteBuffer => {
-         if (byteBuffer != null) {
-            outputBytes = new Array[Byte](byteBuffer.limit())
-            byteBuffer.get(outputBytes)
-         }
+
+      val outputBytesBatches: ArrayBuffer[Array[Byte]] = ArrayBuffer()
+      JniBridge.callNative(taskDefinition.toByteArray, metrics, byteBuffer => {
+         val outputBytes = new Array[Byte](byteBuffer.limit())
+         byteBuffer.get(outputBytes)
+         outputBytesBatches.append(outputBytes)
       })
 
-      if (outputBytes == null) {
-         return Nil.toIterator
-      }
-      val arrowBytesInputStream = new ByteArrayInputStream(outputBytes)
-      val allocator = ArrowUtils2.rootAllocator.newChildAllocator("readNativeRDDBatches", 0, Long.MaxValue)
-      val arrowReader = new ArrowStreamReader(arrowBytesInputStream, allocator)
+      outputBytesBatches.map(outputBytes => {
+         val arrowBytesInputStream = new ByteArrayInputStream(outputBytes)
+         val allocator = ArrowUtils2.rootAllocator.newChildAllocator("readNativeRDDBatches", 0, Long.MaxValue)
+         val arrowReader = new ArrowStreamReader(arrowBytesInputStream, allocator)
 
-      context.addTaskCompletionListener[Unit] { _ =>
-         arrowReader.close()
-         allocator.close()
-         arrowBytesInputStream.close()
-      }
-      new ArrowReaderIterator(arrowReader)
+         context.addTaskCompletionListener[Unit] { _ =>
+            arrowReader.close()
+            allocator.close()
+            arrowBytesInputStream.close()
+         }
+         new ArrowReaderIterator(arrowReader)
+      }).foldLeft(Iterator[InternalRow]())(_ ++ _)
    }
 
    def getDefaultNativeMetrics(sparkContext: SparkContext): Map[String, SQLMetric] = Map(
