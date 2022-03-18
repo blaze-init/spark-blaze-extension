@@ -1,4 +1,4 @@
-package com.kwai;
+package org.blaze;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

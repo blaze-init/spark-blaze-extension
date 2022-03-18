@@ -1,4 +1,4 @@
-package com.kwai;
+package org.blaze;
 
 import org.apache.spark.network.util.JavaUtils;
 import org.slf4j.Logger;

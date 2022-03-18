@@ -6,12 +6,8 @@ import java.nio.ByteBuffer
 import java.nio.channels.Channels
 import java.nio.channels.SeekableByteChannel
 import java.nio.ByteOrder
-
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
-
-import com.kwai.FileSegmentSeekableByteChannel
-import com.kwai.NioSeekableByteChannel
 import org.apache.arrow.vector._
 import org.apache.arrow.vector.dictionary.DictionaryProvider.MapDictionaryProvider
 import org.apache.arrow.vector.ipc.ArrowFileReader
@@ -27,6 +23,7 @@ import org.apache.spark.sql.types._
 import org.apache.spark.sql.util2.ArrowUtils2
 import org.apache.spark.sql.util2.ArrowWriter
 import org.apache.spark.util.Utils
+import org.blaze.{FileSegmentSeekableByteChannel, NioSeekableByteChannel}
 
 object Converters extends Logging {
 

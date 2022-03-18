@@ -39,7 +39,7 @@ object NativeSupports extends Logging {
       case plan: NativeSupports => plan.doExecuteNative()
       case plan: CustomShuffleReaderExec => executeNative(plan.child)
       case plan: QueryStageExec => executeNative(plan.plan)
-      case _ => throw new SparkException(s"Underlaying plan is not NativeSupports: ${plan}")
+      case _ => throw new SparkException(s"Underlying plan is not NativeSupports: ${plan}")
    }
 
    def executeNativePlan(
