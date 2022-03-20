@@ -5,24 +5,30 @@ import org.apache.spark.SparkEnv
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.blaze.execution.ArrowShuffleExchangeExec301
-import org.apache.spark.sql.blaze.plan.NativeFilterExec
-import org.apache.spark.sql.blaze.plan.NativeParquetScanExec
-import org.apache.spark.sql.blaze.plan.NativeProjectExec
-import org.apache.spark.sql.blaze.plan.NativeSortExec
+import org.apache.spark.sql.blaze.plan.{
+  NativeFilterExec,
+  NativeParquetScanExec,
+  NativeProjectExec,
+  NativeSortExec,
+  NativeUnionExec
+}
 import org.apache.spark.sql.catalyst.expressions.Attribute
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
-import org.apache.spark.sql.execution.SparkPlan
+import org.apache.spark.sql.execution.{
+  CollectLimitExec,
+  FileSourceScanExec,
+  FilterExec,
+  ProjectExec,
+  SortExec,
+  SparkPlan,
+  UnaryExecNode,
+  UnionExec
+}
 import org.apache.spark.sql.execution.exchange.BroadcastExchangeExec
 import org.apache.spark.sql.execution.exchange.ShuffleExchangeExec
-import org.apache.spark.sql.execution.FileSourceScanExec
-import org.apache.spark.sql.execution.SortExec
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
-import org.apache.spark.sql.execution.CollectLimitExec
-import org.apache.spark.sql.execution.FilterExec
-import org.apache.spark.sql.execution.ProjectExec
-import org.apache.spark.sql.execution.UnaryExecNode
 import org.apache.spark.sql.execution.joins.SortMergeJoinExec
 import org.apache.spark.sql.execution.metric.SQLMetric
 import org.apache.spark.sql.internal.SQLConf
@@ -45,6 +51,7 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
       case exec: ProjectExec => convertProjectExec(exec)
       case exec: FilterExec => convertFilterExec(exec)
       case exec: SortExec => convertSortExec(exec)
+      case exec: UnionExec => convertUnionExec(exec)
       case otherPlan =>
         logInfo(s"Ignore unsupported plan: ${otherPlan.simpleStringWithNodeId}")
         addUnsafeRowConverionIfNecessary(otherPlan)
@@ -126,6 +133,15 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
       NativeSortExec(sortOrder, global, child)
     case _ =>
       logInfo(s"Ignoring SortExec: ${exec.simpleStringWithNodeId()}")
+      exec
+  }
+
+  def convertUnionExec(exec: UnionExec): SparkPlan = exec match {
+    case UnionExec(children) if children.forall(c => NativeSupports.isNative(c)) =>
+      logInfo(s"Converting UnionExec: ${exec.simpleStringWithNodeId()}")
+      NativeUnionExec(children)
+    case _ =>
+      logInfo(s"Ignoring UnionExec: ${exec.simpleStringWithNodeId()}")
       exec
   }
 
