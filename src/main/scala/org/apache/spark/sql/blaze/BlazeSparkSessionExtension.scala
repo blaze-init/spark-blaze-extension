@@ -44,14 +44,22 @@ class BlazeSparkSessionExtension extends (SparkSessionExtensions => Unit) with L
 }
 
 case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
+  val ENABLE_OPERATION = "spark.blaze.enable."
+  val enableNativeShuffle = SparkEnv.get.conf.getBoolean(ENABLE_OPERATION + "shuffle", true)
+  val enableScan = SparkEnv.get.conf.getBoolean(ENABLE_OPERATION + "scan", true)
+  val enableProject = SparkEnv.get.conf.getBoolean(ENABLE_OPERATION + "project", true)
+  val enableFilter = SparkEnv.get.conf.getBoolean(ENABLE_OPERATION + "filter", true)
+  val enableSort = SparkEnv.get.conf.getBoolean(ENABLE_OPERATION + "sort", true)
+  val enableUnion = SparkEnv.get.conf.getBoolean(ENABLE_OPERATION + "union", true)
+
   override def apply(sparkPlan: SparkPlan): SparkPlan = {
     var sparkPlanTransformed = sparkPlan.transformUp {
-      case exec: ShuffleExchangeExec => convertShuffleExchangeExec(exec)
-      case exec: FileSourceScanExec => convertFileSourceScanExec(exec)
-      case exec: ProjectExec => convertProjectExec(exec)
-      case exec: FilterExec => convertFilterExec(exec)
-      case exec: SortExec => convertSortExec(exec)
-      case exec: UnionExec => convertUnionExec(exec)
+      case exec: ShuffleExchangeExec if enableNativeShuffle => convertShuffleExchangeExec(exec)
+      case exec: FileSourceScanExec if enableScan => convertFileSourceScanExec(exec)
+      case exec: ProjectExec if enableProject => convertProjectExec(exec)
+      case exec: FilterExec if enableFilter => convertFilterExec(exec)
+      case exec: SortExec if enableSort => convertSortExec(exec)
+      case exec: UnionExec if enableUnion => convertUnionExec(exec)
       case otherPlan =>
         logInfo(s"Ignore unsupported plan: ${otherPlan.simpleStringWithNodeId}")
         addUnsafeRowConverionIfNecessary(otherPlan)
