@@ -20,6 +20,7 @@ package org.apache.spark.sql.shuffle.sort;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.io.ByteStreams;
 import com.google.common.io.Closeables;
+
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -57,6 +58,9 @@ import org.apache.spark.shuffle.api.WritableByteChannelWrapper;
 import org.apache.spark.shuffle.sort.SerializedShuffleHandle;
 import org.apache.spark.shuffle.sort.SortShuffleManager;
 import org.apache.spark.sql.blaze.execution.ShuffleDependencySchema;
+import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
+import org.apache.spark.sql.catalyst.expressions.UnsafeProjection;
+import org.apache.spark.sql.catalyst.expressions.UnsafeRow;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.storage.BlockManager;
 import org.apache.spark.storage.TimeTrackingOutputStream;
@@ -90,6 +94,7 @@ public class ArrowShuffleWriter301<K, V> extends ShuffleWriter<K, V> {
   private final int initialSortBufferSize;
   private final int inputBufferSizeInBytes;
   private final StructType schema;
+  private final UnsafeProjection unsafeProjection;
   private final int maxRecordsPerBatch;
 
   @Nullable private MapStatus mapStatus;
@@ -128,6 +133,7 @@ public class ArrowShuffleWriter301<K, V> extends ShuffleWriter<K, V> {
     this.serializer = dep.serializer().newInstance();
     this.partitioner = dep.partitioner();
     this.schema = ((ShuffleDependencySchema) dep).schema();
+    this.unsafeProjection = UnsafeProjection.create(this.schema);
     this.writeMetrics = writeMetrics;
     this.shuffleExecutorComponents = shuffleExecutorComponents;
     this.taskContext = taskContext;
@@ -246,7 +252,13 @@ public class ArrowShuffleWriter301<K, V> extends ShuffleWriter<K, V> {
     final int partitionId = partitioner.getPartition(key);
     serBuffer.reset();
     serOutputStream.writeKey(key, OBJECT_CLASS_TAG);
-    serOutputStream.writeValue(record._2(), OBJECT_CLASS_TAG);
+
+    if (record._2() instanceof GenericInternalRow) {
+      UnsafeRow unsafeRow = unsafeProjection.apply((GenericInternalRow) record._2());
+      serOutputStream.writeValue(unsafeRow, OBJECT_CLASS_TAG);
+    } else {
+      serOutputStream.writeValue(record._2(), OBJECT_CLASS_TAG);
+    }
     serOutputStream.flush();
 
     final int serializedRecordSize = serBuffer.size();
