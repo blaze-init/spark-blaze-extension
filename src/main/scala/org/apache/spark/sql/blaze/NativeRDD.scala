@@ -6,7 +6,6 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.Dependency
 import org.apache.spark.Partition
 import org.apache.spark.SparkContext
-import org.apache.spark.SparkEnv
 import org.apache.spark.TaskContext
 import org.blaze.protobuf.PhysicalPlanNode
 

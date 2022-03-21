@@ -47,7 +47,6 @@ import org.apache.spark.util.MutablePair
 import org.apache.spark.util.collection.unsafe.sort.PrefixComparators
 import org.apache.spark.util.collection.unsafe.sort.RecordComparator
 import org.blaze.protobuf.PhysicalHashRepartition
-import org.blaze.protobuf.PhysicalHashRepartition
 import org.blaze.protobuf.PhysicalPlanNode
 import org.blaze.protobuf.ShuffleReaderExecNode
 import org.blaze.protobuf.ShuffleWriterExecNode
