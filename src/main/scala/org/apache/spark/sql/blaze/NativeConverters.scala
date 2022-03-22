@@ -1,56 +1,58 @@
 package org.apache.spark.sql.blaze
 
 import scala.collection.JavaConverters._
-
-import org.apache.spark.sql.catalyst.expressions.Abs
-import org.apache.spark.sql.catalyst.expressions.Acos
-import org.apache.spark.sql.catalyst.expressions.Add
-import org.apache.spark.sql.catalyst.expressions.And
-import org.apache.spark.sql.catalyst.expressions.Asin
-import org.apache.spark.sql.catalyst.expressions.Atan
-import org.apache.spark.sql.catalyst.expressions.AttributeReference
-import org.apache.spark.sql.catalyst.expressions.Cast
-import org.apache.spark.sql.catalyst.expressions.Ceil
-import org.apache.spark.sql.catalyst.expressions.Concat
-import org.apache.spark.sql.catalyst.expressions.Cos
-import org.apache.spark.sql.catalyst.expressions.DatePart
-import org.apache.spark.sql.catalyst.expressions.Divide
-import org.apache.spark.sql.catalyst.expressions.EqualTo
-import org.apache.spark.sql.catalyst.expressions.Exp
-import org.apache.spark.sql.catalyst.expressions.Expression
-import org.apache.spark.sql.catalyst.expressions.Floor
-import org.apache.spark.sql.catalyst.expressions.GreaterThan
-import org.apache.spark.sql.catalyst.expressions.GreaterThanOrEqual
-import org.apache.spark.sql.catalyst.expressions.In
-import org.apache.spark.sql.catalyst.expressions.IsNotNull
-import org.apache.spark.sql.catalyst.expressions.LessThan
-import org.apache.spark.sql.catalyst.expressions.LessThanOrEqual
-import org.apache.spark.sql.catalyst.expressions.Like
-import org.apache.spark.sql.catalyst.expressions.Literal
-import org.apache.spark.sql.catalyst.expressions.Log
-import org.apache.spark.sql.catalyst.expressions.Log10
-import org.apache.spark.sql.catalyst.expressions.Log2
-import org.apache.spark.sql.catalyst.expressions.Lower
-import org.apache.spark.sql.catalyst.expressions.Md5
-import org.apache.spark.sql.catalyst.expressions.Multiply
-import org.apache.spark.sql.catalyst.expressions.Not
-import org.apache.spark.sql.catalyst.expressions.NullIf
-import org.apache.spark.sql.catalyst.expressions.OctetLength
-import org.apache.spark.sql.catalyst.expressions.Or
-import org.apache.spark.sql.catalyst.expressions.Remainder
-import org.apache.spark.sql.catalyst.expressions.Round
-import org.apache.spark.sql.catalyst.expressions.Sha2
-import org.apache.spark.sql.catalyst.expressions.Signum
-import org.apache.spark.sql.catalyst.expressions.Sin
-import org.apache.spark.sql.catalyst.expressions.Sqrt
-import org.apache.spark.sql.catalyst.expressions.StartsWith
-import org.apache.spark.sql.catalyst.expressions.StringTrim
-import org.apache.spark.sql.catalyst.expressions.StringTrimLeft
-import org.apache.spark.sql.catalyst.expressions.StringTrimRight
-import org.apache.spark.sql.catalyst.expressions.Subtract
-import org.apache.spark.sql.catalyst.expressions.Tan
-import org.apache.spark.sql.catalyst.expressions.TruncDate
-import org.apache.spark.sql.catalyst.expressions.Upper
+import org.apache.spark.sql.catalyst.expressions.{
+  Abs,
+  Acos,
+  Add,
+  And,
+  Asin,
+  Atan,
+  AttributeReference,
+  CaseWhen,
+  Cast,
+  Ceil,
+  Concat,
+  Cos,
+  DatePart,
+  Divide,
+  EqualTo,
+  Exp,
+  Expression,
+  Floor,
+  GreaterThan,
+  GreaterThanOrEqual,
+  In,
+  IsNotNull,
+  LessThan,
+  LessThanOrEqual,
+  Like,
+  Literal,
+  Log,
+  Log10,
+  Log2,
+  Lower,
+  Md5,
+  Multiply,
+  Not,
+  NullIf,
+  OctetLength,
+  Or,
+  Remainder,
+  Round,
+  Sha2,
+  Signum,
+  Sin,
+  Sqrt,
+  StartsWith,
+  StringTrim,
+  StringTrimLeft,
+  StringTrimRight,
+  Subtract,
+  Tan,
+  TruncDate,
+  Upper
+}
 import org.apache.spark.sql.types.BinaryType
 import org.apache.spark.sql.types.BooleanType
 import org.apache.spark.sql.types.ByteType
@@ -67,30 +69,51 @@ import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.types.StructField
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.types.TimestampType
-import org.blaze.protobuf.ArrowType
-import org.blaze.protobuf.BinaryExprNode
-import org.blaze.protobuf.CastNode
-import org.blaze.protobuf.Column
-import org.blaze.protobuf.EmptyMessage
-import org.blaze.protobuf.Field
-import org.blaze.protobuf.LogicalExprNode
-import org.blaze.protobuf.PhysicalBinaryExprNode
-import org.blaze.protobuf.PhysicalCastNode
-import org.blaze.protobuf.PhysicalColumn
-import org.blaze.protobuf.PhysicalExprNode
-import org.blaze.protobuf.PhysicalIsNotNull
-import org.blaze.protobuf.PhysicalNot
-import org.blaze.protobuf.PhysicalScalarFunctionNode
-import org.blaze.protobuf.ScalarDecimalValue
-import org.blaze.protobuf.ScalarFunction
-import org.blaze.protobuf.ScalarFunctionNode
-import org.blaze.protobuf.ScalarValue
-import org.blaze.protobuf.Schema
-import org.blaze.protobuf.Timestamp
-import org.blaze.protobuf.InListNode
-import org.blaze.protobuf.PhysicalInListNode
+import org.blaze.protobuf.{
+  ArrowType,
+  BinaryExprNode,
+  CaseNode,
+  CastNode,
+  Column,
+  EmptyMessage,
+  Field,
+  InListNode,
+  LogicalExprNode,
+  PhysicalBinaryExprNode,
+  PhysicalCaseNode,
+  PhysicalCastNode,
+  PhysicalColumn,
+  PhysicalExprNode,
+  PhysicalInListNode,
+  PhysicalIsNotNull,
+  PhysicalNot,
+  PhysicalScalarFunctionNode,
+  PhysicalWhenThen,
+  PrimitiveScalarType,
+  ScalarDecimalValue,
+  ScalarFunction,
+  ScalarFunctionNode,
+  ScalarValue,
+  Schema,
+  Timestamp,
+  WhenThen
+}
 
 object NativeConverters {
+  def convertToScalarType(dt: DataType): PrimitiveScalarType = {
+    dt match {
+      case BooleanType => PrimitiveScalarType.BOOL
+      case ByteType => PrimitiveScalarType.INT8
+      case ShortType => PrimitiveScalarType.INT16
+      case IntegerType => PrimitiveScalarType.INT32
+      case LongType => PrimitiveScalarType.INT64
+      case FloatType => PrimitiveScalarType.FLOAT32
+      case DoubleType => PrimitiveScalarType.FLOAT64
+      case StringType => PrimitiveScalarType.UTF8
+      case _ => throw new NotImplementedError(s"convert $dt to DF scalar type not supported")
+    }
+  }
+
   def convertDataType(sparkDataType: DataType): ArrowType = {
     val arrowTypeBuilder = ArrowType.newBuilder()
     sparkDataType match {
@@ -206,9 +229,13 @@ object NativeConverters {
     }
 
     sparkExpr match {
-      case Literal(value, dataType) =>
-        buildExprNode {
-          _.setLiteral(convertValue(value, dataType))
+      case l @ Literal(value, dataType) =>
+        buildExprNode { b =>
+          if (!l.nullable) {
+            b.setLiteral(convertValue(value, dataType))
+          } else {
+            b.setLiteral(ScalarValue.newBuilder().setNullValue(convertToScalarType(dataType)))
+          }
         }
       case AttributeReference(name, _, _, _) =>
         buildExprNode {
@@ -311,7 +338,18 @@ object NativeConverters {
       // case Nothing => buildScalarFunction(ScalarFunction.TOTIMESTAMPMILLIS, Nil)
       case StartsWith(_1, _2) =>
         buildScalarFunction(ScalarFunction.StartsWith, Seq(_1, _2), BooleanType)
-
+      case CaseWhen(branches, elseValue) =>
+        val caseExpr = PhysicalCaseNode.newBuilder()
+        val whenThens = branches.map {
+          case (w, t) =>
+            val whenThen = PhysicalWhenThen.newBuilder()
+            whenThen.setWhenExpr(convertExpr(w))
+            whenThen.setThenExpr(convertExpr(t))
+            whenThen.build()
+        }
+        caseExpr.addAllWhenThenExpr(whenThens.asJava)
+        elseValue.foreach(el => caseExpr.setElseExpr(convertExpr(el)))
+        PhysicalExprNode.newBuilder().setCase(caseExpr).build()
       case unsupportedExpression =>
         throw new NotImplementedExpressionConversion(unsupportedExpression)
     }
@@ -349,9 +387,13 @@ object NativeConverters {
     }
 
     sparkExpr match {
-      case Literal(value, dataType) =>
-        buildExprNode {
-          _.setLiteral(convertValue(value, dataType))
+      case l @ Literal(value, dataType) =>
+        buildExprNode { b =>
+          if (!l.nullable) {
+            b.setLiteral(convertValue(value, dataType))
+          } else {
+            b.setLiteral(ScalarValue.newBuilder().setNullValue(convertToScalarType(dataType)))
+          }
         }
       case AttributeReference(name, _, _, _) =>
         buildExprNode {
@@ -454,7 +496,18 @@ object NativeConverters {
       // case Nothing => buildScalarFunction(ScalarFunction.TOTIMESTAMPMILLIS, Nil)
       case StartsWith(_1, _2) =>
         buildScalarFunction(ScalarFunction.StartsWith, Seq(_1, _2), BooleanType)
-
+      case CaseWhen(branches, elseValue) =>
+        val caseExpr = CaseNode.newBuilder()
+        val whenThens = branches.map {
+          case (w, t) =>
+            val whenThen = WhenThen.newBuilder()
+            whenThen.setWhenExpr(convertExprLogical(w))
+            whenThen.setThenExpr(convertExprLogical(t))
+            whenThen.build()
+        }
+        caseExpr.addAllWhenThenExpr(whenThens.asJava)
+        elseValue.foreach(el => caseExpr.setElseExpr(convertExprLogical(el)))
+        LogicalExprNode.newBuilder().setCase(caseExpr).build()
       case unsupportedExpression =>
         throw new NotImplementedExpressionConversion(unsupportedExpression)
     }
