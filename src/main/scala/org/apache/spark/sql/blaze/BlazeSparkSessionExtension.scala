@@ -31,6 +31,7 @@ import org.apache.spark.sql.execution.exchange.ShuffleExchangeExec
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
 import org.apache.spark.sql.execution.joins.SortMergeJoinExec
 import org.apache.spark.sql.execution.metric.SQLMetric
+import org.apache.spark.sql.execution.window.WindowExec
 import org.apache.spark.sql.internal.SQLConf
 
 class BlazeSparkSessionExtension extends (SparkSessionExtensions => Unit) with Logging {
@@ -62,7 +63,7 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
       case exec: UnionExec if enableUnion => convertUnionExec(exec)
       case otherPlan =>
         logInfo(s"Ignore unsupported plan: ${otherPlan.simpleStringWithNodeId}")
-        addUnsafeRowConverionIfNecessary(otherPlan)
+        addUnsafeRowConversionIfNecessary(otherPlan)
     }
 
     // wrap with ConvertUnsafeRowExec if top exec is native
@@ -161,7 +162,7 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
     }
   }
 
-  private def addUnsafeRowConverionIfNecessary(exec: SparkPlan): SparkPlan = {
+  private def addUnsafeRowConversionIfNecessary(exec: SparkPlan): SparkPlan = {
     exec match {
       case exec: SortExec =>
         exec.copy(child = convertToUnsafeRow(exec.child))
@@ -170,7 +171,8 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
       case exec: SortMergeJoinExec =>
         exec.copy(left = convertToUnsafeRow(exec.left), right = convertToUnsafeRow(exec.right))
       case exec: BroadcastExchangeExec =>
-        logInfo("Meet broadcast join and convert child")
+        exec.copy(child = convertToUnsafeRow(exec.child))
+      case exec: WindowExec =>
         exec.copy(child = convertToUnsafeRow(exec.child))
       case otherPlan =>
         otherPlan
