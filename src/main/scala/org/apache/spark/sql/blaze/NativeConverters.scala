@@ -23,6 +23,7 @@ import org.apache.spark.sql.catalyst.expressions.Floor
 import org.apache.spark.sql.catalyst.expressions.GreaterThan
 import org.apache.spark.sql.catalyst.expressions.GreaterThanOrEqual
 import org.apache.spark.sql.catalyst.expressions.In
+import org.apache.spark.sql.catalyst.expressions.InSet
 import org.apache.spark.sql.catalyst.expressions.IsNotNull
 import org.apache.spark.sql.catalyst.expressions.LessThan
 import org.apache.spark.sql.catalyst.expressions.LessThanOrEqual
@@ -48,6 +49,7 @@ import org.apache.spark.sql.catalyst.expressions.StartsWith
 import org.apache.spark.sql.catalyst.expressions.StringTrim
 import org.apache.spark.sql.catalyst.expressions.StringTrimLeft
 import org.apache.spark.sql.catalyst.expressions.StringTrimRight
+import org.apache.spark.sql.catalyst.expressions.Substring
 import org.apache.spark.sql.catalyst.expressions.Subtract
 import org.apache.spark.sql.catalyst.expressions.Tan
 import org.apache.spark.sql.catalyst.expressions.TruncDate
@@ -72,6 +74,7 @@ import org.apache.spark.sql.types.TimestampType
 import org.blaze.protobuf.ArrowType
 import org.blaze.protobuf.BinaryExprNode
 import org.blaze.protobuf.CaseNode
+import org.apache.spark.unsafe.types.UTF8String
 import org.blaze.protobuf.CastNode
 import org.blaze.protobuf.Column
 import org.blaze.protobuf.EmptyMessage
@@ -262,6 +265,19 @@ object NativeConverters {
               .addAllList(list.map(convertExpr).asJava))
         }
 
+      // in
+      case InSet(value, set) =>
+        buildExprNode {
+          _.setInList(
+            PhysicalInListNode
+              .newBuilder()
+              .setExpr(convertExpr(value))
+              .addAllList(set.map {
+                case utf8string: UTF8String => convertExpr(Literal(utf8string, StringType))
+                case v => convertExpr(Literal.apply(v))
+              }.asJava))
+        }
+
       // unary ops
       case IsNull(child) =>
         buildExprNode {
@@ -353,6 +369,7 @@ object NativeConverters {
         caseExpr.addAllWhenThenExpr(whenThens.asJava)
         elseValue.foreach(el => caseExpr.setElseExpr(convertExpr(el)))
         PhysicalExprNode.newBuilder().setCase(caseExpr).build()
+      case e: Substring => buildScalarFunction(ScalarFunction.Substr, e.children, e.dataType)
       case unsupportedExpression =>
         throw new NotImplementedExpressionConversion(unsupportedExpression)
     }
@@ -423,10 +440,24 @@ object NativeConverters {
               .addAllList(list.map(convertExprLogical).asJava))
         }
 
+      // inset
+      case InSet(value, set) =>
+        buildExprNode {
+          _.setInList(
+            InListNode
+              .newBuilder()
+              .setExpr(convertExprLogical(value))
+              .addAllList(set.map {
+                case utf8string: UTF8String => convertExprLogical(Literal(utf8string, StringType))
+                case v => convertExprLogical(Literal.apply(v))
+              }.asJava))
+        }
+
       // unary ops
       case IsNull(child) =>
         buildExprNode {
-          _.setIsNullExpr(org.blaze.protobuf.IsNull.newBuilder().setExpr(convertExprLogical(child)).build())
+          _.setIsNullExpr(
+            org.blaze.protobuf.IsNull.newBuilder().setExpr(convertExprLogical(child)).build())
         }
       case IsNotNull(child) =>
         buildExprNode {
@@ -515,6 +546,7 @@ object NativeConverters {
         caseExpr.addAllWhenThenExpr(whenThens.asJava)
         elseValue.foreach(el => caseExpr.setElseExpr(convertExprLogical(el)))
         LogicalExprNode.newBuilder().setCase(caseExpr).build()
+      case e: Substring => buildScalarFunction(ScalarFunction.Substr, e.children, e.dataType)
       case unsupportedExpression =>
         throw new NotImplementedExpressionConversion(unsupportedExpression)
     }
