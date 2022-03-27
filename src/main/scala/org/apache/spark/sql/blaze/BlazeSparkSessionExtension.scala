@@ -16,6 +16,7 @@ import org.apache.spark.sql.catalyst.expressions.Attribute
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
+import org.apache.spark.sql.catalyst.plans.physical.HashPartitioning
 import org.apache.spark.sql.execution.{
   CollectLimitExec,
   FileSourceScanExec,
@@ -80,14 +81,13 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
     val ShuffleExchangeExec(outputPartitioning, child, noUserSpecifiedNumPartition) = exec
     logInfo(s"Converting ShuffleExchangeExec: ${exec.simpleStringWithNodeId}")
 
-    val childWithWholeStageCodegen = child match {
+    val wrappedChild = child match {
       case child if NativeSupports.isNative(child) => WholeStageCodegenForBlazeNativeExec(child)
+      case child if exec.outputPartitioning.isInstanceOf[HashPartitioning] =>
+        ConvertToNativeExec(child)
       case child => child
     }
-    ArrowShuffleExchangeExec301(
-      outputPartitioning,
-      childWithWholeStageCodegen,
-      noUserSpecifiedNumPartition)
+    ArrowShuffleExchangeExec301(outputPartitioning, wrappedChild, noUserSpecifiedNumPartition)
   }
 
   private def convertFileSourceScanExec(exec: FileSourceScanExec): SparkPlan = {

@@ -1,11 +1,13 @@
 package org.apache.spark.sql.blaze
 
 import java.io.ByteArrayInputStream
+import java.nio.channels.Channels
+import java.nio.ByteBuffer
 
 import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
 
-import org.apache.arrow.vector.ipc.ArrowStreamReader
+import org.apache.arrow.vector.ipc.SeekableReadChannel
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.SparkException
 import org.apache.spark.sql.catalyst.InternalRow
@@ -14,7 +16,6 @@ import org.apache.spark.sql.execution.adaptive.QueryStageExec
 import org.apache.spark.TaskContext
 import org.apache.spark.sql.execution.metric.SQLMetric
 import org.apache.spark.sql.execution.metric.SQLMetrics
-import org.apache.spark.sql.util2.ArrowUtils2
 import org.apache.spark.SparkContext
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.blaze.execution.ArrowReaderIterator
@@ -22,6 +23,7 @@ import org.apache.spark.SparkEnv
 import org.blaze.protobuf.PartitionId
 import org.blaze.protobuf.PhysicalPlanNode
 import org.blaze.protobuf.TaskDefinition
+import org.blaze.NioSeekableByteChannel
 
 trait NativeSupports {
   def doExecuteNative(): NativeRDD
@@ -78,17 +80,9 @@ object NativeSupports extends Logging {
 
     outputBytesBatches
       .map(outputBytes => {
-        val arrowBytesInputStream = new ByteArrayInputStream(outputBytes)
-        val allocator =
-          ArrowUtils2.rootAllocator.newChildAllocator("readNativeRDDBatches", 0, Long.MaxValue)
-        val arrowReader = new ArrowStreamReader(arrowBytesInputStream, allocator)
-
-        context.addTaskCompletionListener[Unit] { _ =>
-          arrowReader.close()
-          allocator.close()
-          arrowBytesInputStream.close()
-        }
-        new ArrowReaderIterator(arrowReader)
+        val channel =
+          new NioSeekableByteChannel(ByteBuffer.wrap(outputBytes), 0, outputBytes.length)
+        new ArrowReaderIterator(channel, context)
       })
       .foldLeft(Iterator[InternalRow]())(_ ++ _)
   }

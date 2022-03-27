@@ -1,17 +1,13 @@
 package org.apache.spark.sql.blaze.execution
 
-import java.io.OutputStream
 import java.io.RandomAccessFile
 import java.nio.ByteBuffer
-import java.nio.channels.Channels
 import java.nio.channels.SeekableByteChannel
 import java.nio.ByteOrder
+
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
-import org.apache.arrow.vector._
-import org.apache.arrow.vector.dictionary.DictionaryProvider.MapDictionaryProvider
-import org.apache.arrow.vector.ipc.ArrowFileReader
-import org.apache.arrow.vector.ipc.ArrowFileWriter
+
 import org.apache.spark.TaskContext
 import org.apache.spark.internal.Logging
 import org.apache.spark.network.buffer.FileSegmentManagedBuffer
@@ -19,11 +15,8 @@ import org.apache.spark.network.buffer.ManagedBuffer
 import org.apache.spark.network.buffer.NettyManagedBuffer
 import org.apache.spark.network.buffer.NioManagedBuffer
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.types._
-import org.apache.spark.sql.util2.ArrowUtils2
-import org.apache.spark.sql.util2.ArrowWriter
-import org.apache.spark.util.Utils
-import org.blaze.{FileSegmentSeekableByteChannel, NioSeekableByteChannel}
+import org.blaze.FileSegmentSeekableByteChannel
+import org.blaze.NioSeekableByteChannel
 
 object Converters extends Logging {
 
@@ -33,7 +26,8 @@ object Converters extends Logging {
    */
   def readManagedBuffer(data: ManagedBuffer, context: TaskContext): Iterator[InternalRow] = {
     val segmentSeekableByteChannels = readManagedBufferToSegmentByteChannels(data)
-    segmentSeekableByteChannels.toIterator.flatMap(readBatches(_, context))
+    segmentSeekableByteChannels.toIterator.flatMap(channel =>
+      new ArrowReaderIterator(channel, context))
   }
 
   def readManagedBufferToSegmentByteChannelsAsJava(
@@ -78,81 +72,5 @@ object Converters extends Logging {
         throw new UnsupportedOperationException(s"ManagedBuffer of $mb not supported")
     }
     result
-  }
-
-  /**
-   * Read batches from one IPC entity. [IPC-header] [IPC-record-batches] [IPC-footer]
-   */
-  def readBatches(channel: SeekableByteChannel, context: TaskContext): Iterator[InternalRow] = {
-    val allocator = ArrowUtils2.rootAllocator.newChildAllocator(
-      "readBatchesFromManagedBuffer",
-      0,
-      Long.MaxValue)
-    val arrowReader = new ArrowFileReader(channel, allocator)
-
-    context.addTaskCompletionListener[Unit] { _ =>
-      arrowReader.close()
-      allocator.close()
-      channel.close()
-    }
-    new ArrowReaderIterator(arrowReader)
-  }
-
-  /**
-   * Maps Iterator from InternalRow to serialized ArrowRecordBatches. Limit ArrowRecordBatch size
-   * in a batch by setting maxRecordsPerBatch or use 0 to fully consume rowIter.
-   */
-  private[sql] def toBatchIterator(
-      rowIter: Iterator[InternalRow],
-      schema: StructType,
-      maxRecordsPerBatch: Int,
-      timeZoneId: String,
-      context: TaskContext,
-      out: OutputStream): Unit = {
-
-    val arrowSchema = ArrowUtils2.toArrowSchema(schema, timeZoneId)
-    val allocator =
-      ArrowUtils2.rootAllocator.newChildAllocator("toBatchIterator", 0, Long.MaxValue)
-
-    val root = VectorSchemaRoot.create(arrowSchema, allocator)
-    val arrowWriter = ArrowWriter.create(root)
-
-    context.addTaskCompletionListener[Unit] { _ =>
-      root.close()
-      allocator.close()
-    }
-
-    val batches = new Iterator[VectorSchemaRoot] {
-
-      override def hasNext: Boolean = rowIter.hasNext || {
-        root.close()
-        allocator.close()
-        false
-      }
-
-      override def next(): VectorSchemaRoot = {
-        Utils.tryWithSafeFinally {
-          var rowCount = 0
-          while (rowIter.hasNext && (maxRecordsPerBatch <= 0 || rowCount < maxRecordsPerBatch)) {
-            val row = rowIter.next()
-            arrowWriter.write(row)
-            rowCount += 1
-          }
-          arrowWriter.finish()
-        } {
-          arrowWriter.reset()
-        }
-
-        root
-      }
-    }
-
-    val writer = new ArrowFileWriter(root, new MapDictionaryProvider(), Channels.newChannel(out))
-    writer.start()
-    while (batches.hasNext) {
-      batches.next()
-      writer.writeBatch()
-    }
-    writer.end()
   }
 }
