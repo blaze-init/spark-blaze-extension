@@ -24,11 +24,14 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: validator
-          path: /github/home/validator/assembly/spark-tpcds-datagen_2.12-0.1.0-SNAPSHOT-with-dependencies.jar
+          path: validator/assembly/spark-tpcds-datagen_2.12-0.1.0-SNAPSHOT-with-dependencies.jar
 
   build_blaze_lib:
     name: Build Blaze lib
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: blaze-rs
     strategy:
       matrix:
         arch: [amd64]
@@ -74,7 +77,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: libblaze
-          path: /github/home/blaze-rs/target/debug/libblaze.so
+          path: blaze-rs/target/debug/libblaze.so
 
 
   build-self:
@@ -90,6 +93,9 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: libblaze
+      - name: ls
+        run: |
+          - ls -al
       - name: Print the final result
         shell: bash
         run: |
