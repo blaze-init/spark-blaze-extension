@@ -304,7 +304,7 @@
           <skipSources>${scalafmt.skip}</skipSources>
           <skipTestSources>${scalafmt.skip}</skipTestSources>
           <configLocation>dev/.scalafmt.conf</configLocation>
-          <onlyChangedFiles>true</onlyChangedFiles>
+          <onlyChangedFiles>false</onlyChangedFiles>
         </configuration>
         <executions>
           <execution>
