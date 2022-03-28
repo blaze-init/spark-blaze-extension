@@ -1,8 +1,12 @@
 name: Run TPC-DS tests
 
 on:
-  # always trigger
+  push:
+    branches:
+      - master
   pull_request:
+    branches:
+      - master
 
 jobs:
   build_validator:
@@ -121,12 +125,13 @@ jobs:
           sed -i 's/INFO/ERROR/g' conf/log4j.properties
 
   test-it:
-    name: Run TPC-DS test ${{ matrix.query }}
+    name: Run test ${{ matrix.query }} with broadcast ${{ matrix.bc }}
     needs: [build_validator, build_blaze_lib, setup-spark, build-plugin]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
+        bc: [-1, 10485760]
         query: [q1, q2, q3, q4, q5, q6, q7, q8, q9, q10, q11,
                 q12, q13, q14a, q14b, q15, q16, q17, q18, q19, q20,
                 q21, q22, q23a, q23b, q24a, q24b, q25, q26, q27, q28, q29,
@@ -163,4 +168,4 @@ jobs:
       - name: run
         run: |
           export RUST_LOG=ERROR
-          SPARK_HOME=spark dev/run-tpcds-test --data-location dev/tpcds_1g --query-filter ${{ matrix.query }}
+          SPARK_HOME=spark dev/run-tpcds-test --conf spark.sql.autoBroadcastJoinThreshold=${{ matrix.bc }} --data-location dev/tpcds_1g --query-filter ${{ matrix.query }}
