@@ -89,7 +89,7 @@ jobs:
 
   build-self:
     name: Build plugin self
-    needs: [fetch_validator]
+    needs: [fetch_validator, build_blaze_lib]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
