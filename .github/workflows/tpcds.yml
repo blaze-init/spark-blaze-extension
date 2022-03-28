@@ -115,8 +115,8 @@ jobs:
         id: cache-spark
         uses: actions/cache@v3
         with:
-          path: spark
-          key: spark-lib-
+          path: ~/spark
+          key: spark-lib
       - name: Setup Spark dist
         if: steps.cache-spark.outputs.cache-hit != 'true'
         run: |
@@ -131,7 +131,7 @@ jobs:
           ls -al
       - name: run
         run: |
-          dev/run-tpcds-test
+          SPARK_HOME=spark dev/run-tpcds-test
       - name: Print the final result
         shell: bash
         run: |
