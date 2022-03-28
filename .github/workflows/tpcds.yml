@@ -101,8 +101,7 @@ jobs:
       #  with:
       #    name: libblaze
       #- name: ls
-      #  run: |
-      #    ls -al
+      #  run: ls -al
       - uses: actions/checkout@v3
         with:
           fetch-depth: 2
