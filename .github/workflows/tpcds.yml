@@ -5,8 +5,8 @@ on:
   pull_request:
 
 jobs:
-  fetch_validator:
-    name: Fetch Validator
+  build_validator:
+    name: Build Validator
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -30,6 +30,25 @@ jobs:
         with:
           name: validator
           path: validator/target/tpcds-validator_2.12-0.1.0-SNAPSHOT-with-dependencies.jar
+
+  build-plugin:
+    name: Build Plugin
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: JDK setup
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '8'
+          cache: 'maven'
+      - name: Build
+        run: mvn package -DskipTests
+      - name: Upload plugin
+        uses: actions/upload-artifact@v3
+        with:
+          name: plugin
+          path: target/spark-blaze-extension-1.0-SNAPSHOT.jar
 
   build_blaze_lib:
     name: Build blaze-rs
@@ -83,9 +102,27 @@ jobs:
           name: libblaze
           path: blaze-rs/target/debug/libblaze.so
 
+  setup-spark:
+    name: Setup Spark Env
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cache Spark
+        id: cache-spark
+        uses: actions/cache@v3
+        with:
+          path: spark
+          key: spark-lib
+      - name: Setup Spark dist
+        if: steps.cache-spark.outputs.cache-hit != 'true'
+        run: |
+          wget -c "https://mirror.iscas.ac.cn/apache/spark/spark-3.0.3/spark-3.0.3-bin-hadoop2.7.tgz"
+          mkdir -p spark && cd spark && tar -xf "../spark-3.0.3-bin-hadoop2.7.tgz" --strip-component=1
+          mv conf/log4j.properties.template conf/log4j.properties
+          sed -i 's/INFO/ERROR/g' conf/log4j.properties
+
   build-self:
-    name: Build then run TPC-DS tests
-    needs: [fetch_validator, build_blaze_lib]
+    name: Run TPC-DS tests Q1
+    needs: [build_validator, build_blaze_lib, setup-spark, build-plugin]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -97,38 +134,20 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: libblaze
-      - name: JDK setup
-        uses: actions/setup-java@v2
+      - name: Download plugin
+        uses: actions/download-artifact@v3
         with:
-          distribution: 'adopt'
-          java-version: '8'
-          cache: 'maven'
-      - name: Build
-        run: mvn package -DskipTests
+          name: plugin
       - name: Cache Spark
         id: cache-spark
         uses: actions/cache@v3
         with:
-          path: ~/spark
+          path: spark
           key: spark-lib
-      - name: Setup Spark dist
-        if: steps.cache-spark.outputs.cache-hit != 'true'
+      - name: mv jar
         run: |
-          wget -c "https://mirror.iscas.ac.cn/apache/spark/spark-3.0.3/spark-3.0.3-bin-hadoop2.7.tgz"
-          mkdir -p spark && cd spark && tar -xf "../spark-3.0.3-bin-hadoop2.7.tgz" --strip-component=1
-          mv conf/log4j.properties.template conf/log4j.properties
-          sed -i 's/INFO/ERROR/g' conf/log4j.properties
-      - name: ls
-        run: |
-          pwd
-          ls -al
-          cp target/spark-blaze-extension-1.0-SNAPSHOT.jar spark/jars/
+          cp spark-blaze-extension-1.0-SNAPSHOT.jar spark/jars/
       - name: run
         run: |
           export RUST_LOG=ERROR
-          SPARK_HOME=spark dev/run-tpcds-test --data-location dev/tpcds_1g
-      - name: Print the final result
-        shell: bash
-        run: |
-          value=`cat math-homework.txt`
-          echo The result is $value
+          SPARK_HOME=spark dev/run-tpcds-test --data-location dev/tpcds_1g -query-filter q1
