@@ -53,7 +53,7 @@ echo "Using \`spark-submit\` from path: $SPARK_HOME" 1>&2
 exec "${SPARK_HOME}"/bin/spark-submit                                   \
   --class org.apache.spark.sql.execution.benchmark.TPCDSQueryValidator  \
   --jars ../target/spark-blaze-extension-1.0-SNAPSHOT.jar               \
-  --dirver-java-options "-Djava.library.path=$JAVA_HOME:../libblaze.so" \
+  --driver-java-options "-Djava.library.path=$JAVA_HOME:../libblaze.so" \
   --conf spark.sql.extensions=org.apache.spark.sql.blaze.BlazeSparkSessionExtension \
   --conf spark.shuffle.manager=org.apache.spark.sql.blaze.execution.ArrowShuffleManager301 \
   --conf spark.sql.codegen.wholeStage=false                             \
