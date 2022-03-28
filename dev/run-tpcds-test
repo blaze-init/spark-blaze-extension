@@ -42,6 +42,7 @@ find_resource() {
   local built_jar="$_DIR/../${jar_file}"
   if [[ -e "$built_jar" && -e "$libso" ]]; then
     LIBSO=$libso
+    echo $LIBSO
     RESOURCE=$built_jar
   else
     echo "${built_jar} ${libso} not found"

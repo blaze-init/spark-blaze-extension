@@ -32,7 +32,7 @@ jobs:
           path: validator/target/tpcds-validator_2.12-0.1.0-SNAPSHOT-with-dependencies.jar
 
   build_blaze_lib:
-    name: Build Blaze lib
+    name: Build blaze-rs
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -77,10 +77,6 @@ jobs:
           cargo build
         env:
           CARGO_HOME: "/github/home/.cargo"
-      - name: Pwd
-        run: |
-          pwd
-          ls -al
       - name: Upload blaze.so
         uses: actions/upload-artifact@v3
         with:
@@ -88,7 +84,7 @@ jobs:
           path: blaze-rs/target/debug/libblaze.so
 
   build-self:
-    name: Build plugin self
+    name: Build then run TPC-DS tests
     needs: [fetch_validator, build_blaze_lib]
     runs-on: ubuntu-latest
     steps:
@@ -101,8 +97,6 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: libblaze
-      - name: ls
-        run: ls -al
       - name: JDK setup
         uses: actions/setup-java@v2
         with:
