@@ -42,7 +42,6 @@ find_resource() {
   local built_jar="$_DIR/../${jar_file}"
   if [[ -e "$built_jar" && -e "$libso" ]]; then
     LIBSO=$libso
-    echo $LIBSO
     RESOURCE=$built_jar
   else
     echo "${built_jar} ${libso} not found"
@@ -51,11 +50,12 @@ find_resource() {
 }
 
 find_resource
+echo $LIBSO
+export LD_LIBRARY_PATH=${LIBSO}:${LD_LIBRARY_PATH}
 
 echo "Using \`spark-submit\` from path: $SPARK_HOME" 1>&2
 exec "${SPARK_HOME}"/bin/spark-submit                                   \
   --class org.apache.spark.sql.execution.benchmark.TPCDSQueryValidator  \
-  --driver-java-options "-Djava.library.path=${JAVA_HOME}:${LIBSO}" \
   --conf spark.sql.extensions=org.apache.spark.sql.blaze.BlazeSparkSessionExtension \
   --conf spark.shuffle.manager=org.apache.spark.sql.blaze.execution.ArrowShuffleManager301 \
   --conf spark.sql.codegen.wholeStage=false                             \
