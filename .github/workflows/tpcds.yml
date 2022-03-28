@@ -103,6 +103,7 @@ jobs:
       - name: ls
         run: |
           ls -al
+      - uses: actions/checkout@v2
       - name: JDK setup
         uses: actions/setup-java@v2
         with:
