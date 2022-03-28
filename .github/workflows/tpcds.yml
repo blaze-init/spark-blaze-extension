@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Validator
-        uses: actions/checkout@3
+        uses: actions/checkout@v3
         with:
           repository: blaze-init/tpcds-validator
           path: validator
