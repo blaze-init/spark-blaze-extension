@@ -77,7 +77,7 @@ jobs:
           cargo build
         env:
           CARGO_HOME: "/github/home/.cargo"
-          CARGO_TARGET_DIR: "/github/home/blaze-rs/target/debug"
+          CARGO_TARGET_DIR: "blaze-rs/target"
       - name: Pwd
         run: |
           pwd
@@ -102,6 +102,21 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: libblaze
+      - name: ls
+        run: |
+          - ls -al
+      - name: JDK setup
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '8'
+          cache: 'maven'
+      - name: Build
+        run: mvn package -DskipTests
+      - name: Get Spark
+        run: |
+          wget -c "https://mirror.iscas.ac.cn/apache/spark/spark-3.0.3/spark-3.0.3-bin-hadoop2.7.tgz"
+          mkdir -p spark && cd spark && tar -xf "../spark-3.0.3-bin-hadoop2.7.tgz" --strip-component=1
       - name: ls
         run: |
           - ls -al
