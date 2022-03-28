@@ -15,7 +15,7 @@ jobs:
         with:
           repository: blaze-init/tpcds-validator
           path: validator
-      -name: pwd
+      - name: pwd
         run: |
           pwd
       - name: Upload validator
