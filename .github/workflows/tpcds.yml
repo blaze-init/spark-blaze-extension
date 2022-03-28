@@ -17,14 +17,18 @@ jobs:
         with:
           repository: blaze-init/tpcds-validator
           path: validator
-      - name: pwd
-        run: |
-          pwd
+      - name: JDK setup
+        uses: actions/setup-java@v2
+        with:
+          java-version: '8'
+          cache: 'maven'
+      - name: Build
+        run: mvn package -DskipTests
       - name: Upload validator
         uses: actions/upload-artifact@v3
         with:
           name: validator
-          path: validator/assembly/spark-tpcds-datagen_2.12-0.1.0-SNAPSHOT-with-dependencies.jar
+          path: validator/target/tpcds-validator_2.12-0.1.0-SNAPSHOT-with-dependencies.jar
 
   build_blaze_lib:
     name: Build Blaze lib
@@ -73,6 +77,10 @@ jobs:
         env:
           CARGO_HOME: "/github/home/.cargo"
           CARGO_TARGET_DIR: "/github/home/blaze-rs/target/debug"
+      - name: Pwd
+        run: |
+          pwd
+          ls -al
       - name: Upload blaze.so
         uses: actions/upload-artifact@v3
         with:
