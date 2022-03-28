@@ -10,12 +10,13 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./validator
+        working-directory: validator
     steps:
       - name: Checkout Validator
         uses: actions/checkout@v3
         with:
           repository: blaze-init/tpcds-validator
+          path: validator
       - name: pwd
         run: |
           pwd
