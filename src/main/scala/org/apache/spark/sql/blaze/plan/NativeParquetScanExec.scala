@@ -76,7 +76,7 @@ case class NativeParquetScanExec(basedFileScan: FileSourceScanExec)
               nativeFileGroupBuilder.addFiles(
                 PartitionedFile
                   .newBuilder()
-                  .setPath(file.filePath)
+                  .setPath(file.filePath.replaceFirst("^file://", ""))
                   .setSize(file.length)
                   .setLastModifiedNs(0)
                   .setRange(range)
