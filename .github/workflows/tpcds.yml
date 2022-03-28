@@ -125,6 +125,7 @@ jobs:
           cp target/spark-blaze-extension-1.0-SNAPSHOT.jar spark/jars/
       - name: run
         run: |
+          export RUST_LOG=ERROR
           SPARK_HOME=spark dev/run-tpcds-test --data-location dev/tpcds_1g
       - name: Print the final result
         shell: bash
