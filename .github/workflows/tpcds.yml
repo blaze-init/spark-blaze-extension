@@ -5,32 +5,32 @@ on:
   pull_request:
 
 jobs:
-  #fetch_validator:
-  #  name: Fetch Validator
-  #  runs-on: ubuntu-latest
-  #  defaults:
-  #    run:
-  #      working-directory: validator
-  #  steps:
-  #    - name: Checkout Validator
-  #      uses: actions/checkout@v3
-  #      with:
-  #        repository: blaze-init/tpcds-validator
-  #        path: validator
-  #    - name: JDK setup
-  #      uses: actions/setup-java@v2
-  #      with:
-  #        distribution: 'adopt'
-  #        java-version: '8'
-  #        cache: 'maven'
-  #    - name: Build
-  #      run: mvn package -DskipTests
-  #    - name: Upload validator
-  #      uses: actions/upload-artifact@v3
-  #      with:
-  #        name: validator
-  #        path: validator/target/tpcds-validator_2.12-0.1.0-SNAPSHOT-with-dependencies.jar
-#
+  fetch_validator:
+    name: Fetch Validator
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: validator
+    steps:
+      - name: Checkout Validator
+        uses: actions/checkout@v3
+        with:
+          repository: blaze-init/tpcds-validator
+          path: validator
+      - name: JDK setup
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'adopt'
+          java-version: '8'
+          cache: 'maven'
+      - name: Build
+        run: mvn package -DskipTests
+      - name: Upload validator
+        uses: actions/upload-artifact@v3
+        with:
+          name: validator
+          path: validator/target/tpcds-validator_2.12-0.1.0-SNAPSHOT-with-dependencies.jar
+
   #build_blaze_lib:
   #  name: Build Blaze lib
   #  runs-on: ubuntu-latest
@@ -89,13 +89,13 @@ jobs:
 
   build-self:
     name: Build plugin self
-    #needs: [fetch_validator, build_blaze_lib]
+    needs: [fetch_validator]
     runs-on: ubuntu-latest
     steps:
-      #- name: Download validator
-      #  uses: actions/download-artifact@v3
-      #  with:
-      #    name: validator
+      - name: Download validator
+        uses: actions/download-artifact@v3
+        with:
+          name: validator
       #- name: Download lib
       #  uses: actions/download-artifact@v3
       #  with:
@@ -124,16 +124,16 @@ jobs:
         run: |
           wget -c "https://mirror.iscas.ac.cn/apache/spark/spark-3.0.3/spark-3.0.3-bin-hadoop2.7.tgz"
           mkdir -p spark && cd spark && tar -xf "../spark-3.0.3-bin-hadoop2.7.tgz" --strip-component=1
-          pwd
           mv conf/log4j.properties.template conf/log4j.properties
           sed -i 's/INFO/ERROR/g' conf/log4j.properties
-          cat conf/log4j.properties
           export SPARK_HOME=$(pwd)
-          echo $SPARK_HOME
       - name: ls
         run: |
           pwd
           ls -al
+      - name: run
+        run: |
+          dev/run-tpcds-test
       - name: Print the final result
         shell: bash
         run: |
