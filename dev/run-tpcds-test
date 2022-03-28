@@ -38,11 +38,13 @@ parse_args_for_spark_submit "$@"
 # Resolve a jar location for the TPCDS data generator
 find_resource() {
   local jar_file="tpcds-validator_2.12-0.1.0-SNAPSHOT-with-dependencies.jar"
+  local libso="$_DIR/../libblaze.so"
   local built_jar="$_DIR/../${jar_file}"
-  if [ -e "$built_jar" ]; then
+  if [[ -e "$built_jar" && -e "$libso" ]]; then
+    LIBSO=$libso
     RESOURCE=$built_jar
   else
-    echo "${built_jar} not found"
+    echo "${built_jar} ${libso} not found"
     exit 1
   fi
 }
@@ -52,8 +54,7 @@ find_resource
 echo "Using \`spark-submit\` from path: $SPARK_HOME" 1>&2
 exec "${SPARK_HOME}"/bin/spark-submit                                   \
   --class org.apache.spark.sql.execution.benchmark.TPCDSQueryValidator  \
-  --jars ../target/spark-blaze-extension-1.0-SNAPSHOT.jar               \
-  --driver-java-options "-Djava.library.path=$JAVA_HOME:../libblaze.so" \
+  --driver-java-options "-Djava.library.path=${JAVA_HOME}:${LIBSO}" \
   --conf spark.sql.extensions=org.apache.spark.sql.blaze.BlazeSparkSessionExtension \
   --conf spark.shuffle.manager=org.apache.spark.sql.blaze.execution.ArrowShuffleManager301 \
   --conf spark.sql.codegen.wholeStage=false                             \
