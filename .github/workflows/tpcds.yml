@@ -102,7 +102,7 @@ jobs:
           name: libblaze
       - name: ls
         run: |
-          - ls -al
+          ls -al
       - name: JDK setup
         uses: actions/setup-java@v2
         with:
@@ -119,9 +119,11 @@ jobs:
           mv spark/conf/log4j.properties.template spark/conf/log4j.properties
           sed -i 's/INFO/ERROR/g' spark/conf/log4j.properties
           cat spark/conf/log4j.properties
+          export SPARK_HOME="$(cd spark && pwd)"
+          echo $SPARK_HOME
       - name: ls
         run: |
-          - ls -al
+          ls -al
       - name: Print the final result
         shell: bash
         run: |
