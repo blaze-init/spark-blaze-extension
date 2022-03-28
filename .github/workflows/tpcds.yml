@@ -35,7 +35,7 @@ jobs:
     strategy:
       matrix:
         arch: [amd64]
-        rust: [stable]
+        rust: [nightly]
     container:
       image: ${{ matrix.arch }}/rust
       env:
