@@ -102,29 +102,37 @@ jobs:
       #    name: libblaze
       #- name: ls
       #  run: ls -al
-      - uses: actions/checkout@v3
+      #- uses: actions/checkout@v3
+      #  with:
+      #    fetch-depth: 0
+      #- name: JDK setup
+      #  uses: actions/setup-java@v2
+      #  with:
+      #    distribution: 'adopt'
+      #    java-version: '8'
+      #    cache: 'maven'
+      #- name: Build
+      #  run: mvn package -DskipTests
+      - name: Cache Spark
+        id: cache-spark
+        uses: actions/cache@v3
         with:
-          fetch-depth: 0
-      - name: JDK setup
-        uses: actions/setup-java@v2
-        with:
-          distribution: 'adopt'
-          java-version: '8'
-          cache: 'maven'
-      - name: Build
-        run: mvn package -DskipTests
-      - name: Get Spark
+          path: spark
+          key: spark-lib-
+      - name: Setup Spark dist
+        if: steps.cache-spark.outputs.cache-hit != 'true'
         run: |
           wget -c "https://mirror.iscas.ac.cn/apache/spark/spark-3.0.3/spark-3.0.3-bin-hadoop2.7.tgz"
           mkdir -p spark && cd spark && tar -xf "../spark-3.0.3-bin-hadoop2.7.tgz" --strip-component=1
           pwd
-          mv spark/conf/log4j.properties.template spark/conf/log4j.properties
-          sed -i 's/INFO/ERROR/g' spark/conf/log4j.properties
-          cat spark/conf/log4j.properties
-          export SPARK_HOME="$(cd spark && pwd)"
+          mv conf/log4j.properties.template conf/log4j.properties
+          sed -i 's/INFO/ERROR/g' conf/log4j.properties
+          cat conf/log4j.properties
+          export SPARK_HOME=$(pwd)
           echo $SPARK_HOME
       - name: ls
         run: |
+          pwd
           ls -al
       - name: Print the final result
         shell: bash
