@@ -66,6 +66,7 @@ import org.apache.spark.sql.types.DoubleType
 import org.apache.spark.sql.types.FloatType
 import org.apache.spark.sql.types.IntegerType
 import org.apache.spark.sql.types.LongType
+import org.apache.spark.sql.types.NullType
 import org.apache.spark.sql.types.ShortType
 import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.types.StructField
@@ -104,6 +105,7 @@ import org.blaze.protobuf.PhysicalIsNull
 object NativeConverters {
   def convertToScalarType(dt: DataType): PrimitiveScalarType = {
     dt match {
+      case NullType => PrimitiveScalarType.NULL
       case BooleanType => PrimitiveScalarType.BOOL
       case ByteType => PrimitiveScalarType.INT8
       case ShortType => PrimitiveScalarType.INT16
@@ -119,6 +121,7 @@ object NativeConverters {
   def convertDataType(sparkDataType: DataType): ArrowType = {
     val arrowTypeBuilder = ArrowType.newBuilder()
     sparkDataType match {
+      case NullType => arrowTypeBuilder.setNONE(EmptyMessage.getDefaultInstance)
       case BooleanType => arrowTypeBuilder.setBOOL(EmptyMessage.getDefaultInstance)
       case ByteType => arrowTypeBuilder.setINT8(EmptyMessage.getDefaultInstance)
       case ShortType => arrowTypeBuilder.setINT16(EmptyMessage.getDefaultInstance)
@@ -151,6 +154,7 @@ object NativeConverters {
   def convertValue(sparkValue: Any, dataType: DataType): ScalarValue = {
     val scalarValueBuilder = ScalarValue.newBuilder()
     dataType match {
+      case NullType => scalarValueBuilder.setNullValue(PrimitiveScalarType.NULL)
       case BooleanType => scalarValueBuilder.setBoolValue(sparkValue.asInstanceOf[Boolean])
       case ByteType => scalarValueBuilder.setInt8Value(sparkValue.asInstanceOf[Byte])
       case ShortType => scalarValueBuilder.setInt16Value(sparkValue.asInstanceOf[Short])
