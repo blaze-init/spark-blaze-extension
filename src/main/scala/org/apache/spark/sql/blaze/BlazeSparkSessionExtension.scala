@@ -83,8 +83,6 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
 
     val wrappedChild = child match {
       case child if NativeSupports.isNative(child) => WholeStageCodegenForBlazeNativeExec(child)
-      case child if exec.outputPartitioning.isInstanceOf[HashPartitioning] =>
-        ConvertToNativeExec(child)
       case child => child
     }
     ArrowShuffleExchangeExec301(outputPartitioning, wrappedChild, noUserSpecifiedNumPartition)

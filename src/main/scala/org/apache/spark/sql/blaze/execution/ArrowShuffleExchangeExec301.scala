@@ -6,6 +6,7 @@ import java.nio.ByteOrder
 import java.nio.file.Files
 import java.util.Random
 import java.util.function.Supplier
+import java.util.UUID
 
 import scala.collection.JavaConverters._
 import scala.concurrent.Future
@@ -26,6 +27,7 @@ import org.apache.spark.sql.blaze.NativeConverters
 import org.apache.spark.sql.blaze.NativeRDD
 import org.apache.spark.sql.blaze.NativeSupports
 import org.apache.spark.sql.blaze.execution.ArrowShuffleExchangeExec301.canUseNativeShuffleWrite
+import org.apache.spark.sql.blaze.JniBridge
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.errors.attachTree
 import org.apache.spark.sql.catalyst.expressions.Attribute
@@ -89,11 +91,11 @@ case class ArrowShuffleExchangeExec301(
     if (canUseNativeShuffleWrite(inputRDD, outputPartitioning)) {
       ArrowShuffleExchangeExec301.prepareNativeShuffleDependency(
         inputRDD,
+        schema,
         child.output,
         outputPartitioning,
         serializer,
-        metrics,
-        child.metrics) // native shuffle write exec time is written to child node's metric
+        metrics) // native shuffle write exec time is written to child node's metric
     } else {
       ArrowShuffleExchangeExec301.prepareShuffleDependency(
         inputRDD,
@@ -180,28 +182,31 @@ object ArrowShuffleExchangeExec301 {
   def canUseNativeShuffleWrite(
       rdd: RDD[InternalRow],
       outputPartitioning: Partitioning): Boolean = {
-    if (rdd.isInstanceOf[NativeRDD]) {
-      if (outputPartitioning.isInstanceOf[HashPartitioning]) {
-        return true
-      }
+    if (outputPartitioning.isInstanceOf[HashPartitioning]) {
+      return true
     }
     false
   }
 
   def prepareNativeShuffleDependency(
       rdd: RDD[InternalRow],
+      schema: StructType,
       outputAttributes: Seq[Attribute],
       outputPartitioning: Partitioning,
       serializer: Serializer,
-      metrics: Map[String, SQLMetric],
-      childMetrics: Map[String, SQLMetric]): ShuffleDependency[Int, InternalRow, InternalRow] = {
+      metrics: Map[String, SQLMetric]
+  ): ShuffleDependency[Int, InternalRow, InternalRow] = {
 
-    val nativeInputRDD = rdd.asInstanceOf[NativeRDD]
+    val nativeInputRDD = rdd match {
+      case rdd: NativeRDD => rdd
+      case rdd => convertToNativeRDD(rdd, schema)
+    }
+
     val HashPartitioning(expressions, numPartitions) =
       outputPartitioning.asInstanceOf[HashPartitioning]
 
     val nativeMetricNode = MetricNode(
-      Map("blaze_exec_time" -> childMetrics("blazeShuffleWriteExecTime")),
+      Map("blaze_exec_time" -> metrics("blazeShuffleWriteExecTime")),
       Seq(nativeInputRDD.metrics))
 
     val nativeShuffleRDD = new NativeRDD(
@@ -529,6 +534,38 @@ object ArrowShuffleExchangeExec301 {
         new SQLShuffleWriteMetricsReporter(context.taskMetrics().shuffleWriteMetrics, metrics)
       }
     }
+  }
+
+  def convertToNativeRDD(rdd: RDD[InternalRow], schema: StructType): NativeRDD = {
+    val timeZoneId = SparkEnv.get.conf.get(SQLConf.SESSION_LOCAL_TIMEZONE)
+    val emptyMetricNode = MetricNode(Map(), Nil)
+
+    new NativeRDD(
+      rdd.sparkContext,
+      emptyMetricNode,
+      rdd.partitions,
+      rdd.dependencies,
+      (partition, context) => {
+        val inputRowIter = rdd.compute(partition, context)
+        val arrowWriterIterator =
+          new ArrowWriterIterator(inputRowIter, schema, timeZoneId, context)
+        val resourceId = "ConvertToNativeExec" +
+          s":stage=${context.stageId()}" +
+          s":partition=${context.partitionId()}" +
+          s":taskAttempt=${context.taskAttemptId()}" +
+          s":uuid=${UUID.randomUUID().toString}"
+        JniBridge.resourcesMap.put(resourceId, arrowWriterIterator)
+
+        PhysicalPlanNode
+          .newBuilder()
+          .setShuffleReader(
+            ShuffleReaderExecNode
+              .newBuilder()
+              .setSchema(NativeConverters.convertSchema(schema))
+              .setNativeShuffleId(resourceId)
+              .build())
+          .build()
+      })
   }
 }
 
