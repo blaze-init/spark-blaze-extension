@@ -53,7 +53,11 @@ public class JniBridge {
 
   // Native -> JVM
   public static native void callNative(
-      byte[] taskDefinition, MetricNode metrics, Consumer<ByteBuffer> resultHandler);
+      byte[] taskDefinition,
+      long nativeMemory,
+      double memoryFraction,
+      MetricNode metrics,
+      Consumer<ByteBuffer> resultHandler);
 
   // JVM -> Native
   // shim method to FSDataInputStream.read()

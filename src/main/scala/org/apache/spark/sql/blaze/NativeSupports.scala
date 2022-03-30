@@ -1,13 +1,8 @@
 package org.apache.spark.sql.blaze
 
-import java.io.ByteArrayInputStream
-import java.nio.channels.Channels
 import java.nio.ByteBuffer
-
 import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
-
-import org.apache.arrow.vector.ipc.SeekableReadChannel
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.SparkException
 import org.apache.spark.sql.catalyst.InternalRow
@@ -64,19 +59,27 @@ object NativeSupports extends Logging {
 
     // note: consider passing a ByteBufferOutputStream to blaze-rs to avoid copying
     if (SparkEnv.get.conf.getBoolean(
-          "spark.kwai.blaze.dumpNativePlanBeforeExecuting",
+          "spark.blaze.dumpNativePlanBeforeExecuting",
           defaultValue = false)) {
       logInfo(s"Start executing native plan: ${taskDefinition.toString}")
     } else {
       logInfo(s"Start executing native plan")
     }
 
+    val nativeMemory = SparkEnv.get.conf.getLong("spark.executor.memoryOverhead", Long.MaxValue)
+    val memoryFraction = SparkEnv.get.conf.getDouble("spark.blaze.memoryFraction", 0.75)
+
     val outputBytesBatches: ArrayBuffer[Array[Byte]] = ArrayBuffer()
-    JniBridge.callNative(taskDefinition.toByteArray, metrics, byteBuffer => {
-      val outputBytes = new Array[Byte](byteBuffer.limit())
-      byteBuffer.get(outputBytes)
-      outputBytesBatches.append(outputBytes)
-    })
+    JniBridge.callNative(
+      taskDefinition.toByteArray,
+      nativeMemory,
+      memoryFraction,
+      metrics,
+      byteBuffer => {
+        val outputBytes = new Array[Byte](byteBuffer.limit())
+        byteBuffer.get(outputBytes)
+        outputBytesBatches.append(outputBytes)
+      })
 
     outputBytesBatches
       .map(outputBytes => {
