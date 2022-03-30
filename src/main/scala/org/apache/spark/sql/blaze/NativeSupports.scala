@@ -66,7 +66,8 @@ object NativeSupports extends Logging {
       logInfo(s"Start executing native plan")
     }
 
-    val nativeMemory = SparkEnv.get.conf.getLong("spark.executor.memoryOverhead", Long.MaxValue)
+    val nativeMemory = SparkEnv.get.conf
+      .getLong("spark.executor.memoryOverhead", Long.MaxValue) * 1024 * 1024
     val memoryFraction = SparkEnv.get.conf.getDouble("spark.blaze.memoryFraction", 0.75)
 
     val outputBytesBatches: ArrayBuffer[Array[Byte]] = ArrayBuffer()
