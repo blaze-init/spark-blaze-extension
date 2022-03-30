@@ -54,8 +54,11 @@ public class JniBridge {
   // Native -> JVM
   public static native void callNative(
       byte[] taskDefinition,
+      long tokioPoolSize,
+      long batchSize,
       long nativeMemory,
       double memoryFraction,
+      String tmpDirs,
       MetricNode metrics,
       Consumer<ByteBuffer> resultHandler);
 
