@@ -51,7 +51,6 @@ class ArrowWriterIterator(
         writer.close()
       }
     }
-    System.err.println(s"outputStream.size=${outputStream.size()}")
     new NioSeekableByteChannel(outputStream.toByteBuffer, 0, outputStream.size())
   }
 }
