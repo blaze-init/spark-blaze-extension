@@ -1,5 +1,7 @@
 package org.apache.spark.sql.blaze.plan
 
+import java.util.UUID
+
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.blaze.MetricNode
 import org.apache.spark.sql.blaze.NativeConverters
@@ -10,10 +12,12 @@ import org.apache.spark.sql.catalyst.expressions.Alias
 import org.apache.spark.sql.catalyst.expressions.Attribute
 import org.apache.spark.sql.catalyst.expressions.NamedExpression
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.Literal
 import org.apache.spark.sql.execution.AliasAwareOutputPartitioning
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.sql.execution.UnaryExecNode
 import org.apache.spark.sql.execution.metric.SQLMetric
+import org.apache.spark.sql.types.DataTypes
 import org.blaze.protobuf.PhysicalPlanNode
 import org.blaze.protobuf.ProjectionExecNode
 
@@ -65,8 +69,17 @@ case class NativeProjectExec(projectList: Seq[NamedExpression], override val chi
               nativeProjectExecBuilder.addExpr(NativeConverters.convertExpr(otherNamedExpression))
           }
         }
-        for (projectExpr <- projectList) {
-          addNamedExpression(projectExpr)
+
+        if (projectList.nonEmpty) {
+          for (projectExpr <- projectList) {
+            addNamedExpression(projectExpr)
+          }
+        } else {
+          // add a dummy column when projection schema is empty because
+          // native projection requires at least one column
+          nativeProjectExecBuilder.addExprName("__dummy_" + UUID.randomUUID().toString)
+          nativeProjectExecBuilder.addExpr(
+            NativeConverters.convertExpr(Literal.apply(null, DataTypes.BooleanType)))
         }
         PhysicalPlanNode.newBuilder().setProjection(nativeProjectExecBuilder.build()).build()
       })
