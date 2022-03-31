@@ -194,7 +194,8 @@ object ArrowShuffleExchangeExec301 {
       outputAttributes: Seq[Attribute],
       outputPartitioning: Partitioning,
       serializer: Serializer,
-      metrics: Map[String, SQLMetric]): ShuffleDependency[Int, InternalRow, InternalRow] = {
+      metrics: Map[String, SQLMetric]
+  ): ShuffleDependency[Int, InternalRow, InternalRow] = {
 
     val nativeInputRDD = rdd match {
       case rdd: NativeRDD => rdd
