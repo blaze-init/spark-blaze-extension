@@ -1,15 +1,19 @@
 package org.apache.spark.sql.blaze.plan
 
-import org.apache.spark.sql.blaze.NativeConverters
-import org.apache.spark.sql.blaze.NativeRDD
-import org.apache.spark.sql.blaze.NativeSupports
+import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.spark.sql.blaze.{
+  JniBridge,
+  MetricNode,
+  NativeConverters,
+  NativeRDD,
+  NativeSupports
+}
 import org.apache.spark.sql.catalyst.expressions.{And, Attribute}
 import org.apache.spark.sql.execution.FileSourceScanExec
 import org.apache.spark.sql.execution.LeafExecNode
 import org.apache.spark.sql.execution.datasources.FileScanRDD
 import org.apache.spark.Partition
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.blaze.MetricNode
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.plans.physical.Partitioning
 import org.apache.spark.sql.execution.metric.SQLMetric
@@ -20,6 +24,7 @@ import org.blaze.protobuf.PartitionedFile
 import org.blaze.protobuf.PhysicalPlanNode
 import org.blaze.protobuf.FileRange
 import org.blaze.protobuf.Statistics
+
 import scala.collection.JavaConverters._
 
 case class NativeParquetScanExec(basedFileScan: FileSourceScanExec)
@@ -53,7 +58,7 @@ case class NativeParquetScanExec(basedFileScan: FileSourceScanExec)
       nativeMetrics,
       partitions.asInstanceOf[Array[Partition]],
       Nil,
-      (_, _) => {
+      (p, _) => {
         val nativeParquetScanConfBuilder = FileScanExecConf
           .newBuilder()
           .setStatistics(Statistics.getDefaultInstance)
@@ -64,23 +69,47 @@ case class NativeParquetScanExec(basedFileScan: FileSourceScanExec)
           .reduceOption(And)
           .map(f => NativeConverters.convertExprLogical(f))
 
-        partitions.foreach {
-          filePartition =>
+        partitions.zipWithIndex.foreach {
+          case (filePartition, i) =>
             val nativeFileGroupBuilder = FileGroup.newBuilder()
-            filePartition.files.foreach { file =>
-              val range = FileRange
-                .newBuilder()
-                .setStart(file.start)
-                .setEnd(file.start + file.length)
-                .build();
-              nativeFileGroupBuilder.addFiles(
-                PartitionedFile
+            if (i == p.index) {
+              var fs: FileSystem = null
+              filePartition.files.foreach {
+                file =>
+                  if (fs == null) {
+                    fs = JniBridge.getHDFSFileSystem(file.filePath)
+                  }
+                  val fileStatus = fs.getFileStatus(new Path(file.filePath))
+                  val range = FileRange
+                    .newBuilder()
+                    .setStart(file.start)
+                    .setEnd(file.start + file.length)
+                    .build()
+                  nativeFileGroupBuilder.addFiles(
+                    PartitionedFile
+                      .newBuilder()
+                      .setPath(file.filePath.replaceFirst("^file://", ""))
+                      .setSize(fileStatus.getLen)
+                      .setLastModifiedNs(fileStatus.getModificationTime * 1000 * 1000)
+                      .setRange(range)
+                      .build())
+              }
+            } else {
+              filePartition.files.foreach { file =>
+                val range = FileRange
                   .newBuilder()
-                  .setPath(file.filePath.replaceFirst("^file://", ""))
-                  .setSize(file.length)
-                  .setLastModifiedNs(0)
-                  .setRange(range)
-                  .build())
+                  .setStart(file.start)
+                  .setEnd(file.start + file.length)
+                  .build();
+                nativeFileGroupBuilder.addFiles(
+                  PartitionedFile
+                    .newBuilder()
+                    .setPath(file.filePath.replaceFirst("^file://", ""))
+                    .setSize(file.length)
+                    .setLastModifiedNs(0)
+                    .setRange(range)
+                    .build())
+              }
             }
             nativeParquetScanConfBuilder.addFileGroups(nativeFileGroupBuilder.build())
         }
