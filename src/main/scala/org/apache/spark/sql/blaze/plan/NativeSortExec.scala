@@ -1,5 +1,7 @@
 package org.apache.spark.sql.blaze.plan
 
+import scala.collection.JavaConverters._
+
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.blaze.MetricNode
 import org.apache.spark.sql.blaze.NativeConverters
@@ -45,8 +47,20 @@ case class NativeSortExec(
       UnspecifiedDistribution :: Nil
     }
 
-  override def doExecute(): RDD[InternalRow] = doExecuteNative()
+  private val nativeSortExprs = sortOrder.map { sortOrder =>
+    PhysicalExprNode
+      .newBuilder()
+      .setSort(
+        PhysicalSortExprNode
+          .newBuilder()
+          .setExpr(NativeConverters.convertExpr(sortOrder.child))
+          .setAsc(sortOrder.direction == Ascending)
+          .setNullsFirst(sortOrder.nullOrdering == NullsFirst)
+          .build())
+      .build()
+  }
 
+  override def doExecute(): RDD[InternalRow] = doExecuteNative()
   override def doExecuteNative(): NativeRDD = {
     val inputRDD = NativeSupports.executeNative(child)
     val nativeMetrics = MetricNode(
@@ -63,26 +77,12 @@ case class NativeSortExec(
       inputRDD.partitions,
       inputRDD.dependencies,
       (partition, taskContext) => {
-        val nativeSortExecBuilder =
-          SortExecNode.newBuilder().setInput(inputRDD.nativePlan(partition, taskContext))
-
-        sortOrder.foreach { s =>
-          nativeSortExecBuilder.addExpr(
-            PhysicalExprNode
-              .newBuilder()
-              .setSort(
-                PhysicalSortExprNode
-                  .newBuilder()
-                  .setExpr(NativeConverters.convertExpr(s.child))
-                  .setAsc(s.direction == Ascending)
-                  .setNullsFirst(s.nullOrdering == NullsFirst)
-                  .build())
-              .build())
-        }
-        PhysicalPlanNode
+        val nativeSortExec = SortExecNode
           .newBuilder()
-          .setSort(nativeSortExecBuilder.build())
+          .setInput(inputRDD.nativePlan(partition, taskContext))
+          .addAllExpr(nativeSortExprs.asJava)
           .build()
+        PhysicalPlanNode.newBuilder().setSort(nativeSortExec).build()
       })
   }
 }

@@ -556,7 +556,7 @@ object NativeConverters {
     }
   }
 
-  class NotImplementedExpressionConversion(expression: Expression) extends Error {
+  class NotImplementedExpressionConversion(expression: Expression) extends Exception {
     override def getMessage: String =
       s"not implemented expression conversion: ${expression.treeString}"
   }

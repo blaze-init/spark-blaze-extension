@@ -27,6 +27,8 @@ import org.blaze.protobuf.Statistics
 
 import scala.collection.JavaConverters._
 
+import org.blaze.protobuf.LogicalExprNode
+
 case class NativeParquetScanExec(basedFileScan: FileSourceScanExec)
     extends LeafExecNode
     with NativeSupports {
@@ -36,6 +38,11 @@ case class NativeParquetScanExec(basedFileScan: FileSourceScanExec)
 
   override def output: Seq[Attribute] = basedFileScan.output
   override def outputPartitioning: Partitioning = basedFileScan.outputPartitioning
+
+  private val nativeFileSchema = NativeConverters.convertSchema(basedFileScan.relation.schema)
+  private val nativePruningPredicateFilter = basedFileScan.dataFilters
+    .reduceOption(And)
+    .map(NativeConverters.convertExprLogical)
 
   override def doExecute(): RDD[InternalRow] = doExecuteNative()
   override def doExecuteNative(): NativeRDD = {
@@ -62,12 +69,8 @@ case class NativeParquetScanExec(basedFileScan: FileSourceScanExec)
         val nativeParquetScanConfBuilder = FileScanExecConf
           .newBuilder()
           .setStatistics(Statistics.getDefaultInstance)
-          .setSchema(NativeConverters.convertSchema(fileSchema))
+          .setSchema(nativeFileSchema)
           .addAllProjection(projection.map(Integer.valueOf).toSeq.asJava)
-
-        val filter = basedFileScan.dataFilters
-          .reduceOption(And)
-          .map(f => NativeConverters.convertExprLogical(f))
 
         partitions.zipWithIndex.foreach {
           case (filePartition, i) =>
@@ -114,11 +117,13 @@ case class NativeParquetScanExec(basedFileScan: FileSourceScanExec)
             nativeParquetScanConfBuilder.addFileGroups(nativeFileGroupBuilder.build())
         }
 
-        val nativeParquetScanExec = ParquetScanExecNode
+        val nativeParquetScanExecBuilder = ParquetScanExecNode
           .newBuilder()
           .setBaseConf(nativeParquetScanConfBuilder.build())
-        filter.foreach(f => nativeParquetScanExec.setPruningPredicate(f))
-        PhysicalPlanNode.newBuilder().setParquetScan(nativeParquetScanExec.build()).build()
+        if (nativePruningPredicateFilter.isDefined) {
+          nativeParquetScanExecBuilder.setPruningPredicate(nativePruningPredicateFilter.get)
+        }
+        PhysicalPlanNode.newBuilder().setParquetScan(nativeParquetScanExecBuilder.build()).build()
       })
   }
 
