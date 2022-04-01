@@ -1,39 +1,38 @@
 package org.apache.spark.sql.blaze
 
+import scala.collection.mutable
+
 import org.apache.spark.sql.SparkSessionExtensions
 import org.apache.spark.SparkEnv
 import org.apache.spark.internal.Logging
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.blaze.execution.ArrowShuffleExchangeExec301
-import org.apache.spark.sql.blaze.plan.{
-  NativeFilterExec,
-  NativeParquetScanExec,
-  NativeProjectExec,
-  NativeSortExec,
-  NativeUnionExec
-}
+import org.apache.spark.sql.blaze.plan.NativeFilterExec
+import org.apache.spark.sql.blaze.plan.NativeParquetScanExec
+import org.apache.spark.sql.blaze.plan.NativeProjectExec
+import org.apache.spark.sql.blaze.plan.NativeSortExec
+import org.apache.spark.sql.blaze.plan.NativeUnionExec
 import org.apache.spark.sql.catalyst.expressions.Attribute
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
-import org.apache.spark.sql.catalyst.plans.physical.HashPartitioning
-import org.apache.spark.sql.execution.{
-  CollectLimitExec,
-  FileSourceScanExec,
-  FilterExec,
-  ProjectExec,
-  SortExec,
-  SparkPlan,
-  UnaryExecNode,
-  UnionExec
-}
+import org.apache.spark.sql.execution.CollectLimitExec
+import org.apache.spark.sql.execution.FileSourceScanExec
+import org.apache.spark.sql.execution.FilterExec
+import org.apache.spark.sql.execution.ProjectExec
+import org.apache.spark.sql.execution.SortExec
+import org.apache.spark.sql.execution.SparkPlan
+import org.apache.spark.sql.execution.UnaryExecNode
+import org.apache.spark.sql.execution.UnionExec
+import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
 import org.apache.spark.sql.execution.exchange.BroadcastExchangeExec
 import org.apache.spark.sql.execution.exchange.ShuffleExchangeExec
-import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
 import org.apache.spark.sql.execution.joins.SortMergeJoinExec
 import org.apache.spark.sql.execution.metric.SQLMetric
 import org.apache.spark.sql.execution.window.WindowExec
 import org.apache.spark.sql.internal.SQLConf
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.util.ShutdownHookManager
 
 class BlazeSparkSessionExtension extends (SparkSessionExtensions => Unit) with Logging {
   override def apply(extensions: SparkSessionExtensions): Unit = {
@@ -41,11 +40,15 @@ class BlazeSparkSessionExtension extends (SparkSessionExtensions => Unit) with L
     SparkEnv.get.conf.set(SQLConf.ADAPTIVE_EXECUTION_FORCE_APPLY.key, "true")
     logInfo("org.apache.spark.BlazeSparkSessionExtension enabled")
 
-    extensions.injectQueryStagePrepRule(_ => BlazeQueryStagePrepOverrides())
+    extensions.injectQueryStagePrepRule(sparkSession => {
+      BlazeQueryStagePrepOverrides(sparkSession)
+    })
   }
 }
 
-case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
+case class BlazeQueryStagePrepOverrides(sparkSession: SparkSession)
+    extends Rule[SparkPlan]
+    with Logging {
   val ENABLE_OPERATION = "spark.blaze.enable."
   val enableNativeShuffle = SparkEnv.get.conf.getBoolean(ENABLE_OPERATION + "shuffle", true)
   val enableScan = SparkEnv.get.conf.getBoolean(ENABLE_OPERATION + "scan", true)
@@ -54,14 +57,21 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
   val enableSort = SparkEnv.get.conf.getBoolean(ENABLE_OPERATION + "sort", true)
   val enableUnion = SparkEnv.get.conf.getBoolean(ENABLE_OPERATION + "union", true)
 
+  if (!BlazeQueryStagePrepOverrides.printConvertedCountersHookAdded) {
+    BlazeQueryStagePrepOverrides.printConvertedCountersHookAdded = true
+    ShutdownHookManager.addShutdownHook(() =>
+      BlazeQueryStagePrepOverrides.printConvertedCounters())
+  }
+
   override def apply(sparkPlan: SparkPlan): SparkPlan = {
     var sparkPlanTransformed = sparkPlan.transformUp {
-      case exec: ShuffleExchangeExec if enableNativeShuffle => convertShuffleExchangeExec(exec)
-      case exec: FileSourceScanExec if enableScan => convertFileSourceScanExec(exec)
-      case exec: ProjectExec if enableProject => convertProjectExec(exec)
-      case exec: FilterExec if enableFilter => convertFilterExec(exec)
-      case exec: SortExec if enableSort => convertSortExec(exec)
-      case exec: UnionExec if enableUnion => convertUnionExec(exec)
+      case exec: ShuffleExchangeExec if enableNativeShuffle =>
+        tryConvert(exec, convertShuffleExchangeExec)
+      case exec: FileSourceScanExec if enableScan => tryConvert(exec, convertFileSourceScanExec)
+      case exec: ProjectExec if enableProject => tryConvert(exec, convertProjectExec)
+      case exec: FilterExec if enableFilter => tryConvert(exec, convertFilterExec)
+      case exec: SortExec if enableSort => tryConvert(exec, convertSortExec)
+      case exec: UnionExec if enableUnion => tryConvert(exec, convertUnionExec)
       case otherPlan =>
         logInfo(s"Ignore unsupported plan: ${otherPlan.simpleStringWithNodeId}")
         addUnsafeRowConversionIfNecessary(otherPlan)
@@ -76,6 +86,18 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
       .treeString(verbose = true, addSuffix = true, printOperatorId = true)}")
     sparkPlanTransformed
   }
+
+  private def tryConvert[T <: SparkPlan](exec: T, convert: T => SparkPlan): SparkPlan =
+    try {
+      val convertedExec = convert(exec)
+      BlazeQueryStagePrepOverrides.convertedSuccessCounters(exec.getClass.getSimpleName) += 1
+      convertedExec
+    } catch {
+      case e: Exception =>
+        BlazeQueryStagePrepOverrides.convertedFailureCounters(exec.getClass.getSimpleName) += 1
+        logWarning(s"Error converting exec: ${exec.getClass.getSimpleName}: ${e.getMessage}")
+        exec
+    }
 
   private def convertShuffleExchangeExec(exec: ShuffleExchangeExec): SparkPlan = {
     val ShuffleExchangeExec(outputPartitioning, child, noUserSpecifiedNumPartition) = exec
@@ -174,6 +196,34 @@ case class BlazeQueryStagePrepOverrides() extends Rule[SparkPlan] with Logging {
         exec.copy(child = convertToUnsafeRow(exec.child))
       case otherPlan =>
         otherPlan
+    }
+  }
+}
+
+object BlazeQueryStagePrepOverrides extends Logging {
+  val convertedSuccessCounters: mutable.Map[String, Int] = mutable.Map(
+    "FileSourceScanExec" -> 0,
+    "ProjectExec" -> 0,
+    "FilterExec" -> 0,
+    "SortExec" -> 0,
+    "UnionExec" -> 0,
+    "ShuffleExchangeExec" -> 0)
+
+  val convertedFailureCounters: mutable.Map[String, Int] = mutable.Map(
+    "FileSourceScanExec" -> 0,
+    "ProjectExec" -> 0,
+    "FilterExec" -> 0,
+    "SortExec" -> 0,
+    "UnionExec" -> 0,
+    "ShuffleExchangeExec" -> 0)
+
+  private var printConvertedCountersHookAdded = false
+  private def printConvertedCounters(): Unit = {
+    BlazeQueryStagePrepOverrides.convertedSuccessCounters.foreach {
+      case (className, count) => logInfo(s"Succeeded to convert ${count} ${className} plans")
+    }
+    BlazeQueryStagePrepOverrides.convertedFailureCounters.foreach {
+      case (className, count) => logInfo(s"Failed to convert ${count} ${className} plans")
     }
   }
 }

@@ -27,6 +27,8 @@ case class NativeFilterExec(condition: Expression, override val child: SparkPlan
   override def outputPartitioning: Partitioning = child.outputPartitioning
   override def outputOrdering: Seq[SortOrder] = child.outputOrdering
 
+  private val nativeFilterExpr = NativeConverters.convertExpr(condition)
+
   override def doExecute(): RDD[InternalRow] = doExecuteNative()
   override def doExecuteNative(): NativeRDD = {
     val inputRDD = NativeSupports.executeNative(child)
@@ -46,8 +48,8 @@ case class NativeFilterExec(condition: Expression, override val child: SparkPlan
       (partition, taskContext) => {
         val nativeFilterExec = FilterExecNode
           .newBuilder()
-          .setExpr(NativeConverters.convertExpr(condition))
           .setInput(inputRDD.nativePlan(partition, taskContext))
+          .setExpr(nativeFilterExpr)
           .build()
         PhysicalPlanNode.newBuilder().setFilter(nativeFilterExec).build()
       })
