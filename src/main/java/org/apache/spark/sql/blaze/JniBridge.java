@@ -8,6 +8,8 @@ import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.spark.SparkEnv;
@@ -16,9 +18,22 @@ import org.apache.spark.shuffle.ShuffleManager;
 
 public class JniBridge {
   public static final ConcurrentHashMap<String, Object> resourcesMap = new ConcurrentHashMap<>();
+  static final FileSystem defaultFS;
 
   static {
     System.loadLibrary("blaze");
+  }
+
+  static {
+    // init default filesystem
+    try {
+      Configuration conf = SparkHadoopUtil.get().newConfiguration(SparkEnv.get().conf());
+      URI defaultUri = FileSystem.getDefaultUri(conf);
+      conf.setBoolean(String.format("fs.%s.impl.disable.cache", defaultUri.getScheme()), true);
+      defaultFS = FileSystem.get(conf);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   // JVM -> Native
@@ -33,12 +48,7 @@ public class JniBridge {
 
   // JVM -> Native
   public static FileSystem getHDFSFileSystem(String uriString) {
-    try {
-      URI uri = new URI(uriString);
-      return FileSystem.get(uri, SparkHadoopUtil.get().newConfiguration(SparkEnv.get().conf()));
-    } catch (URISyntaxException | IOException e) {
-      throw new RuntimeException(e);
-    }
+    return defaultFS;
   }
 
   // JVM -> Native
