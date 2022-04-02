@@ -47,8 +47,9 @@ class ArrowReaderIterator(channel: SeekableByteChannel, taskContext: TaskContext
   }
 
   private def getCurrentBatchIter: Iterator[InternalRow] = {
-    val columns =
-      root.getFieldVectors.asScala.map(new ArrowColumnVector(_).asInstanceOf[ColumnVector])
+    val columns = root.getFieldVectors.asScala.map {
+      new ArrowColumnVector(_).asInstanceOf[ColumnVector]
+    }
     val batch = new ColumnarBatch(columns.toArray)
     batch.setNumRows(root.getRowCount)
     batch.rowIterator().asScala
