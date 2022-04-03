@@ -1,8 +1,13 @@
 package org.apache.spark.sql.blaze
 
 import java.nio.ByteBuffer
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.locks.ReentrantLock
+
 import scala.annotation.tailrec
-import scala.collection.mutable.ArrayBuffer
+
+import org.apache.commons.collections.buffer.BlockingBuffer
+import org.apache.commons.collections.buffer.BoundedFifoBuffer
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.SparkException
 import org.apache.spark.sql.catalyst.InternalRow
@@ -14,6 +19,7 @@ import org.apache.spark.sql.execution.metric.SQLMetrics
 import org.apache.spark.SparkContext
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.blaze.execution.ArrowReaderIterator
+import org.apache.spark.InterruptibleIterator
 import org.apache.spark.SparkEnv
 import org.blaze.protobuf.PartitionId
 import org.blaze.protobuf.PhysicalPlanNode
@@ -71,28 +77,70 @@ object NativeSupports extends Logging {
     val tokioPoolSize = SparkEnv.get.conf.getLong("spark.blaze.tokioPoolSize", 10)
     val tmpDirs = SparkEnv.get.blockManager.diskBlockManager.localDirsString.mkString(",")
 
-    val outputBytesBatches: ArrayBuffer[Array[Byte]] = ArrayBuffer()
-    JniBridge.callNative(
-      taskDefinition.toByteArray,
-      tokioPoolSize,
-      batchSize,
-      nativeMemory,
-      memoryFraction,
-      tmpDirs,
-      metrics,
-      byteBuffer => {
-        val outputBytes = new Array[Byte](byteBuffer.limit())
-        byteBuffer.get(outputBytes)
-        outputBytesBatches.append(outputBytes)
-      })
+    val batchQueue = new LinkedBlockingQueue[Option[ArrowReaderIterator]](1)
+    val thread = new Thread(() => {
+      try {
+        JniBridge.callNative(
+          taskDefinition.toByteArray,
+          tokioPoolSize,
+          batchSize,
+          nativeMemory,
+          memoryFraction,
+          tmpDirs,
+          metrics,
+          byteBuffer => {
+            val channel = new NioSeekableByteChannel(byteBuffer, 0, byteBuffer.limit())
+            val arrowReaderIterator = new ArrowReaderIterator(channel, context)
+            batchQueue.put(Some(arrowReaderIterator))
+            batchQueue.put(Some(null)) // block until current batch is finished
+          })
+      } finally {
+        batchQueue.put(None) // no more batches
+      }
+    })
+    thread.start()
+    context.addTaskCompletionListener[Unit](_ => {
+      while (thread.isAlive) {
+        batchQueue.clear()
+        Thread.sleep(1)
+      }
+      thread.join()
+    })
 
-    outputBytesBatches
-      .map(outputBytes => {
-        val channel =
-          new NioSeekableByteChannel(ByteBuffer.wrap(outputBytes), 0, outputBytes.length)
-        new ArrowReaderIterator(channel, context)
-      })
-      .foldLeft(Iterator[InternalRow]())(_ ++ _)
+    new Iterator[InternalRow]() {
+      private var currentIterator: Iterator[InternalRow] = Nil.toIterator
+      private var finished = false
+
+      override def hasNext: Boolean = {
+        while (!finished && !currentIterator.hasNext) {
+          if (!nextBatch()) {
+            return false
+          }
+        }
+        !finished
+      }
+
+      override def next(): InternalRow =
+        currentIterator.next()
+
+      private def nextBatch(): Boolean = {
+        while (true) {
+          batchQueue.take() match {
+            case Some(null) =>
+            // take away current null node and do nothing
+            // this will resume native calling thread providing next batch
+            case Some(batch) =>
+              currentIterator = batch
+              return true
+            case None =>
+              currentIterator = Nil.toIterator
+              finished = true
+              return false
+          }
+        }
+        throw new RuntimeException("unreachable")
+      }
+    }
   }
 
   def getDefaultNativeMetrics(sparkContext: SparkContext): Map[String, SQLMetric] =
