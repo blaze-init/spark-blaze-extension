@@ -77,14 +77,12 @@ object NativeSupports extends Logging {
     val tokioPoolSize = SparkEnv.get.conf.getLong("spark.blaze.tokioPoolSize", 10)
     val tmpDirs = SparkEnv.get.blockManager.diskBlockManager.localDirsString.mkString(",")
 
-    case class Batch(arrowReaderIterator: ArrowReaderIterator)
+    case class Ipc(arrowReaderIterator: ArrowReaderIterator)
     case class Processing()
     case class ProcessFinished()
     case class NativeCallFinished()
 
     val batchQueue = new LinkedBlockingQueue[Object](1)
-
-    var threadFinished = false
     val thread = new Thread(() => {
       try {
         JniBridge.callNative(
@@ -98,10 +96,16 @@ object NativeSupports extends Logging {
           byteBuffer => {
             val channel = new NioSeekableByteChannel(byteBuffer, 0, byteBuffer.limit())
             val arrowReaderIterator = new ArrowReaderIterator(channel, context)
-            batchQueue.put(Batch(arrowReaderIterator))
+            batchQueue.put(Ipc(arrowReaderIterator))
             batchQueue.put(Processing)
             batchQueue.put(ProcessFinished)
           })
+      } catch {
+        case _: InterruptedException =>
+          logWarning("Native calling interrupted")
+        case e: Throwable =>
+          logError("Native calling error", e)
+          throw e
       } finally {
         batchQueue.put(NativeCallFinished) // no more batches
       }
@@ -115,28 +119,22 @@ object NativeSupports extends Logging {
       private var currentIterator: Iterator[InternalRow] = Nil.toIterator
       private var hasNextIpc = true
 
-      override def hasNext: Boolean =
-        if (hasNextIpc) {
-          while (!currentIterator.hasNext && hasNextIpc) {
-            nextBatch()
-          }
-          currentIterator.hasNext
-        } else {
-          false
+      override def next(): InternalRow = currentIterator.next()
+      override def hasNext: Boolean = {
+        while (hasNextIpc && !currentIterator.hasNext) {
+          nextIpc()
         }
-
-      override def next(): InternalRow = {
-        currentIterator.next()
+        currentIterator.hasNext
       }
 
-      private def nextBatch(): Unit = if (hasNextIpc) {
+      private def nextIpc(): Unit = if (hasNextIpc) {
         while (true) {
           batchQueue.take() match {
             case Processing | ProcessFinished =>
             // do nothing
 
-            case Batch(batch) =>
-              currentIterator = batch
+            case Ipc(ipcReader) =>
+              currentIterator = ipcReader
               return
 
             case NativeCallFinished =>

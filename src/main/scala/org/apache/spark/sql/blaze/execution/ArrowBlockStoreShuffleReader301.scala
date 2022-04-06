@@ -1,5 +1,7 @@
 package org.apache.spark.sql.blaze.execution
 
+import java.nio.channels.SeekableByteChannel
+
 import org.apache.spark.InterruptibleIterator
 import org.apache.spark.MapOutputTracker
 import org.apache.spark.SparkEnv
@@ -54,10 +56,10 @@ class ArrowBlockStoreShuffleReader301[K, C](
     // Store buffers in JniBridge
     JniBridge.resourcesMap.put(
       NativeRDD.getNativeShuffleId(context, handle.shuffleId),
-      buffers.flatMap {
+      new InterruptibleIterator(context, buffers.flatMap {
         case (blockId, managedBuffer) =>
           Converters.readManagedBufferToSegmentByteChannels(managedBuffer).toIterator
-      })
+      }))
 
     // Create a key/value iterator for each stream
     val recordIter = buffers.flatMap {

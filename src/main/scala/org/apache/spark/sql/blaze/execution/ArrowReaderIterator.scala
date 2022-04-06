@@ -20,7 +20,8 @@ class ArrowReaderIterator(channel: SeekableByteChannel, taskContext: TaskContext
     ArrowUtils2.rootAllocator.newChildAllocator("arrowReaderIterator", 0, Long.MaxValue)
   private val arrowReader = new ArrowFileReader(channel, allocator)
   private val root = arrowReader.getVectorSchemaRoot
-  private var rowIter = getCurrentBatchIter
+  private var rowIter: Iterator[InternalRow] = Nil.toIterator
+  private var hasNextBatch = true
 
   taskContext.addTaskCompletionListener[Unit] { _ =>
     root.close()
@@ -30,20 +31,19 @@ class ArrowReaderIterator(channel: SeekableByteChannel, taskContext: TaskContext
 
   override def next: InternalRow = rowIter.next()
   override def hasNext: Boolean = {
-    var hasNextRecord = rowIter.hasNext
-    var hasNextBatch = true
-
-    while (!hasNextRecord && hasNextBatch) {
-      if (arrowReader.loadNextBatch()) {
-        rowIter = getCurrentBatchIter
-        hasNextBatch = true
-        hasNextRecord = rowIter.hasNext
-      } else {
-        hasNextBatch = false
-        hasNextRecord = false
-      }
+    while (hasNextBatch && !rowIter.hasNext) {
+      nextBatch()
     }
-    hasNextRecord
+    rowIter.hasNext
+  }
+
+  private def nextBatch(): Unit = if (hasNextBatch) {
+    if (arrowReader.loadNextBatch()) {
+      rowIter = getCurrentBatchIter
+    } else {
+      rowIter = Nil.toIterator
+      hasNextBatch = false
+    }
   }
 
   private def getCurrentBatchIter: Iterator[InternalRow] = {

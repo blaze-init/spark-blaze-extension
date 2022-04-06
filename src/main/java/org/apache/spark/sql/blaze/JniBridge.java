@@ -36,6 +36,10 @@ public class JniBridge {
     }
   }
 
+  public static void raiseThrowable(Throwable t) throws Throwable {
+    throw t;
+  }
+
   // JVM -> Native
   public static ClassLoader getContextClassLoader() {
     return Thread.currentThread().getContextClassLoader();
