@@ -30,11 +30,6 @@ object Converters extends Logging {
       new ArrowReaderIterator(channel, context))
   }
 
-  def readManagedBufferToSegmentByteChannelsAsJava(
-      data: ManagedBuffer): java.util.List[SeekableByteChannel] = {
-    readManagedBufferToSegmentByteChannels(data).asJava
-  }
-
   def readManagedBufferToSegmentByteChannels(data: ManagedBuffer): Seq[SeekableByteChannel] = {
     val result: ArrayBuffer[SeekableByteChannel] = ArrayBuffer()
     data match {
