@@ -3,6 +3,7 @@ package org.apache.spark.sql.blaze
 import java.nio.ByteBuffer
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.locks.ReentrantLock
+import java.util.concurrent.TimeUnit
 
 import scala.annotation.tailrec
 
@@ -115,7 +116,7 @@ object NativeSupports extends Logging {
       thread.interrupt()
     })
 
-    new Iterator[InternalRow]() {
+    new InterruptibleIterator[InternalRow](context, new Iterator[InternalRow]() {
       private var currentIterator: Iterator[InternalRow] = Nil.toIterator
       private var hasNextIpc = true
 
@@ -129,8 +130,8 @@ object NativeSupports extends Logging {
 
       private def nextIpc(): Unit = if (hasNextIpc) {
         while (true) {
-          batchQueue.take() match {
-            case Processing | ProcessFinished =>
+          batchQueue.poll(1, TimeUnit.MICROSECONDS) match {
+            case Processing | ProcessFinished | null =>
             // do nothing
 
             case Ipc(ipcReader) =>
@@ -145,7 +146,7 @@ object NativeSupports extends Logging {
         }
         throw new RuntimeException("unreachable")
       }
-    }
+    })
   }
 
   def getDefaultNativeMetrics(sparkContext: SparkContext): Map[String, SQLMetric] =
