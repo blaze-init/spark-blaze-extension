@@ -21,18 +21,24 @@ class ArrowReaderIterator(channel: SeekableByteChannel, taskContext: TaskContext
   private val arrowReader = new ArrowFileReader(channel, allocator)
   private val root = arrowReader.getVectorSchemaRoot
   private var rowIter: Iterator[InternalRow] = Nil.toIterator
+  private var batch: Option[ColumnarBatch] = None
   private var hasNextBatch = true
+  private var closed = false
 
   taskContext.addTaskCompletionListener[Unit] { _ =>
-    root.close()
-    arrowReader.close()
-    allocator.close()
+    close()
   }
 
-  override def next: InternalRow = rowIter.next()
+  override def next: InternalRow = {
+    rowIter.next().copy() // copy to avoid dangling after batch is closed
+  }
+
   override def hasNext: Boolean = {
     while (hasNextBatch && !rowIter.hasNext) {
       nextBatch()
+    }
+    if (!rowIter.hasNext) {
+      close() // free resources once the iterator is completed
     }
     rowIter.hasNext
   }
@@ -50,8 +56,20 @@ class ArrowReaderIterator(channel: SeekableByteChannel, taskContext: TaskContext
     val columns = root.getFieldVectors.asScala.map {
       new ArrowColumnVector(_).asInstanceOf[ColumnVector]
     }
-    val batch = new ColumnarBatch(columns.toArray)
-    batch.setNumRows(root.getRowCount)
-    batch.rowIterator().asScala
+    batch.foreach(_.close())
+    batch = Some(new ColumnarBatch(columns.toArray, root.getRowCount))
+    batch.get.rowIterator().asScala
+  }
+
+  private def close(): Unit = {
+    this.synchronized {
+      if (!closed) {
+        batch.foreach(_.close())
+        root.close()
+        arrowReader.close()
+        allocator.close()
+        closed = true
+      }
+    }
   }
 }
