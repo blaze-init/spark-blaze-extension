@@ -5,8 +5,8 @@ import org.apache.arrow.vector.VectorSchemaRoot
 import org.apache.spark.TaskContext
 import org.apache.spark.sql.blaze.JniBridge
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.util2.ArrowUtils2
-import org.apache.spark.sql.vectorized.{ArrowColumnVector, ColumnVector, ColumnarBatch}
+import org.apache.spark.sql.util2.{ArrowColumnVector, ArrowUtils2}
+import org.apache.spark.sql.vectorized.{ColumnVector, ColumnarBatch}
 
 import scala.collection.JavaConverters._
 
@@ -28,13 +28,11 @@ object FFIHelper {
         val schemaPtr: Long = consumerSchema.memoryAddress
         val arrayPtr: Long = consumerArray.memoryAddress
         val rt = JniBridge.loadNext(iterPtr, schemaPtr, arrayPtr)
-        val root: VectorSchemaRoot =
-          Data.importVectorSchemaRoot(allocator, consumerSchema, provider)
-
         if (rt < 0) {
           return Iterator.empty
         }
-        Data.importIntoVectorSchemaRoot(allocator, consumerArray, root, provider)
+        val root: VectorSchemaRoot =
+          Data.importVectorSchemaRoot(allocator, consumerArray, consumerSchema, provider)
         root
       }
     }
