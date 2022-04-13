@@ -2,13 +2,10 @@ package org.apache.spark.sql.blaze;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -66,15 +63,16 @@ public class JniBridge {
   }
 
   // Native -> JVM
-  public static native void callNative(
+  public static native long callNative(
       byte[] taskDefinition,
       long tokioPoolSize,
       long batchSize,
       long nativeMemory,
       double memoryFraction,
       String tmpDirs,
-      MetricNode metrics,
-      Consumer<ByteBuffer> resultHandler);
+      MetricNode metrics);
+
+  public static native int loadNext(long iter_ptr, long schema_ptr, long array_ptr);
 
   // JVM -> Native
   // shim method to FSDataInputStream.read()

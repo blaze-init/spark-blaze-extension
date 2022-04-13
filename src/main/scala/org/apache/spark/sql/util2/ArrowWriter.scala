@@ -17,12 +17,13 @@
 
 package org.apache.spark.sql.util2
 
-import scala.collection.JavaConverters._
 import org.apache.arrow.vector._
 import org.apache.arrow.vector.complex._
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.SpecializedGetters
 import org.apache.spark.sql.types._
+
+import scala.collection.JavaConverters._
 
 object ArrowWriter {
 
@@ -62,7 +63,8 @@ object ArrowWriter {
       case (MapType(_, _, _), vector: MapVector) =>
         val entryWriter = createFieldWriter(vector.getDataVector).asInstanceOf[StructWriter]
         val keyWriter = createFieldWriter(entryWriter.valueVector.getChild(MapVector.KEY_NAME))
-        val valueWriter = createFieldWriter(entryWriter.valueVector.getChild(MapVector.VALUE_NAME))
+        val valueWriter = createFieldWriter(
+          entryWriter.valueVector.getChild(MapVector.VALUE_NAME))
         new MapWriter(vector, keyWriter, valueWriter)
       case (StructType(_), vector: StructVector) =>
         val children = (0 until vector.size()).map { ordinal =>
@@ -77,9 +79,10 @@ object ArrowWriter {
 
 class ArrowWriter(val root: VectorSchemaRoot, fields: Array[ArrowFieldWriter]) {
 
-  def schema: StructType = StructType(fields.map { f =>
-    StructField(f.name, f.dataType, f.nullable)
-  })
+  def schema: StructType =
+    StructType(fields.map { f =>
+      StructField(f.name, f.dataType, f.nullable)
+    })
 
   private var count: Int = 0
 
@@ -213,10 +216,8 @@ private[sql] class DoubleWriter(val valueVector: Float8Vector) extends ArrowFiel
   }
 }
 
-private[sql] class DecimalWriter(
-    val valueVector: DecimalVector,
-    precision: Int,
-    scale: Int) extends ArrowFieldWriter {
+private[sql] class DecimalWriter(val valueVector: DecimalVector, precision: Int, scale: Int)
+    extends ArrowFieldWriter {
 
   override def setNull(): Unit = {
     valueVector.setNull(count)
@@ -246,8 +247,7 @@ private[sql] class StringWriter(val valueVector: VarCharVector) extends ArrowFie
   }
 }
 
-private[sql] class BinaryWriter(
-    val valueVector: VarBinaryVector) extends ArrowFieldWriter {
+private[sql] class BinaryWriter(val valueVector: VarBinaryVector) extends ArrowFieldWriter {
 
   override def setNull(): Unit = {
     valueVector.setNull(count)
@@ -270,8 +270,8 @@ private[sql] class DateWriter(val valueVector: DateDayVector) extends ArrowField
   }
 }
 
-private[sql] class TimestampWriter(
-    val valueVector: TimeStampMicroTZVector) extends ArrowFieldWriter {
+private[sql] class TimestampWriter(val valueVector: TimeStampMicroTZVector)
+    extends ArrowFieldWriter {
 
   override def setNull(): Unit = {
     valueVector.setNull(count)
@@ -282,12 +282,10 @@ private[sql] class TimestampWriter(
   }
 }
 
-private[sql] class ArrayWriter(
-    val valueVector: ListVector,
-    val elementWriter: ArrowFieldWriter) extends ArrowFieldWriter {
+private[sql] class ArrayWriter(val valueVector: ListVector, val elementWriter: ArrowFieldWriter)
+    extends ArrowFieldWriter {
 
-  override def setNull(): Unit = {
-  }
+  override def setNull(): Unit = {}
 
   override def setValue(input: SpecializedGetters, ordinal: Int): Unit = {
     val array = input.getArray(ordinal)
@@ -311,9 +309,8 @@ private[sql] class ArrayWriter(
   }
 }
 
-private[sql] class StructWriter(
-    val valueVector: StructVector,
-    children: Array[ArrowFieldWriter]) extends ArrowFieldWriter {
+private[sql] class StructWriter(val valueVector: StructVector, children: Array[ArrowFieldWriter])
+    extends ArrowFieldWriter {
 
   override def setNull(): Unit = {
     var i = 0
@@ -349,7 +346,8 @@ private[sql] class StructWriter(
 private[sql] class MapWriter(
     val valueVector: MapVector,
     val keyWriter: ArrowFieldWriter,
-    val valueWriter: ArrowFieldWriter) extends ArrowFieldWriter {
+    val valueWriter: ArrowFieldWriter)
+    extends ArrowFieldWriter {
 
   override def setNull(): Unit = {}
 
@@ -359,7 +357,7 @@ private[sql] class MapWriter(
     val keys = map.keyArray()
     val values = map.valueArray()
     var i = 0
-    while (i <  map.numElements()) {
+    while (i < map.numElements()) {
       keyWriter.write(keys, i)
       valueWriter.write(values, i)
       i += 1
