@@ -1,14 +1,6 @@
 package org.apache.spark.sql.blaze
 
-import java.nio.ByteBuffer
-import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.locks.ReentrantLock
-import java.util.concurrent.TimeUnit
-
 import scala.annotation.tailrec
-
-import org.apache.commons.collections.buffer.BlockingBuffer
-import org.apache.commons.collections.buffer.BoundedFifoBuffer
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.SparkException
 import org.apache.spark.sql.catalyst.InternalRow
@@ -19,13 +11,11 @@ import org.apache.spark.sql.execution.metric.SQLMetric
 import org.apache.spark.sql.execution.metric.SQLMetrics
 import org.apache.spark.SparkContext
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.blaze.execution.ArrowReaderIterator
-import org.apache.spark.InterruptibleIterator
 import org.apache.spark.SparkEnv
+import org.blaze.FFIHelper
 import org.blaze.protobuf.PartitionId
 import org.blaze.protobuf.PhysicalPlanNode
 import org.blaze.protobuf.TaskDefinition
-import org.blaze.NioSeekableByteChannel
 
 trait NativeSupports {
   def doExecuteNative(): NativeRDD
@@ -74,79 +64,25 @@ object NativeSupports extends Logging {
     val nativeMemory = SparkEnv.get.conf
       .getLong("spark.executor.memoryOverhead", Long.MaxValue) * 1024 * 1024
     val memoryFraction = SparkEnv.get.conf.getDouble("spark.blaze.memoryFraction", 0.75)
-    val batchSize = SparkEnv.get.conf.getLong("spark.blaze.batchSize", 10240)
+    val batchSize = SparkEnv.get.conf.getLong("spark.blaze.batchSize", 16384)
     val tokioPoolSize = SparkEnv.get.conf.getLong("spark.blaze.tokioPoolSize", 10)
     val tmpDirs = SparkEnv.get.blockManager.diskBlockManager.localDirsString.mkString(",")
 
-    case class Ipc(arrowReaderIterator: ArrowReaderIterator)
-    case class Processing()
-    case class ProcessFinished()
-    case class NativeCallFinished()
+    val iterPtr = JniBridge.callNative(
+      taskDefinition.toByteArray,
+      tokioPoolSize,
+      batchSize,
+      nativeMemory,
+      memoryFraction,
+      tmpDirs,
+      metrics)
 
-    val batchQueue = new LinkedBlockingQueue[Object](1)
-    val thread = new Thread(() => {
-      try {
-        JniBridge.callNative(
-          taskDefinition.toByteArray,
-          tokioPoolSize,
-          batchSize,
-          nativeMemory,
-          memoryFraction,
-          tmpDirs,
-          metrics,
-          byteBuffer => {
-            val channel = new NioSeekableByteChannel(byteBuffer, 0, byteBuffer.limit())
-            val arrowReaderIterator = new ArrowReaderIterator(channel, context)
-            batchQueue.put(Ipc(arrowReaderIterator))
-            batchQueue.put(Processing)
-            batchQueue.put(ProcessFinished)
-          })
-      } catch {
-        case _: InterruptedException =>
-          logWarning("Native calling interrupted")
-        case e: Throwable =>
-          logError("Native calling error", e)
-          throw e
-      } finally {
-        batchQueue.put(NativeCallFinished) // no more batches
-      }
-    })
-    thread.start()
-    context.addTaskCompletionListener[Unit](_ => {
-      thread.interrupt()
-    })
+    if (iterPtr < 0) {
+      logWarning("Error occurred while call physical_plan.execute")
+      return Iterator.empty
+    }
 
-    new InterruptibleIterator[InternalRow](context, new Iterator[InternalRow]() {
-      private var currentIterator: Iterator[InternalRow] = Nil.toIterator
-      private var hasNextIpc = true
-
-      override def next(): InternalRow = currentIterator.next()
-      override def hasNext: Boolean = {
-        while (hasNextIpc && !currentIterator.hasNext) {
-          nextIpc()
-        }
-        currentIterator.hasNext
-      }
-
-      private def nextIpc(): Unit = if (hasNextIpc) {
-        while (true) {
-          batchQueue.poll(1, TimeUnit.MICROSECONDS) match {
-            case Processing | ProcessFinished | null =>
-            // do nothing
-
-            case Ipc(ipcReader) =>
-              currentIterator = ipcReader
-              return
-
-            case NativeCallFinished =>
-              currentIterator = Nil.toIterator
-              hasNextIpc = false
-              return
-          }
-        }
-        throw new RuntimeException("unreachable")
-      }
-    })
+    FFIHelper.fromBlazeIter(iterPtr, context)
   }
 
   def getDefaultNativeMetrics(sparkContext: SparkContext): Map[String, SQLMetric] =

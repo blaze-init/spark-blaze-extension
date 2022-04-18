@@ -98,6 +98,11 @@
       <artifactId>arrow-compression</artifactId>
       <version>${arrow.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.apache.arrow</groupId>
+      <artifactId>arrow-c-data</artifactId>
+      <version>${arrow.version}</version>
+    </dependency>
 
     <!-- protobuf deps -->
     <dependency>
@@ -128,6 +133,11 @@
                 <relocation>
                   <pattern>org.apache.arrow</pattern>
                   <shadedPattern>blaze.org.apache.arrow</shadedPattern>
+                  <!-- exclude arrow-c-data to maintain its JNI accessibility -->
+                  <excludes>
+                    <exclude>org.apache.arrow.c.*</exclude>
+                    <exclude>org.apache.arrow.c.jni.*</exclude>
+                  </excludes>
                 </relocation>
                 <relocation>
                   <pattern>io.netty</pattern>
