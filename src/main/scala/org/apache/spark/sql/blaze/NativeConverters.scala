@@ -1,6 +1,7 @@
 package org.apache.spark.sql.blaze
 
 import scala.collection.JavaConverters._
+
 import org.apache.spark.sql.catalyst.expressions.{
   Abs,
   Acos,
@@ -57,6 +58,13 @@ import org.apache.spark.sql.catalyst.expressions.{
   TruncDate,
   Upper
 }
+import org.apache.spark.sql.catalyst.plans.FullOuter
+import org.apache.spark.sql.catalyst.plans.Inner
+import org.apache.spark.sql.catalyst.plans.JoinType
+import org.apache.spark.sql.catalyst.plans.LeftAnti
+import org.apache.spark.sql.catalyst.plans.LeftOuter
+import org.apache.spark.sql.catalyst.plans.LeftSemi
+import org.apache.spark.sql.catalyst.plans.RightOuter
 import org.apache.spark.sql.types.BinaryType
 import org.apache.spark.sql.types.BooleanType
 import org.apache.spark.sql.types.ByteType
@@ -564,6 +572,18 @@ object NativeConverters {
       case e: Coalesce => buildScalarFunction(ScalarFunction.Coalesce, e.children, e.dataType)
       case unsupportedExpression =>
         throw new NotImplementedExpressionConversion(unsupportedExpression)
+    }
+  }
+
+  def convertJoinType(joinType: JoinType): org.blaze.protobuf.JoinType = {
+    joinType match {
+      case Inner => org.blaze.protobuf.JoinType.INNER
+      case LeftOuter => org.blaze.protobuf.JoinType.LEFT
+      case RightOuter => org.blaze.protobuf.JoinType.RIGHT
+      case FullOuter => org.blaze.protobuf.JoinType.FULL
+      case LeftSemi => org.blaze.protobuf.JoinType.SEMI
+      case LeftAnti => org.blaze.protobuf.JoinType.ANTI
+      case _ => throw new NotImplementedError(s"unsupported join type: ${joinType}")
     }
   }
 
