@@ -51,6 +51,8 @@ case class BlazeQueryStagePrepOverrides(sparkSession: SparkSession)
     extends Rule[SparkPlan]
     with Logging {
   val ENABLE_OPERATION = "spark.blaze.enable."
+  val enableWholeStage =
+    SparkEnv.get.conf.getBoolean(ENABLE_OPERATION + "wholestagewrapper", true)
   val enableNativeShuffle = SparkEnv.get.conf.getBoolean(ENABLE_OPERATION + "shuffle", true)
   val enableScan = SparkEnv.get.conf.getBoolean(ENABLE_OPERATION + "scan", true)
   val enableProject = SparkEnv.get.conf.getBoolean(ENABLE_OPERATION + "project", true)
@@ -75,9 +77,20 @@ case class BlazeQueryStagePrepOverrides(sparkSession: SparkSession)
       case exec: SortExec if enableSort => tryConvert(exec, convertSortExec)
       case exec: UnionExec if enableUnion => tryConvert(exec, convertUnionExec)
       case exec: SortMergeJoinExec if enableSmj => tryConvert(exec, convertSortMergeJoinExec)
-      case otherPlan =>
-        logInfo(s"Ignore unsupported plan: ${otherPlan.simpleStringWithNodeId}")
-        addUnsafeRowConversionIfNecessary(otherPlan)
+      case exec @ (
+            _: SortExec | _: CollectLimitExec | _: BroadcastExchangeExec | _: SortMergeJoinExec |
+            _: WindowExec
+          ) =>
+        log.info(s"Ignore unsupported exec: ${exec.simpleStringWithNodeId()}")
+        exec.mapChildren(child => convertToUnsafeRow(addWholeStageWrapper(child)))
+
+      case exec if !NativeSupports.isNative(exec) =>
+        log.info(s"Ignore unsupported exec: ${exec.simpleStringWithNodeId()}")
+        exec.mapChildren(child => addWholeStageWrapper(child))
+
+      case exec =>
+        log.info(s"Ignore unsupported exec: ${exec.simpleStringWithNodeId()}")
+        exec
     }
 
     // wrap with ConvertUnsafeRowExec if top exec is native
@@ -106,10 +119,7 @@ case class BlazeQueryStagePrepOverrides(sparkSession: SparkSession)
     val ShuffleExchangeExec(outputPartitioning, child, noUserSpecifiedNumPartition) = exec
     logInfo(s"Converting ShuffleExchangeExec: ${exec.simpleStringWithNodeId}")
 
-    val wrappedChild = child match {
-      case child if NativeSupports.isNative(child) => WholeStageCodegenForBlazeNativeExec(child)
-      case child => child
-    }
+    val wrappedChild = addWholeStageWrapper(child)
     ArrowShuffleExchangeExec301(outputPartitioning, wrappedChild, noUserSpecifiedNumPartition)
   }
 
@@ -201,26 +211,16 @@ case class BlazeQueryStagePrepOverrides(sparkSession: SparkSession)
 
   private def convertToUnsafeRow(exec: SparkPlan): SparkPlan = {
     exec match {
-      case exec if NativeSupports.isNative(exec) =>
-        ConvertToUnsafeRowExec(WholeStageCodegenForBlazeNativeExec(exec))
+      case exec if NativeSupports.isNative(exec) => ConvertToUnsafeRowExec(exec)
       case exec => exec
     }
   }
 
-  private def addUnsafeRowConversionIfNecessary(exec: SparkPlan): SparkPlan = {
+  private def addWholeStageWrapper(exec: SparkPlan): SparkPlan = {
     exec match {
-      case exec: SortExec =>
-        exec.copy(child = convertToUnsafeRow(exec.child))
-      case exec: CollectLimitExec =>
-        exec.copy(child = convertToUnsafeRow(exec.child))
-      case exec: BroadcastExchangeExec =>
-        exec.copy(child = convertToUnsafeRow(exec.child))
-      case exec: SortMergeJoinExec =>
-        exec.copy(left = convertToUnsafeRow(exec.left), right = convertToUnsafeRow(exec.right))
-      case exec: WindowExec =>
-        exec.copy(child = convertToUnsafeRow(exec.child))
-      case otherPlan =>
-        otherPlan
+      case exec if enableWholeStage && NativeSupports.isNative(exec) =>
+        WholeStageCodegenForBlazeNativeExec(exec)
+      case exec => exec
     }
   }
 }
