@@ -32,6 +32,7 @@ import org.apache.spark.sql.execution.metric.SQLMetric
 import org.apache.spark.sql.execution.window.WindowExec
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.blaze.plan.NativeSortMergeJoinExec
 import org.apache.spark.util.ShutdownHookManager
 
 class BlazeSparkSessionExtension extends (SparkSessionExtensions => Unit) with Logging {
@@ -56,6 +57,7 @@ case class BlazeQueryStagePrepOverrides(sparkSession: SparkSession)
   val enableFilter = SparkEnv.get.conf.getBoolean(ENABLE_OPERATION + "filter", true)
   val enableSort = SparkEnv.get.conf.getBoolean(ENABLE_OPERATION + "sort", true)
   val enableUnion = SparkEnv.get.conf.getBoolean(ENABLE_OPERATION + "union", true)
+  val enableSmj = SparkEnv.get.conf.getBoolean(ENABLE_OPERATION + "sortmergejoin", true)
 
   if (!BlazeQueryStagePrepOverrides.printConvertedCountersHookAdded) {
     BlazeQueryStagePrepOverrides.printConvertedCountersHookAdded = true
@@ -72,6 +74,7 @@ case class BlazeQueryStagePrepOverrides(sparkSession: SparkSession)
       case exec: FilterExec if enableFilter => tryConvert(exec, convertFilterExec)
       case exec: SortExec if enableSort => tryConvert(exec, convertSortExec)
       case exec: UnionExec if enableUnion => tryConvert(exec, convertUnionExec)
+      case exec: SortMergeJoinExec if enableSmj => tryConvert(exec, convertSortMergeJoinExec)
       case otherPlan =>
         logInfo(s"Ignore unsupported plan: ${otherPlan.simpleStringWithNodeId}")
         addUnsafeRowConversionIfNecessary(otherPlan)
@@ -174,6 +177,28 @@ case class BlazeQueryStagePrepOverrides(sparkSession: SparkSession)
       exec
   }
 
+  def convertSortMergeJoinExec(exec: SortMergeJoinExec): SparkPlan = {
+    exec match {
+      case SortMergeJoinExec(leftKeys, rightKeys, joinType, condition, left, right, isSkewJoin) =>
+        if (condition.isEmpty &&
+            NativeSupports.isNative(left) &&
+            NativeSupports.isNative(right)) {
+          logInfo(s"Converting SortMergeJoinExec: ${exec.simpleStringWithNodeId()}")
+          return NativeSortMergeJoinExec(
+            left,
+            right,
+            leftKeys,
+            rightKeys,
+            exec.output,
+            exec.outputPartitioning,
+            exec.outputOrdering,
+            joinType)
+        }
+    }
+    logInfo(s"Ignoring SortMergeJoinExec: ${exec.simpleStringWithNodeId()}")
+    exec
+  }
+
   private def convertToUnsafeRow(exec: SparkPlan): SparkPlan = {
     exec match {
       case exec if NativeSupports.isNative(exec) =>
@@ -188,10 +213,10 @@ case class BlazeQueryStagePrepOverrides(sparkSession: SparkSession)
         exec.copy(child = convertToUnsafeRow(exec.child))
       case exec: CollectLimitExec =>
         exec.copy(child = convertToUnsafeRow(exec.child))
-      case exec: SortMergeJoinExec =>
-        exec.copy(left = convertToUnsafeRow(exec.left), right = convertToUnsafeRow(exec.right))
       case exec: BroadcastExchangeExec =>
         exec.copy(child = convertToUnsafeRow(exec.child))
+      case exec: SortMergeJoinExec =>
+        exec.copy(left = convertToUnsafeRow(exec.left), right = convertToUnsafeRow(exec.right))
       case exec: WindowExec =>
         exec.copy(child = convertToUnsafeRow(exec.child))
       case otherPlan =>
@@ -207,6 +232,7 @@ object BlazeQueryStagePrepOverrides extends Logging {
     "FilterExec" -> 0,
     "SortExec" -> 0,
     "UnionExec" -> 0,
+    "SortMergeJoinExec" -> 0,
     "ShuffleExchangeExec" -> 0)
 
   val convertedFailureCounters: mutable.Map[String, Int] = mutable.Map(
@@ -215,6 +241,7 @@ object BlazeQueryStagePrepOverrides extends Logging {
     "FilterExec" -> 0,
     "SortExec" -> 0,
     "UnionExec" -> 0,
+    "SortMergeJoinExec" -> 0,
     "ShuffleExchangeExec" -> 0)
 
   private var printConvertedCountersHookAdded = false
