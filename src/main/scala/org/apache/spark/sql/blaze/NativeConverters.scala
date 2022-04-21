@@ -393,7 +393,7 @@ object NativeConverters {
         buildScalarFunction(ScalarFunction.Substr, newChildren, e.dataType)
       case e: Coalesce => buildScalarFunction(ScalarFunction.Coalesce, e.children, e.dataType)
       case unsupportedExpression =>
-        throw new NotImplementedExpressionConversion(unsupportedExpression)
+        throw new NotImplementedError(s"unsupported exception: ${unsupportedExpression}")
     }
   }
 
@@ -571,7 +571,7 @@ object NativeConverters {
       case e: Substring => buildScalarFunction(ScalarFunction.Substr, e.children, e.dataType)
       case e: Coalesce => buildScalarFunction(ScalarFunction.Coalesce, e.children, e.dataType)
       case unsupportedExpression =>
-        throw new NotImplementedExpressionConversion(unsupportedExpression)
+        throw new NotImplementedError(s"unsupported exception: ${unsupportedExpression}")
     }
   }
 
@@ -585,10 +585,5 @@ object NativeConverters {
       case LeftAnti => org.blaze.protobuf.JoinType.ANTI
       case _ => throw new NotImplementedError(s"unsupported join type: ${joinType}")
     }
-  }
-
-  class NotImplementedExpressionConversion(expression: Expression) extends Exception {
-    override def getMessage: String =
-      s"not implemented expression conversion: ${expression.treeString}"
   }
 }
