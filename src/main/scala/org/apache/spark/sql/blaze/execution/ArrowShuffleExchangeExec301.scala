@@ -484,7 +484,7 @@ object ArrowShuffleExchangeExec301 {
           context)
 
         // get partition lengths from shuffle write output index file
-        val indexFileTmp = iterator.toSeq.last.getString(1)
+        val indexFileTmp = iterator.toSeq.head.getString(1)
         val dataFileTmp = indexFileTmp.replace(".index.tmp", ".data.tmp")
         var offset = 0L
         val partitionLengths = Files
