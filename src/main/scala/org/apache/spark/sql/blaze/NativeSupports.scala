@@ -1,6 +1,7 @@
 package org.apache.spark.sql.blaze
 
 import scala.annotation.tailrec
+
 import org.apache.spark.sql.execution.SparkPlan
 import org.apache.spark.SparkException
 import org.apache.spark.sql.catalyst.InternalRow
@@ -12,7 +13,6 @@ import org.apache.spark.sql.execution.metric.SQLMetrics
 import org.apache.spark.SparkContext
 import org.apache.spark.internal.Logging
 import org.apache.spark.SparkEnv
-import org.blaze.FFIHelper
 import org.blaze.protobuf.PartitionId
 import org.blaze.protobuf.PhysicalPlanNode
 import org.blaze.protobuf.TaskDefinition

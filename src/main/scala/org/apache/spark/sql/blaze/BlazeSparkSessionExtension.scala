@@ -33,6 +33,7 @@ import org.apache.spark.sql.execution.window.WindowExec
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.blaze.plan.NativeSortMergeJoinExec
+import org.apache.spark.sql.execution.aggregate.HashAggregateExec
 import org.apache.spark.util.ShutdownHookManager
 
 class BlazeSparkSessionExtension extends (SparkSessionExtensions => Unit) with Logging {
@@ -79,7 +80,7 @@ case class BlazeQueryStagePrepOverrides(sparkSession: SparkSession)
       case exec: SortMergeJoinExec if enableSmj => tryConvert(exec, convertSortMergeJoinExec)
       case exec @ (
             _: SortExec | _: CollectLimitExec | _: BroadcastExchangeExec | _: SortMergeJoinExec |
-            _: WindowExec
+            _: WindowExec | _: HashAggregateExec
           ) =>
         log.info(s"Ignore unsupported exec: ${exec.simpleStringWithNodeId()}")
         exec.mapChildren(child => convertToUnsafeRow(addWholeStageWrapper(child)))

@@ -1,14 +1,19 @@
-package org.blaze
-
-import org.apache.arrow.c.{ArrowArray, ArrowSchema, CDataDictionaryProvider, Data}
-import org.apache.arrow.vector.VectorSchemaRoot
-import org.apache.spark.TaskContext
-import org.apache.spark.sql.blaze.JniBridge
-import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.util2.{ArrowColumnVector, ArrowUtils2}
-import org.apache.spark.sql.vectorized.{ColumnVector, ColumnarBatch}
+package org.apache.spark.sql.blaze
 
 import scala.collection.JavaConverters._
+
+import org.apache.arrow.c.ArrowArray
+import org.apache.arrow.c.ArrowSchema
+import org.apache.arrow.c.CDataDictionaryProvider
+import org.apache.arrow.c.Data
+import org.apache.arrow.vector.VectorSchemaRoot
+import org.apache.spark.TaskContext
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.util2.ArrowColumnVector
+import org.apache.spark.sql.util2.ArrowUtils2
+import org.apache.spark.sql.vectorized.ColumnarBatch
+import org.apache.spark.sql.vectorized.ColumnVector
+import org.apache.spark.util.CompletionIterator
 
 object FFIHelper {
   def tryWithResource[R <: AutoCloseable, T](createResource: => R)(f: R => T): T = {
@@ -43,7 +48,10 @@ object FFIHelper {
       }.toArray
       val batch = new ColumnarBatch(columns)
       batch.setNumRows(root.getRowCount)
-      batch.rowIterator().asScala
+
+      CompletionIterator[InternalRow, Iterator[InternalRow]](batch.rowIterator().asScala, {
+        batch.close()
+      })
     }
 
     val firstIter = rootAsRowIter()
@@ -59,7 +67,7 @@ object FFIHelper {
       override def hasNext: Boolean = rowIter.hasNext || {
         if (!finished) {
           rowIter = nextBatch()
-          !rowIter.isEmpty
+          rowIter.nonEmpty
         } else {
           root.close()
           allocator.close()
