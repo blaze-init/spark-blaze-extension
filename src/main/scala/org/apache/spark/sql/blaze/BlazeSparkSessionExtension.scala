@@ -109,7 +109,7 @@ case class BlazeQueryStagePrepOverrides(sparkSession: SparkSession)
       BlazeQueryStagePrepOverrides.convertedSuccessCounters(exec.getClass.getSimpleName) += 1
       convertedExec
     } catch {
-      case e: Exception =>
+      case e @ (_: NotImplementedError | _: Exception) =>
         BlazeQueryStagePrepOverrides.convertedFailureCounters(exec.getClass.getSimpleName) += 1
         logWarning(s"Error converting exec: ${exec.getClass.getSimpleName}: ${e.getMessage}")
         exec

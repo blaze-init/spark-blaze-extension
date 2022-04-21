@@ -38,8 +38,36 @@ case class NativeSortMergeJoinExec(
   override lazy val metrics: Map[String, SQLMetric] =
     NativeSupports.getDefaultNativeMetrics(sparkContext)
 
-  override def doExecute(): RDD[InternalRow] = doExecuteNative()
+  private val nativeJoinOn = leftKeys.zip(rightKeys).map {
+    case (leftKey, rightKey) =>
+      val leftColumn = NativeConverters.convertExpr(leftKey).getColumn match {
+        case column if column.getName.isEmpty =>
+          throw new NotImplementedError(s"SMJ leftKey is not column: ${leftKey}")
+        case column => column
+      }
+      val rightColumn = NativeConverters.convertExpr(rightKey).getColumn match {
+        case column if column.getName.isEmpty =>
+          throw new NotImplementedError(s"SMJ leftKey is not column: ${rightKey}")
+        case column => column
+      }
+      JoinOn
+        .newBuilder()
+        .setLeft(leftColumn)
+        .setRight(rightColumn)
+        .build()
+  }
 
+  private val nativeSortOptions = nativeJoinOn.map(_ => {
+    SortOptions
+      .newBuilder()
+      .setAsc(true)
+      .setNullsFirst(true)
+      .build()
+  })
+
+  private val nativeJoinType = NativeConverters.convertJoinType(joinType)
+
+  override def doExecute(): RDD[InternalRow] = doExecuteNative()
   override def doExecuteNative(): NativeRDD = {
     val leftRDD = NativeSupports.executeNative(left)
     val rightRDD = NativeSupports.executeNative(right)
@@ -70,31 +98,13 @@ case class NativeSortMergeJoinExec(
         val leftChild = leftRDD.nativePlan(partition, taskContext)
         val rightChild = rightRDD.nativePlan(partition, taskContext)
 
-        val joinOn = leftKeys.zip(rightKeys).map {
-          case (leftKey, rightKey) =>
-            val leftColumn = NativeConverters.convertExpr(leftKey).getColumn
-            val rightColumn = NativeConverters.convertExpr(rightKey).getColumn
-            JoinOn
-              .newBuilder()
-              .setLeft(leftColumn)
-              .setRight(rightColumn)
-              .build()
-        }
-        val sortOptions = joinOn.map(
-          _ =>
-            SortOptions
-              .newBuilder()
-              .setAsc(true)
-              .setNullsFirst(true)
-              .build())
-
         val sortMergeJoinExec = SortMergeJoinExecNode
           .newBuilder()
           .setLeft(leftChild)
           .setRight(rightChild)
-          .setJoinType(NativeConverters.convertJoinType(joinType))
-          .addAllOn(joinOn.asJava)
-          .addAllSortOptions(sortOptions.asJava)
+          .setJoinType(nativeJoinType)
+          .addAllOn(nativeJoinOn.asJava)
+          .addAllSortOptions(nativeSortOptions.asJava)
           .setNullEqualsNull(false)
         PhysicalPlanNode.newBuilder().setSortMergeJoin(sortMergeJoinExec).build()
       })
