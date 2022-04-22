@@ -22,12 +22,23 @@ object FFIHelper {
     finally resource.close()
   }
 
+  def rootAsRowIter(root: VectorSchemaRoot): Iterator[InternalRow] = {
+    val columns = root.getFieldVectors.asScala.map { vector =>
+      new ArrowColumnVector(vector).asInstanceOf[ColumnVector]
+    }.toArray
+    val batch = new ColumnarBatch(columns)
+    batch.setNumRows(root.getRowCount)
+
+    CompletionIterator[InternalRow, Iterator[InternalRow]](batch.rowIterator().asScala, {
+      batch.close()
+    })
+  }
+
   def fromBlazeIter(iterPtr: Long, context: TaskContext): Iterator[InternalRow] = {
     val allocator =
       ArrowUtils2.rootAllocator.newChildAllocator("fromBLZIterator", 0, Long.MaxValue)
     val provider = new CDataDictionaryProvider()
 
-    var finished = false
     val root = tryWithResource(ArrowSchema.allocateNew(allocator)) { consumerSchema =>
       tryWithResource(ArrowArray.allocateNew(allocator)) { consumerArray =>
         val schemaPtr: Long = consumerSchema.memoryAddress
@@ -42,22 +53,8 @@ object FFIHelper {
       }
     }
 
-    def rootAsRowIter(): Iterator[InternalRow] = {
-      val columns = root.getFieldVectors.asScala.map { vector =>
-        new ArrowColumnVector(vector).asInstanceOf[ColumnVector]
-      }.toArray
-      val batch = new ColumnarBatch(columns)
-      batch.setNumRows(root.getRowCount)
-
-      CompletionIterator[InternalRow, Iterator[InternalRow]](batch.rowIterator().asScala, {
-        batch.close()
-      })
-    }
-
-    val firstIter = rootAsRowIter()
-
     new Iterator[InternalRow] {
-      private var rowIter = firstIter
+      private var rowIter = rootAsRowIter(root)
 
       context.addTaskCompletionListener[Unit] { _ =>
         root.close()
@@ -65,14 +62,8 @@ object FFIHelper {
       }
 
       override def hasNext: Boolean = rowIter.hasNext || {
-        if (!finished) {
-          rowIter = nextBatch()
-          rowIter.nonEmpty
-        } else {
-          root.close()
-          allocator.close()
-          false
-        }
+        rowIter = nextBatch()
+        rowIter.nonEmpty
       }
 
       override def next(): InternalRow = rowIter.next()
@@ -84,12 +75,11 @@ object FFIHelper {
             val arrayPtr: Long = consumerArray.memoryAddress
             val rt = JniBridge.loadNext(iterPtr, schemaPtr, arrayPtr)
             if (rt < 0) {
-              finished = true
               return Iterator.empty
             }
 
             Data.importIntoVectorSchemaRoot(allocator, consumerArray, root, provider)
-            rootAsRowIter()
+            rootAsRowIter(root)
           }
         }
       }

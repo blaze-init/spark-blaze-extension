@@ -27,7 +27,7 @@ object Converters extends Logging {
   def readManagedBuffer(data: ManagedBuffer, context: TaskContext): Iterator[InternalRow] = {
     val segmentSeekableByteChannels = readManagedBufferToSegmentByteChannels(data)
     segmentSeekableByteChannels.toIterator.flatMap(channel =>
-      new ArrowReaderIterator(channel, context))
+      new ArrowReaderIterator(channel, context).result)
   }
 
   def readManagedBufferToSegmentByteChannels(data: ManagedBuffer): Seq[SeekableByteChannel] = {
